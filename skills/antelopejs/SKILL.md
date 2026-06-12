@@ -1,0 +1,85 @@
+---
+name: antelopejs
+description: Core mental model and router for AntelopeJS. Use whenever working in an AntelopeJS project or interface/module repo, or when the user mentions AntelopeJS. Routes to consume-interface, author-interface, and cli skills, and to the interface contract resolver.
+---
+
+# AntelopeJS
+
+AntelopeJS is a modular Node.js framework. Read this overview first, then jump to the specialized skill for the task.
+
+## The model in one screen
+
+- **Core + CLI (`ajs`)** — a small runtime that loads modules, wires their interfaces together, and manages the dev/build/start lifecycle. Users rarely edit the core; they run it via `ajs`.
+- **Modules** — independent units of functionality. A module may import **interfaces**, never another module's files. Its *only* links to the rest of the project are the interface proxy points it attaches to — nothing else crosses the boundary.
+- **Interfaces** — **versioned contracts**, published as `@antelopejs/interface-<name>` packages. An interface package contains the **proxy points** (`InterfaceFunction`, `EventProxy`, `RegisteringProxy`, …) that actually cross to the provider, the **types** that pass across — and often substantial **client-side code** built over those proxies. It is not just empty slots: the `database` interface is mostly chainable `Table`/`Query`/`Datum` classes that assemble a query *in the caller's process*, crossing the boundary only when `.run()` invokes the underlying `RunQuery` proxy. The contract is the package's whole TypeScript surface (`exports` subpaths + `.d.ts`), versioned with semver git tags. **Interfaces may depend on other interfaces** (e.g. `data-api` builds on `api`, `core`, and `database-decorators`) — that composition is allowed and normal. What's forbidden is modules reaching into each other.
+
+The golden rule: **the only connections between a module and the rest of the project go through interface proxy points** — never a direct `import` of another module's file. Everything else follows from that.
+
+### How a connection is made — and unmade
+
+Every module-to-module link is built in exactly two steps:
+
+1. **The interface defines proxy points.** `InterfaceFunction`/`EventProxy`/`RegisteringProxy` objects are empty attachment slots — and the *only* things that cross to the provider. The package may wrap them in classes and helpers that run consumer-side (like `Query.run()` calling `RunQuery`), but that code is not the boundary; the proxy is.
+2. **The implementing module requires the interface and attaches its implementation onto those proxies** via `ImplementInterface`. Consumers require the same interface and call through the proxies; the proxy queues calls until an implementation is attached.
+
+```ts
+// 1. Interface package declares the proxy point (no behavior, just the slot)
+export const GetUser = InterfaceFunction<(id: string) => User>();
+
+// 2. Implementing module requires the interface and attaches onto it
+import * as UserInterface from "@antelopejs/interface-user";
+ImplementInterface(UserInterface, { GetUser: (id) => db.find(id) });
+
+// Consumer requires the same interface and calls through the proxy
+const user = await GetUser("42");   // queued until an implementation attaches
+```
+
+Because every connection lives on a known proxy and nothing else crosses the boundary, the core can **detach and reattach a module's links freely** — that's exactly what makes a module safe to hot-reload (or unload) at runtime: tear down its proxy attachments, swap the code, reattach. A direct module-to-module `import` would be an invisible, non-detachable link and would break this — which is why it's forbidden.
+
+**Caveat — proxy calls are inherently asynchronous.** Since a call may be queued until a provider attaches, nothing that crosses the boundary can return synchronously. This rules out an interface function that *both* depends on a provider's state (e.g. its module config) *and* is callable synchronously — for instance from the top level of a consumer module at load time. Anything that needs a live, configured implementation must be `await`ed; it can't be read inline as a plain value during module load.
+
+## Where to go next
+
+| Task | Skill |
+| --- | --- |
+| Build a module / app *on* AntelopeJS, import & call an interface, resolve unresolved imports | **ajs-consume-interface** |
+| Define a new interface, add/version a contract, decide a semver bump, ship breaking changes | **ajs-author-interface** |
+| Run, build, scaffold, test via the CLI (`ajs project …`, `ajs module …`) | **ajs-cli** |
+
+## Interface contract resolver (use this instead of guessing)
+
+Contracts are versioned data, not memorized facts. Never invent an interface's methods — look them up:
+
+```bash
+# List interfaces published on npm (plus any installed locally)
+node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" list
+
+# Inspect one: export subpaths, exported symbols, available versions
+node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" show database
+
+# Print the full TSDoc'd contract for a subpath (the source of truth)
+node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" contract database query
+
+# A specific published version, and the list of available versions
+node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" show database@0.1.0
+node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" versions database
+```
+
+The resolver reads contracts straight from the published `@antelopejs/interface-*` packages on
+**npm** — no local checkout needed; it fetches and caches the package on demand. `<name>` accepts
+`core`, `interface-core`, or `@antelopejs/interface-core`, optionally `@<version>` (default: the
+`latest` dist-tag). A locally-present copy (the project's `node_modules/@antelopejs`, or
+`$AJS_INTERFACES_DIR`) is used as an offline fast-path when available. Flags: `--remote` (force a
+fresh npm fetch), `--offline` (local only). `npm` honours `.npmrc`, so private scopes resolve too.
+
+It also resolves **CMS interfaces**, which are exposed as subpaths of a host package — use the
+`cms:<name>` shorthand or the full import path, e.g.
+`… show cms:cms-base`, `… contract cms:cms-base form`, or
+`… show @antelopejs-private/cms-automation/interfaces/cms-automation`. (For the CMS itself, see
+the separate **antelopejs-cms** plugin.)
+
+When asked anything about a specific interface's API (what methods exist, a signature, which version has X), run `contract`/`show` and answer from the output — do not rely on training data, which goes stale as contracts version.
+
+## Conventions in AntelopeJS repos
+
+These repos enforce: **pnpm only** (never npm/yarn), English-only identifiers, no `switch`/`case` (use maps), self-documenting code with TSDoc only on public APIs, functions ≤ ~40 lines, index files re-export with `export * from './module'`. Match them when editing.
