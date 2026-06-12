@@ -61,7 +61,9 @@ const CMS_EXTRA_HOSTS = (process.env.AJS_CMS_PACKAGES || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
-const CMS_DIRS = (process.env.AJS_CMS_DIR || join(homedir(), "projects", "antelopejs", "cms"))
+// Local CMS source roots to scan for host packages: $AJS_CMS_DIR (colon-separated) plus the
+// current directory. Defaults to just the cwd — point AJS_CMS_DIR at a CMS checkout to scan it.
+const CMS_DIRS = (process.env.AJS_CMS_DIR || "")
   .split(":")
   .filter(Boolean)
   .concat(process.cwd());
@@ -118,7 +120,7 @@ function discoveryRoots() {
     roots.push(...process.env.AJS_INTERFACES_DIR.split(":").filter(Boolean));
   }
   roots.push(join(process.cwd(), "node_modules", "@antelopejs"));
-  roots.push(join(homedir(), "projects", "antelopejs", "interfaces"));
+  // Point AJS_INTERFACES_DIR at a local interfaces checkout for an offline fast-path.
   return roots.filter(isDirectorySafe);
 }
 
@@ -182,7 +184,13 @@ function discoverCmsHosts() {
       }
       return; // a package root doesn't nest other CMS hosts — stop descending
     }
-    for (const e of readdirSync(dir)) {
+    let entries;
+    try {
+      entries = readdirSync(dir); // unreadable dir (EACCES on a system path, etc.) — skip it
+    } catch {
+      return;
+    }
+    for (const e of entries) {
       if (skip.has(e) || e.startsWith(".")) continue;
       walk(join(dir, e), depth - 1);
     }

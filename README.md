@@ -63,13 +63,13 @@ node scripts/resolve-interface.mjs show cms-base                     # bare name
 
 `list` includes a CMS section. CMS host packages default to `@antelopejs-private/cms`; add more
 with `AJS_CMS_PACKAGES` (comma-separated), and point `AJS_CMS_DIR` (colon-separated) at local
-CMS source roots to scan (default `~/projects/antelopejs/cms`). Because resolution goes through
+CMS source roots to scan (default: the current directory). Because resolution goes through
 `npm`, the private `@antelopejs-private` registry is fetched per your `.npmrc`.
 
 **Where it reads from.** The npm registry is the source of truth. A locally-present copy — the
-open project's `node_modules/@antelopejs`, `$AJS_INTERFACES_DIR` (colon-separated), a
-`~/projects/antelopejs/interfaces` checkout, or a discovered CMS host package — is used as an
-**offline fast-path** when present and no version is pinned, but is never required. Flags:
+open project's `node_modules/@antelopejs`, a checkout under `$AJS_INTERFACES_DIR`
+(colon-separated), or a discovered CMS host package — is used as an **offline fast-path** when
+present and no version is pinned, but is never required. Flags:
 `--remote` forces a fresh npm fetch (skip the local copy), `--offline` forbids the network
 (local only), `--json` for machine output. The tarball cache lives at
 `~/.cache/ajs-interface-resolver` (override with `AJS_RESOLVER_CACHE`).
