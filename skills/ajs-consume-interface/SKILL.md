@@ -22,7 +22,7 @@ Each `import "@antelopejs/interface-<name>/<sub>"` line in the output is a liter
 
 ## Importing an interface in a module
 
-1. Add the interface package to the module's `dependencies` (`pnpm add @antelopejs/interface-<name>`). Consuming an interface is just depending on its package — there is no separate `antelopeJs.imports` manifest field.
+1. Add the interface package to the module's `dependencies` (`pnpm add @antelopejs/interface-<name>`). Consuming an interface is just depending on its package.
 2. Import the symbols and call them, exactly as `contract`/`show` reported. Calls made before a provider attaches are queued by the proxy layer, so you don't need defensive null checks for "not ready yet" — but for the same reason every proxy call is **async**: `await` it, never read it as a synchronous value at module-load top level.
 
 ```ts
