@@ -54,6 +54,6 @@ The interfaces registry defaults to `github.com/AntelopeJS/interfaces.git`; a no
 
 ## Common flags
 
-`-p, --project <path>` (or `ANTELOPEJS_PROJECT`) targets a project dir; `--verbose[=channels]` raises log level (`ANTELOPEJS_VERBOSE`); `-e, --env` selects an environment. When a command misbehaves, re-run with `--verbose` before guessing.
+`--verbose[=channels]` is the top-level option (`ANTELOPEJS_VERBOSE`) that raises log level. `-p, --project <path>` (or `ANTELOPEJS_PROJECT`, targets a project dir) and `-e, --env` (selects an environment) are options on the individual commands that accept them, not a single global namespace. When a command misbehaves, re-run with `--verbose` before guessing.
 
 If `ajs` warns it is outdated, the CLI ships as the global `@antelopejs/core` package — update it with your global package manager. The warning is harmless otherwise.

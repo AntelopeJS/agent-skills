@@ -10,8 +10,8 @@
 //      package is one interface; its `exports` subpaths are its parts.
 //   2. CMS-style interfaces — exposed as SUBPATHS of a host package, e.g.
 //      `@antelopejs-private/cms/interfaces/cms-base`, a module's
-//      `@antelopejs-private/cms-automation/interfaces/cms-automation`, or
-//      cms-audit's singular `@antelopejs-private/cms-audit/interface`. One host
+//      `@antelopejs-private/cms-automation/interfaces/cms-automation`, or a
+//      module's singular `@antelopejs-private/mqtt/interface`. One host
 //      package hosts many interface "groups" under `dist/interfaces/<group>/`.
 //
 // Source of truth is the registry (npm) — no local checkout required. Published
@@ -24,7 +24,7 @@
 //   database | interface-database | @antelopejs/interface-database     (kind 1)
 //   @antelopejs-private/cms/interfaces/cms-base                         (kind 2, full)
 //   @antelopejs-private/cms/interfaces/cms-base/form                    (kind 2, a part)
-//   @antelopejs-private/cms-audit/interface                            (kind 2, singular)
+//   @antelopejs-private/mqtt/interface                                 (kind 2, singular)
 //   cms:cms-base   ==  @antelopejs-private/cms/interfaces/cms-base      (shorthand)
 //   cms-base       (bare — resolved against known CMS host packages)
 // Any of the above may carry `@<version>` on the package (default: dist-tag latest).
@@ -542,7 +542,12 @@ function cmsTarget(entry, group, focusSub) {
 // singular `…/interface`.
 function parseCmsSpec(input) {
   let spec = input;
-  if (spec.startsWith("cms:")) spec = `${CMS_DEFAULT_HOST}/interfaces/${spec.slice(4)}`;
+  if (spec.startsWith("cms:")) {
+    // The shorthand carries any `@version` on the group token (cms:cms-base@1.2.3);
+    // move it onto the host package, where the version actually belongs.
+    const { rawName: group, version } = splitSpec(spec.slice(4));
+    spec = `${CMS_DEFAULT_HOST}${version ? `@${version}` : ""}/interfaces/${group}`;
+  }
   const at = spec.indexOf("/interfaces/");
   if (at > 0) return { pkgSpec: spec.slice(0, at), interfaceSub: spec.slice(at + 1) };
   if (spec.endsWith("/interface")) {
@@ -557,17 +562,21 @@ function groupForSub(entry, interfaceSub) {
   return { name, sub: `interfaces/${name}` };
 }
 
-// CMS interface by bare name, resolved against known host packages. Local hosts
-// first (offline-friendly), then the default host + `@antelopejs-private/<name>`.
-function resolveCmsBare(name) {
-  for (const [, entry] of discoverCmsHosts()) {
-    const g = cmsGroups(entry).find((g) => g.name === name);
-    if (g) return cmsTarget(entry, g);
+// CMS interface by bare name, resolved against known host packages. When no version
+// is pinned, local hosts first (offline-friendly); then the default host +
+// `@antelopejs-private/<name>`, honouring a pinned version.
+function resolveCmsBare(name, version) {
+  // A locally-discovered host is one fixed version — only usable when nothing is pinned.
+  if (!version) {
+    for (const [, entry] of discoverCmsHosts()) {
+      const g = cmsGroups(entry).find((g) => g.name === name);
+      if (g) return cmsTarget(entry, g);
+    }
   }
   const hosts = [CMS_DEFAULT_HOST, `${CMS_HOST_SCOPE}${name}`, ...CMS_EXTRA_HOSTS];
   for (const host of hosts) {
     try {
-      const entry = resolvePackageEntry(host, undefined, findLocalPackage);
+      const entry = resolvePackageEntry(host, version, findLocalPackage);
       const g = cmsGroups(entry).find((g) => g.name === name);
       if (g) return cmsTarget(entry, g);
     } catch {
@@ -608,7 +617,7 @@ function resolveTarget(input) {
   if (OFFLINE) {
     const local = discoverInterfaces().get(fullName);
     if (local) return pkgTarget(local);
-    const cmsHit = resolveCmsBare(rawName);
+    const cmsHit = resolveCmsBare(rawName, version);
     if (cmsHit) return cmsHit;
     const known = [...discoverInterfaces().keys()].map(shortName).join(", ");
     fail(`'${input}' is not available locally (offline). Locally present: ${known || "(none)"}.`);
@@ -621,7 +630,7 @@ function resolveTarget(input) {
     return pkgTarget({ dir, pkg: readJson(join(dir, "package.json")), remote: true });
   } catch (interfaceErr) {
     // Not a published interface package — try CMS host resolution by bare name.
-    const cmsHit = resolveCmsBare(rawName);
+    const cmsHit = resolveCmsBare(rawName, version);
     if (cmsHit) return cmsHit;
     fail(`could not resolve '${input}': ${npmErrText(interfaceErr)}`);
   }

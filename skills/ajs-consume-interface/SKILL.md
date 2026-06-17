@@ -70,7 +70,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" implementations <name
 
 Modules are declared in `antelope.config.ts` (`modules: Record<string, …>`). Per-module knobs that matter when consuming interfaces:
 
-- `importOverrides` — force a specific source/provider for an interface (`{ interface, source, id }`), e.g. to bind a consumer to a particular implementation when several exist.
+- `importOverrides` — force a specific source/provider for an interface, either as a list of `{ interface, source, id }` entries or a `{ interface: source }` shorthand map; e.g. to bind a consumer to a particular implementation when several exist.
 - `disabledExports` — stop a module from providing an interface it would otherwise export.
 - `config` — module-specific configuration passed at load.
 
