@@ -23,7 +23,7 @@ Each `import "@antelopejs/interface-<name>/<sub>"` line in the output is a liter
 ## Importing an interface in a module
 
 1. Add the interface package to the module's `dependencies` (`pnpm add @antelopejs/interface-<name>`). Consuming an interface is just depending on its package.
-2. Import the symbols and call them, exactly as `contract`/`show` reported. Calls made before a provider attaches are queued by the proxy layer, so you don't need defensive null checks for "not ready yet" — but for the same reason every proxy call is **async**: `await` it, never read it as a synchronous value at module-load top level.
+2. Import the symbols and call them, exactly as `contract`/`show` reported. Calls made before a provider attaches are queued by the proxy layer, so you don't need defensive null checks for "not ready yet" — but for the same reason every proxy call is **async**: `await` it, never read it as a synchronous value at module-load top level. (Queuing assumes a provider *will* attach. A regular dependency with no provider never reaches this state — startup fails first; see *Resolving unresolved imports*. For a dependency that may legitimately have no provider, see *Optional interfaces*.)
 
 ```ts
 import { Table } from "@antelopejs/interface-database/selection";
@@ -54,7 +54,7 @@ The proxy layer attaches the implementation on module load and detaches on unloa
 
 ## Resolving unresolved imports
 
-When `ajs` reports unresolved imports, a module needs an interface that no loaded module provides. Run:
+An interface in a module's `dependencies` is **required**: if no loaded module provides it, the runtime aborts startup with `Unresolved interface dependencies: …` rather than running in a half-wired state. When `ajs` reports unresolved imports, a module needs an interface that no loaded module provides. Run:
 
 ```bash
 ajs project modules install    # detects unresolved imports, lists providers, prompts you to pick one
@@ -65,6 +65,30 @@ ajs project modules install    # detects unresolved imports, lists providers, pr
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" implementations <name>
 ```
+
+## Optional interfaces
+
+To consume an interface that may legitimately have no provider, declare its package under top-level **`optionalDependencies`** in `package.json` instead of `dependencies` (it's the standard npm field, a sibling of `dependencies` — not part of the `antelopeJs` block). Import and call it exactly the same way.
+
+The difference is what happens when nothing provides it. A missing **required** dependency aborts startup; a missing **optional** one lets startup proceed and the core *stubs* the interface:
+
+- **async calls reject** immediately — `await`ing a stubbed method throws `Interface '<name>' has no provider for this async method; the call was rejected.` It does **not** queue or hang.
+- **registering/event proxies no-op** — `register`/`emit`-style calls are silently dropped.
+- a one-time **warning** is logged at startup: `Optional interface '<name>' has no provider; async calls on it will reject, sync usage will no-op.`
+
+**Detecting whether an optional interface is implemented:** the core interface exports `GetInterfaceInstances(interfaceID)` and `GetInterfaceInstance(interfaceID, connectionID)` (from `@antelopejs/interface-core`). `GetInterfaceInstances` returns the connected implementations for the calling module — a non-empty array when a provider is loaded, `[]` when none. Branch on that before calling, rather than relying on `try/catch` around a rejection:
+
+```ts
+import { GetInterfaceInstances } from "@antelopejs/interface-core";
+
+if (GetInterfaceInstances("@antelopejs/interface-<name>").length > 0) {
+  await SomeOptionalMethod();   // safe: a provider is connected
+}
+```
+
+This also enumerates multiple `id`-keyed instances when several modules implement the same interface (use `GetInterfaceInstance(interfaceID, connectionID)` for a specific one). There is no state in which a call to a declared dependency stays pending forever: it's either connected, rejected (stubbed optional), or startup-blocked (unprovided required).
+
+(A related case: an interface package whose own `package.json` sets `antelopeJs.standalone` self-hosts when no module implements it — same stubbing path, but treated as expected, so it's logged at trace level rather than warned. That's a property of the interface package, not of how you depend on it.)
 
 ## Wiring & overriding in antelope.config
 
