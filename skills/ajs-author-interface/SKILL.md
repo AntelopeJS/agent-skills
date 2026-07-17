@@ -11,11 +11,11 @@ An interface is a **versioned contract** shipped as `@antelopejs/interface-<name
 
 ```
 interface-<name>/
-  src/index.ts          # barrel: `export * from './module'` per convention
+  src/index.ts          # barrel (named re-exports in practice; AGENTS.md prefers `export * from`)
   src/<area>.ts         # contract surface, grouped by concern (one subpath each)
   src/antelope.test.ts  # test entry (referenced by package.json `antelopeJs.test`)
   dist/*.d.ts           # built contract — what consumers actually type-check against
-  docs/*.md             # hand-written guides (numbered)
+  docs/                 # hand-written guides (numbered files or directories)
   package.json          # `exports` + `typesVersions` define the subpath surface
 ```
 
@@ -36,11 +36,11 @@ At the boundary, the contract is built from core primitives (see `contract core`
 
 But an interface is **not limited to proxy points** — it can (and often should) ship real consumer-side code built over them: chainable builders, helpers, validation, convenience classes. The `database` interface is mostly `Table`/`Query`/`Datum` classes whose methods assemble work locally and only hit a proxy (`RunQuery`) at execution. The rule that enables clean attach/detach on reload isn't "no code" — it's that **the only things that actually cross to the provider are the proxy points**; everything else runs in the caller. Keep signatures explicit (no anonymous inline types — define named interfaces). Add TSDoc to every public member; that TSDoc is what consumers read via `contract`.
 
-**Interfaces may build on other interfaces.** Importing another `@antelopejs/interface-*` package to compose contracts is expected (e.g. `data-api` builds on `api`, `core`, and `database-decorators`). When you do, that dependency's version becomes part of your own compatibility surface — a breaking change there can force a bump here.
+**Interfaces may build on other interfaces.** Importing another `@antelopejs/interface-*` package to compose contracts is expected (e.g. `data-api` builds on `api`, `api-util`, `core`, `database`, and `database-decorators` — as `peerDependencies`). When you do, that dependency's version becomes part of your own compatibility surface — a breaking change there can force a bump here.
 
 ## Versioning the contract surface
 
-Versions are git tags (`v0.1.1`). Classify every change by its effect on existing consumers:
+Versions are git tags (`v0.1.1`), cut with release-it (`.release-it.json`, changelog via the release-it-changelogen plugin). Classify every change by its effect on existing consumers:
 
 | Change | Effect |
 | --- | --- |
@@ -69,4 +69,4 @@ Because consumers pin a version, prefer **additive evolution** over mutation:
 
 ## Conventions (enforced in these repos)
 
-pnpm only; English-only; no `switch`/`case` (use maps/objects); functions ≤ ~40 lines; no magic values; no comments except TSDoc on public APIs; index files use `export * from './module'`. Build before tagging (`pnpm build`) so `dist/*.d.ts` — the contract consumers see — is current.
+pnpm only; English-only; no `switch`/`case` (use maps/objects); functions ≤ ~40 lines; no magic values; no inline/anonymous types; no comments except TSDoc on public APIs; index files: AGENTS.md prefers `export * from './module'`, existing barrels mostly use named re-exports. Publishing rebuilds via the `prepack` hook, but build locally too (`pnpm build`) so `dist/*.d.ts` — the contract consumers see — stays current for local tooling.

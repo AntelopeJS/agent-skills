@@ -23,7 +23,7 @@ Each `import "@antelopejs/interface-<name>/<sub>"` line in the output is a liter
 ## Importing an interface in a module
 
 1. Add the interface package to the module's `dependencies` (`pnpm add @antelopejs/interface-<name>`). Consuming an interface is just depending on its package.
-2. Import the symbols and call them, exactly as `contract`/`show` reported. Calls made before a provider attaches are queued by the proxy layer, so you don't need defensive null checks for "not ready yet" — but for the same reason every proxy call is **async**: `await` it, never read it as a synchronous value at module-load top level. (Queuing assumes a provider *will* attach. A regular dependency with no provider never reaches this state — startup fails first; see *Resolving unresolved imports*. For a dependency that may legitimately have no provider, see *Optional interfaces*.)
+2. Import the symbols and call them, exactly as `contract`/`show` reported. `InterfaceFunction` calls made before a provider attaches are queued by the proxy layer, so you don't need defensive null checks for "not ready yet" — but for the same reason every such call is **async**: `await` it, never read it as a synchronous value at module-load top level. (`RegisteringProxy.register` is synchronous and also queues; `EventProxy.emit` is synchronous and does *not* queue — an emit before attach reaches nobody. Queuing assumes a provider *will* attach. A regular dependency with no provider never reaches this state — startup fails first; see *Resolving unresolved imports*. For a dependency that may legitimately have no provider, see *Optional interfaces*.)
 
 ```ts
 import { Table } from "@antelopejs/interface-database/selection";
@@ -72,11 +72,11 @@ To consume an interface that may legitimately have no provider, declare its pack
 
 The difference is what happens when nothing provides it. A missing **required** dependency aborts startup; a missing **optional** one lets startup proceed and the core *stubs* the interface:
 
-- **async calls reject** immediately — `await`ing a stubbed method throws `Interface '<name>' has no provider for this async method; the call was rejected.` It does **not** queue or hang.
+- **async calls reject** immediately — `await`ing a stubbed method throws `Interface '<name>' has no provider for this async method; the call was rejected. Load a module that implements it to enable this call.` It does **not** queue or hang.
 - **registering/event proxies no-op** — `register`/`emit`-style calls are silently dropped.
 - a one-time **warning** is logged at startup: `Optional interface '<name>' has no provider; async calls on it will reject, sync usage will no-op.`
 
-**Detecting whether an optional interface is implemented:** the core interface exports `GetInterfaceInstances(interfaceID)` and `GetInterfaceInstance(interfaceID, connectionID)` (from `@antelopejs/interface-core`). `GetInterfaceInstances` returns the connected implementations for the calling module — a non-empty array when a provider is loaded, `[]` when none. Branch on that before calling, rather than relying on `try/catch` around a rejection:
+**Detecting whether an optional interface is implemented:** the core interface exports `GetInterfaceInstances(interfaceID)` and `GetInterfaceInstance(interfaceID, connectionID)` (from `@antelopejs/interface-core`). `GetInterfaceInstances` returns the calling module's connection descriptors (`{ id?, path }` — not the implementation objects) — a non-empty array when a provider is loaded, `[]` when none. Branch on that before calling, rather than relying on `try/catch` around a rejection:
 
 ```ts
 import { GetInterfaceInstances } from "@antelopejs/interface-core";
@@ -92,7 +92,7 @@ This also enumerates multiple `id`-keyed instances when several modules implemen
 
 ## Wiring & overriding in antelope.config
 
-Modules are declared in `antelope.config.ts` (`modules: Record<string, …>`). Per-module knobs that matter when consuming interfaces:
+Modules are declared in `antelope.config.ts` (authored with `defineConfig` from `@antelopejs/interface-core`): `modules: Record<string, string | AntelopeModuleConfig>` — a plain string is a version shorthand. Per-module knobs that matter when consuming interfaces:
 
 - `importOverrides` — force a specific source/provider for an interface, either as a list of `{ interface, source, id }` entries or a `{ interface: source }` shorthand map; e.g. to bind a consumer to a particular implementation when several exist.
 - `disabledExports` — stop a module from providing an interface it would otherwise export.
@@ -102,7 +102,7 @@ If two providers export the same interface, the binding is ambiguous — disambi
 
 ## Pinning interface versions
 
-Interfaces are semver-tagged. Check what a project resolves vs. what's available:
+Interfaces are semver-tagged, but there is **no runtime version negotiation**: the core wires consumer to provider purely by interface *package name*, and each module gets whatever version npm resolved for it. Version discipline lives entirely in your `dependencies` range. Check what a project resolves vs. what's available:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" versions <name>
