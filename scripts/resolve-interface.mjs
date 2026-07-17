@@ -6,11 +6,13 @@
 // never hand-maintain (and never stale) per-interface docs.
 //
 // Two shapes of interface are supported:
-//   1. Dedicated interface packages — `@antelopejs/interface-<name>`. The whole
-//      package is one interface; its `exports` subpaths are its parts.
+//   1. Dedicated interface packages — `@antelopejs/interface-<name>`, or in the
+//      private scope `@antelopejs-private/interface-<name>` (e.g. the
+//      cms-automation contract, extracted from its host module in 2026-07). The
+//      whole package is one interface; its `exports` subpaths are its parts.
 //   2. CMS-style interfaces — exposed as SUBPATHS of a host package, e.g.
-//      `@antelopejs-private/cms/interfaces/cms-base`, a module's
-//      `@antelopejs-private/cms-automation/interfaces/cms-automation`, or a
+//      `@antelopejs-private/cms/interfaces/cms-base`,
+//      `@antelopejs-private/cms-database/interfaces/cms-database`, or a
 //      module's singular `@antelopejs-private/mqtt/interface`. One host
 //      package hosts many interface "groups" under `dist/interfaces/<group>/`.
 //
@@ -22,6 +24,7 @@
 //
 // Naming the interface:
 //   database | interface-database | @antelopejs/interface-database     (kind 1)
+//   cms-automation | @antelopejs-private/interface-cms-automation      (kind 1, private scope)
 //   @antelopejs-private/cms/interfaces/cms-base                         (kind 2, full)
 //   @antelopejs-private/cms/interfaces/cms-base/form                    (kind 2, a part)
 //   @antelopejs-private/mqtt/interface                                 (kind 2, singular)
@@ -49,6 +52,7 @@ import { homedir } from "node:os";
 import { execFileSync } from "node:child_process";
 
 const PKG_PREFIX = "@antelopejs/interface-";
+const PRIVATE_PKG_PREFIX = "@antelopejs-private/interface-";
 const SHORT_PREFIX = "interface-";
 const CACHE_ROOT =
   process.env.AJS_RESOLVER_CACHE || join(homedir(), ".cache", "ajs-interface-resolver");
@@ -101,7 +105,7 @@ function splitSpec(input) {
 }
 
 function shortName(fullName) {
-  return fullName.replace(PKG_PREFIX, "");
+  return fullName.replace(PKG_PREFIX, "").replace(PRIVATE_PKG_PREFIX, "");
 }
 
 function shortModuleName(pkgName) {
@@ -120,6 +124,7 @@ function discoveryRoots() {
     roots.push(...process.env.AJS_INTERFACES_DIR.split(":").filter(Boolean));
   }
   roots.push(join(process.cwd(), "node_modules", "@antelopejs"));
+  roots.push(join(process.cwd(), "node_modules", "@antelopejs-private"));
   // Point AJS_INTERFACES_DIR at a local interfaces checkout for an offline fast-path.
   return roots.filter(isDirectorySafe);
 }
@@ -128,7 +133,8 @@ function isInterfacePackage(dir) {
   const pkgPath = join(dir, "package.json");
   if (!existsSync(pkgPath)) return false;
   try {
-    return readJson(pkgPath).name?.startsWith(PKG_PREFIX) === true;
+    const name = readJson(pkgPath).name;
+    return name?.startsWith(PKG_PREFIX) === true || name?.startsWith(PRIVATE_PKG_PREFIX) === true;
   } catch {
     return false;
   }
@@ -150,11 +156,21 @@ function discoverInterfaces() {
   return found;
 }
 
-function normalizeName(input) {
-  let name = input;
-  if (name.startsWith(PKG_PREFIX)) name = name.slice(PKG_PREFIX.length);
-  else if (name.startsWith(SHORT_PREFIX)) name = name.slice(SHORT_PREFIX.length);
-  return `${PKG_PREFIX}${name}`;
+// Full package names a raw name may refer to. A fully-scoped input is taken as
+// is; a bare/short name is tried in the public scope first, then the private one
+// (dedicated interface packages exist in both, e.g. `@antelopejs-private/interface-cms-automation`).
+function candidateFullNames(rawName) {
+  if (rawName.startsWith(PKG_PREFIX) || rawName.startsWith(PRIVATE_PKG_PREFIX)) return [rawName];
+  const short = rawName.startsWith(SHORT_PREFIX) ? rawName.slice(SHORT_PREFIX.length) : rawName;
+  return [`${PKG_PREFIX}${short}`, `${PRIVATE_PKG_PREFIX}${short}`];
+}
+
+function findLocalInterface(rawName) {
+  for (const c of candidateFullNames(rawName)) {
+    const hit = discoverInterfaces().get(c);
+    if (hit) return hit;
+  }
+  return null;
 }
 
 // ---- local discovery (CMS host packages) ----
@@ -497,6 +513,9 @@ function exportedSymbols(dtsPath) {
 }
 
 function gitTags(dir) {
+  // Only a checkout's own tags are meaningful — from a node_modules copy, `git tag`
+  // would silently walk up to the enclosing project's repo and report its tags.
+  if (!existsSync(join(dir, ".git"))) return [];
   try {
     return execFileSync("git", ["tag", "--sort=-v:refname"], {
       cwd: dir,
@@ -601,11 +620,10 @@ function resolveTarget(input) {
   }
 
   const { rawName, version } = splitSpec(input);
-  const fullName = normalizeName(rawName);
 
   // Local interface package (no network).
   if (!FORCE_REMOTE && !version) {
-    const local = discoverInterfaces().get(fullName);
+    const local = findLocalInterface(rawName);
     if (local) return pkgTarget(local);
     // Local CMS host with a matching group (no network) before reaching out.
     for (const [, entry] of discoverCmsHosts()) {
@@ -615,7 +633,7 @@ function resolveTarget(input) {
   }
 
   if (OFFLINE) {
-    const local = discoverInterfaces().get(fullName);
+    const local = findLocalInterface(rawName);
     if (local) return pkgTarget(local);
     const cmsHit = resolveCmsBare(rawName, version);
     if (cmsHit) return cmsHit;
@@ -623,17 +641,21 @@ function resolveTarget(input) {
     fail(`'${input}' is not available locally (offline). Locally present: ${known || "(none)"}.`);
   }
 
-  // Remote interface package.
-  try {
-    const version2 = resolveRemoteVersion(fullName, version);
-    const dir = fetchToCache(fullName, version2);
-    return pkgTarget({ dir, pkg: readJson(join(dir, "package.json")), remote: true });
-  } catch (interfaceErr) {
-    // Not a published interface package — try CMS host resolution by bare name.
-    const cmsHit = resolveCmsBare(rawName, version);
-    if (cmsHit) return cmsHit;
-    fail(`could not resolve '${input}': ${npmErrText(interfaceErr)}`);
+  // Remote interface package: public scope first, then private.
+  let interfaceErr;
+  for (const fullName of candidateFullNames(rawName)) {
+    try {
+      const version2 = resolveRemoteVersion(fullName, version);
+      const dir = fetchToCache(fullName, version2);
+      return pkgTarget({ dir, pkg: readJson(join(dir, "package.json")), remote: true });
+    } catch (e) {
+      interfaceErr ??= e;
+    }
   }
+  // Not a published interface package — try CMS host resolution by bare name.
+  const cmsHit = resolveCmsBare(rawName, version);
+  if (cmsHit) return cmsHit;
+  fail(`could not resolve '${input}': ${npmErrText(interfaceErr)}`);
 }
 
 // ---- commands ----
@@ -680,6 +702,23 @@ function cmdList(json) {
     } catch (e) {
       if (!byKey.size) warn(`npm search failed (${npmErrText(e)}).`);
       else warn(`npm search failed (${npmErrText(e)}); interface-package list may be incomplete.`);
+    }
+    // Private-scope interface packages — best-effort: `npm search` may not reach
+    // the private registry, in which case local discovery is the only source.
+    try {
+      for (const r of npm(["search", PRIVATE_PKG_PREFIX])) {
+        if (typeof r.name !== "string" || !r.name.startsWith(PRIVATE_PKG_PREFIX) || byKey.has(r.name))
+          continue;
+        byKey.set(r.name, {
+          name: shortName(r.name),
+          package: r.name,
+          version: r.version ?? "",
+          description: r.description ?? "",
+          source: "npm",
+        });
+      }
+    } catch {
+      /* private registry without search support — rely on local discovery */
     }
   }
 
@@ -771,10 +810,11 @@ function cmdVersions(input) {
     localEntry = findLocalPackage(fullName);
   } else {
     const { rawName } = splitSpec(input);
-    fullName = normalizeName(rawName);
-    localEntry = discoverInterfaces().get(fullName);
-    if (!localEntry && !discoverInterfaces().has(fullName)) {
-      // Could be a bare CMS interface — resolve its host package name.
+    localEntry = findLocalInterface(rawName);
+    fullName = localEntry ? localEntry.pkg.name : candidateFullNames(rawName)[0];
+    if (!localEntry) {
+      // Could be a private-scope interface package or a bare CMS interface —
+      // resolve fully to learn the actual package name.
       const t = resolveTarget(input);
       fullName = t.versionsPkg;
       localEntry = t.entry.remote ? null : t.entry;
@@ -814,10 +854,9 @@ async function cmdImplementations(input) {
     return;
   }
   const { rawName } = splitSpec(input);
-  const fullName = normalizeName(rawName);
-  const name = shortName(fullName);
+  const local = findLocalInterface(rawName);
+  const name = shortName(local?.pkg.name ?? candidateFullNames(rawName)[0]);
 
-  const local = discoverInterfaces().get(fullName);
   if (local) {
     const manifest = join(local.dir, "manifest.json");
     if (existsSync(manifest)) {

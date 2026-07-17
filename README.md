@@ -48,16 +48,19 @@ node scripts/resolve-interface.mjs implementations auth   # providers (registry 
 ```
 
 `<name>` accepts `core`, `interface-core`, or `@antelopejs/interface-core`, optionally with
-`@<version>` (default: the `latest` dist-tag).
+`@<version>` (default: the `latest` dist-tag). Bare names are tried in the public scope first,
+then as `@antelopejs-private/interface-<name>` — some contracts live as dedicated packages on
+the private registry (e.g. `@antelopejs-private/interface-cms-automation`, extracted from its
+host module in 2026-07).
 
-**CMS interfaces too.** The AntelopeJS CMS exposes its interfaces as *subpaths* of a host
-package rather than as standalone `@antelopejs/interface-*` packages. The resolver handles both:
+**CMS interfaces too.** The AntelopeJS CMS exposes most of its interfaces as *subpaths* of a
+host package rather than as standalone interface packages. The resolver handles both:
 
 ```bash
 node scripts/resolve-interface.mjs show cms:cms-base                 # shorthand for the CMS backend
 node scripts/resolve-interface.mjs contract cms:cms-base form        # a part of the interface
 node scripts/resolve-interface.mjs show @antelopejs-private/cms/interfaces/cms-auth     # full import path
-node scripts/resolve-interface.mjs show @antelopejs-private/cms-automation/interfaces/cms-automation
+node scripts/resolve-interface.mjs show @antelopejs-private/cms-database/interfaces/cms-database
 node scripts/resolve-interface.mjs show cms-base                     # bare name (resolved against known CMS hosts)
 ```
 
