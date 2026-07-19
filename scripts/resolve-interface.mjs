@@ -240,12 +240,12 @@ function findLocalInterface(rawName) {
 // ---- local discovery (host packages) ----
 
 // A host package exposes interfaces as export subpaths instead of being one
-// interface itself. It marks itself with a truthy `antelopeJs.cms`, or simply
-// exports `./interfaces/<group>` entry points.
+// interface itself. It marks itself with a truthy `antelopeJs.cms`, exports
+// `./interfaces/<group>` entry points, or a module's singular `./interface`.
 function isCmsHost(pkg) {
   if (!pkg) return false;
   if (pkg.antelopeJs?.cms) return true;
-  return Object.keys(pkg.exports ?? {}).some((k) => k.startsWith("./interfaces/"));
+  return Object.keys(pkg.exports ?? {}).some((k) => k === "./interface" || k.startsWith("./interfaces/"));
 }
 
 // A package by name as installed in the current project: node_modules first,
@@ -291,8 +291,11 @@ function discoverCmsHosts() {
     if (depth < 0 || !isDirectorySafe(dir)) return;
     const pkgPath = join(dir, "package.json");
     if (existsSync(pkgPath)) {
-      consider({ dir, pkg: readJsonSafe(pkgPath) });
-      return; // a package root doesn't nest other host packages — stop descending
+      const pkg = readJsonSafe(pkgPath);
+      consider({ dir, pkg });
+      // A host package root doesn't nest other hosts, but a non-host package
+      // (e.g. a monorepo root) may — keep descending in that case.
+      if (isCmsHost(pkg)) return;
     }
     let entries;
     try {
@@ -329,7 +332,13 @@ function npm(args) {
 }
 
 function npmErrText(e) {
-  return ((e && (e.stderr || e.message)) || "").toString().trim().split("\n").pop();
+  // npm ends stderr with a "complete log" pointer — surface the actual cause
+  // (the first real `npm error` line) instead.
+  const lines = ((e && (e.stderr || e.message)) || "").toString().trim().split("\n");
+  const informative = lines.find(
+    (l) => l.startsWith("npm error") && !l.includes("A complete log"),
+  );
+  return informative || lines.filter((l) => !l.includes("A complete log")).pop() || lines.pop();
 }
 
 function remoteVersions(fullName) {
@@ -397,7 +406,15 @@ function resolvePackageEntry(fullName, wanted, localLookup) {
   }
   if (OFFLINE) {
     const hit = localLookup(fullName);
-    if (hit) return hit;
+    if (hit) {
+      // A pinned version must not silently resolve to a different local copy.
+      if (wanted && wanted !== "latest" && hit.pkg.version !== wanted.replace(/^v/, "")) {
+        throw new Error(
+          `${fullName}@${wanted} is not available locally (offline); local copy is v${hit.pkg.version}`,
+        );
+      }
+      return hit;
+    }
     throw new Error(`${fullName} is not available locally (offline)`);
   }
   try {
@@ -682,9 +699,14 @@ function parseCmsSpec(input) {
     spec = `${host}${version ? `@${version}` : ""}/interfaces/${group}`;
   }
   const at = spec.indexOf("/interfaces/");
-  if (at > 0) return { pkgSpec: spec.slice(0, at), interfaceSub: spec.slice(at + 1) };
-  if (spec.endsWith("/interface")) {
-    return { pkgSpec: spec.slice(0, -"/interface".length), interfaceSub: "interface" };
+  if (at > 0) {
+    // A `@version` pinned on the group/part token belongs to the host package.
+    const { rawName: sub, version } = splitSpec(spec.slice(at + 1));
+    return { pkgSpec: `${spec.slice(0, at)}${version ? `@${version}` : ""}`, interfaceSub: sub };
+  }
+  const singular = spec.match(/^(.+)\/interface(@[^/@]+)?$/);
+  if (singular) {
+    return { pkgSpec: `${singular[1]}${singular[2] ?? ""}`, interfaceSub: "interface" };
   }
   return null;
 }
@@ -747,7 +769,11 @@ function resolveTarget(input) {
 
   if (OFFLINE) {
     const local = findLocalInterface(rawName);
-    if (local) return pkgTarget(local);
+    if (local) {
+      const pinned = version && version !== "latest" ? version.replace(/^v/, "") : null;
+      if (!pinned || local.pkg.version === pinned) return pkgTarget(local);
+      fail(`'${input}' is not available locally (offline); local copy is v${local.pkg.version}.`);
+    }
     const cmsHit = resolveCmsBare(rawName, version);
     if (cmsHit) return cmsHit;
     const known = [...discoverInterfaces().keys()].map(shortName).join(", ");
@@ -971,6 +997,20 @@ async function cmdImplementations(input) {
   }
   const { rawName } = splitSpec(input);
   const local = findLocalInterface(rawName);
+  // A bare name may be a host-interface group (e.g. `cms-base`) — same n/a case
+  // as an explicit host spec, and better than a misleading registry miss.
+  if (!local) {
+    for (const [, entry] of discoverCmsHosts()) {
+      if (cmsGroups(entry).some((g) => g.name === rawName)) {
+        console.log(
+          `'${input}' is a host-package interface (a subpath of ${entry.pkg.name}). Implementations are\n` +
+            `not tracked in the AntelopeJS interfaces registry — a host interface is provided by its\n` +
+            `host module directly (antelopeJs.implements in that module's package.json).`,
+        );
+        return;
+      }
+    }
+  }
   const name = shortName(local?.pkg.name ?? candidateFullNames(rawName)[0]);
 
   if (local) {

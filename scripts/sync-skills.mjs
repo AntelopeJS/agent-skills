@@ -10,7 +10,8 @@
 // symlink named `<module-short-name>--<skill-dir-name>`.
 //
 // The script is idempotent and safe to run as a hook:
-//   - Outside an AntelopeJS project (no antelope.config.*) it exits 0 silently.
+//   - Outside an AntelopeJS project (no antelope.config.*) it exits 0 (silently
+//     with --quiet/--json; a one-line note otherwise).
 //   - It only ever touches entries it created itself, tracked in
 //     `.claude/skills/.ajs-managed.json`. Anything else in .claude/skills/ is
 //     the user's and is never modified (collisions are skipped with a warning).
@@ -20,7 +21,7 @@
 //     manifest, and the .gitignore itself never dirty the user's repo.
 //
 // Flags:
-//   --quiet    No output unless an error occurs (hook mode).
+//   --quiet    No output, warnings included, unless a hard error occurs (hook mode).
 //   --json     Machine-readable summary on stdout.
 //   --dry-run  Report what would change without touching the filesystem.
 // Default output: one line per add/remove plus a summary count.
@@ -55,7 +56,9 @@ function log(msg) {
 }
 
 function warn(msg) {
-  process.stderr.write(`warning: ${msg}\n`);
+  // Hook mode must not spam stderr on every run for persistent conditions
+  // (collisions, escaped paths) — warnings still reach --json output.
+  if (!QUIET) process.stderr.write(`warning: ${msg}\n`);
 }
 
 function readJsonSafe(path) {
@@ -210,14 +213,15 @@ function sync() {
     const linkPath = join(SKILLS_DIR, name);
     const still = desired.get(name);
     const st = lstatSafe(linkPath);
-    if (still && st?.isSymbolicLink() && existsSync(linkPath)) continue; // handled below
+    // Still desired: the create loop below refreshes stale or dangling links.
+    if (still && st?.isSymbolicLink()) continue;
     if (st && !st.isSymbolicLink()) {
       // The user replaced a managed symlink with a real entry — it's theirs now.
       if (!still) warnings.push(`${name}: managed entry is no longer a symlink — left in place, dropped from manifest.`);
       managed.delete(name);
       continue;
     }
-    if (!still || (st?.isSymbolicLink() && !existsSync(linkPath))) {
+    if (!still) {
       if (st && !DRY_RUN) unlinkSync(linkPath);
       if (st) removed.push(name);
       managed.delete(name);
