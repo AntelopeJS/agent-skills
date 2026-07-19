@@ -13,7 +13,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/sync-skills.mjs"
 
 Then report to the user:
 
-- Which skills were added or removed (entry names are `<module>--<skill>`, symlinked into `.claude/skills/`), and which were already up to date.
+- Which skills were added or removed (entry names are `<module>--<skill>`, symlinked into `.claude/skills/`), and how many were already up to date (re-run with `--json` if you need their names).
 - Any warnings (e.g. a name collision with an entry the script does not manage — those are skipped, never overwritten).
 - If the script prints "Not an AntelopeJS project", explain that skills are synced per-project: run it from a directory containing `antelope.config.*`.
 

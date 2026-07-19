@@ -17,8 +17,10 @@ Skills are split by **intent**, not audience: a framework user asking "how do I 
 ## Layout
 
 ```
-antelopejs/
-  .claude-plugin/plugin.json
+claude-antelopejs/
+  .claude-plugin/
+    plugin.json
+    marketplace.json       # lets this repo be added directly as a marketplace
   skills/
     antelopejs/            # Layer 1 — concepts + router
     ajs-consume-interface/ # Layer 2 — build modules ON the framework
@@ -102,8 +104,16 @@ dependencies is picked up). `scripts/sync-skills.mjs` scans `node_modules` and
 (`.claude/skills/<module>--<skill>`), and tracks its entries in
 `.claude/skills/.ajs-managed.json` plus a scoped `.gitignore`, so your repo stays clean and
 anything it didn't create is never touched. Outside an AntelopeJS project (no
-`antelope.config.*`) it exits silently. Manual fallback: `/antelopejs:sync-skills`.
+`antelope.config.*`) it does nothing (and stays silent in hook mode). Manual
+fallback: `/antelopejs:sync-skills`.
 
 ## Installing
 
-Add the parent directory as a plugin marketplace, or symlink `antelopejs/` into your Claude Code plugins. The skills auto-trigger on AntelopeJS context; the commands are invoked explicitly.
+This repo ships its own `marketplace.json`, so it can be added directly:
+
+```
+/plugin marketplace add AntelopeJS/claude-antelopejs   # or a local checkout path
+/plugin install antelopejs@antelopejs
+```
+
+The skills auto-trigger on AntelopeJS context; the commands are invoked explicitly.

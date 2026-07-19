@@ -83,7 +83,7 @@ The difference is what happens when nothing provides it. A missing **required** 
 - `try/catch` the first `await` — the stub rejects deterministically with the message above; it never hangs.
 - add an `importOverrides` entry for the consumer (see below): that creates a connection descriptor, making `GetInterfaceInstances(...).length > 0` a valid guard, and `GetInterfaceInstance(interfaceID, connectionID)` selects a specific provider when several implement the interface.
 
-There is no state in which a call to a declared dependency stays pending forever: it's either connected, rejected (stubbed optional), or startup-blocked (unprovided required).
+For a declared dependency, a call is either connected, rejected (stubbed optional), or startup-blocked (unprovided required) — with one caveat: startup only validates manifest-level `implements` lists, so a provider that declares an interface but omits one `InterfaceFunction` from its `ImplementInterface` call leaves that particular method's proxy unattached, and an `await` on it queues indefinitely. If a call hangs while the interface is otherwise connected, suspect a partially-implemented provider.
 
 (A related case: an interface package whose own `package.json` sets `antelopeJs.standalone` self-hosts when no module implements it — same stubbing path, but treated as expected, so it's logged at trace level rather than warned. That's a property of the interface package, not of how you depend on it.)
 
@@ -99,7 +99,7 @@ If two providers export the same interface, the binding is ambiguous — disambi
 
 ## Pinning interface versions
 
-Interfaces are semver-tagged, but there is **no runtime version negotiation**: the core wires consumer to provider purely by interface *package name*, and each module gets whatever version npm resolved for it. Version discipline lives entirely in your `dependencies` range. Check what a project resolves vs. what's available:
+Interfaces are semver-tagged, but there is **no runtime version negotiation**: the core wires consumer to provider purely by interface *package name*. At runtime it redirects **every** module's import of an interface package to a single shared copy — resolved from the provider's installation (or the first consumer's, for a stubbed optional) — so proxies are shared objects; your own npm-resolved copy is what you *typecheck* against, not necessarily what executes. Your `dependencies` range therefore governs the compile-time contract, which is exactly why it should match what the provider actually implements. Check what a project resolves vs. what's available:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" versions <name>
