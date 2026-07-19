@@ -1,6 +1,6 @@
 ---
 name: ajs-author-interface
-description: Authoring or versioning an AntelopeJS interface package itself (@antelopejs/interface-*). Use when editing an interface's contract surface, defining a new interface, or deciding whether a change is breaking and which version to bump.
+description: Guides authoring or versioning an AntelopeJS interface package itself (@antelopejs/interface-*). Use when editing an interface's contract surface, defining a new interface, or deciding whether a change is breaking and which version to bump.
 ---
 
 # Authoring & versioning interfaces
@@ -41,7 +41,7 @@ But an interface is **not limited to proxy points** — it can (and often should
 
 ## Versioning the contract surface
 
-Versions are git tags (`v0.1.1`), cut with release-it (`.release-it.json`, changelog via the release-it-changelogen plugin). Classify every change by its effect on existing consumers:
+Versions are git tags (`v<version>`), cut with release-it (`.release-it.json`, changelog via the release-it-changelogen plugin). Classify every change by its effect on existing consumers:
 
 | Change | Effect |
 | --- | --- |

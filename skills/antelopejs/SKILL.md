@@ -66,7 +66,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" show database
 node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" contract database query
 
 # A specific published version, and the list of available versions
-node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" show database@0.1.0
+node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" show database@<version>
 node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" versions database
 ```
 

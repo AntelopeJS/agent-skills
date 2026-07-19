@@ -1,6 +1,6 @@
 ---
 name: ajs-consume-interface
-description: Consuming or providing an interface from an AntelopeJS module. Use when writing module code that imports and calls an interface or implements one with ImplementInterface, or when interface imports fail to resolve.
+description: Guides consuming or providing an interface from an AntelopeJS module. Use when writing module code that imports and calls an interface or implements one with ImplementInterface, or when interface imports fail to resolve.
 ---
 
 # Consuming & providing interfaces

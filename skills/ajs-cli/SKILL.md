@@ -1,6 +1,6 @@
 ---
 name: ajs-cli
-description: Running the `ajs` CLI. Use when creating, running, building, testing, or managing modules in an AntelopeJS project, or when the user asks what an `ajs` command does.
+description: Guides running the `ajs` CLI. Use when creating, running, building, testing, or managing modules in an AntelopeJS project, or when the user asks what an `ajs` command does.
 ---
 
 # The `ajs` CLI
