@@ -37,7 +37,7 @@ import {
   writeFileSync,
   readlinkSync,
 } from "node:fs";
-import { join, relative, resolve, dirname } from "node:path";
+import { join, relative, resolve, dirname, isAbsolute } from "node:path";
 
 const argv = new Set(process.argv.slice(2));
 const QUIET = argv.has("--quiet");
@@ -133,7 +133,10 @@ function collectPackageSkills(pkg, pkgDir, declaredDirs, skills) {
   for (const rel of declaredDirs) {
     if (typeof rel !== "string") continue;
     const dir = resolve(pkgDir, rel);
-    if (!dir.startsWith(pkgDir)) {
+    // Directory-boundary-aware containment check: a plain prefix test would let
+    // `../foo-bar` pass for a package installed at `.../foo`.
+    const relToPkg = relative(pkgDir, dir);
+    if (relToPkg.startsWith("..") || isAbsolute(relToPkg)) {
       warn(`${pkg.name}: skills dir '${rel}' escapes the package — skipped.`);
       continue;
     }
@@ -141,7 +144,14 @@ function collectPackageSkills(pkg, pkgDir, declaredDirs, skills) {
       const skillDir = join(dir, sub);
       if (!isDirectorySafe(skillDir) || !existsSync(join(skillDir, "SKILL.md"))) continue;
       const entryName = `${moduleShort}--${sub}`;
-      if (!skills.has(entryName)) skills.set(entryName, { target: skillDir, package: pkg.name });
+      const existing = skills.get(entryName);
+      if (existing) {
+        if (existing.package !== pkg.name) {
+          warn(`${entryName}: also provided by ${pkg.name} — keeping the one from ${existing.package}.`);
+        }
+        continue;
+      }
+      skills.set(entryName, { target: skillDir, package: pkg.name });
     }
   }
 }

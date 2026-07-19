@@ -1,3 +1,0 @@
-revoir le role du résolveur
-
-Constat structurel : cinq modules (datatable-new, mqtt, cdn, mailchimp, brevo-private) shippent leur contrat en export singulier <pkg>/interface au lieu d'un repo interface-*. Le résolveur les lit en chemin complet (show @antelopejs/mqtt/interface), mais ils échappent à la découverte par nom nu et au list, et à la convention « un repo interface = un skill ». Normaliser ce pattern vaudrait plus que n'importe quel skill isolé.
