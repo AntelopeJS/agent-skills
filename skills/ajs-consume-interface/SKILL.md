@@ -105,4 +105,4 @@ Interfaces are semver-tagged, but there is **no runtime version negotiation**: t
 node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" versions <name>
 ```
 
-A consumer should target a contract version it has actually been checked against; when bumping, re-run `contract` and diff the surface (see **ajs-author-interface** for the compatibility rules that govern those bumps).
+A consumer should target a contract version it has actually been checked against; when bumping across a breaking change, re-run `contract` and diff the surface (see **ajs-author-interface** for the compatibility rules that govern those bumps).
