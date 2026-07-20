@@ -1,0 +1,14 @@
+{
+  "name": "antelopejs",
+  "owner": {
+    "name": "AntelopeJS",
+    "email": "contact@antelopejs.com"
+  },
+  "plugins": [
+    {
+      "name": "antelopejs",
+      "source": "./",
+      "description": "Knowledge and tools for building with AntelopeJS: the interface-based module framework, its ajs CLI, a live resolver for versioned interface contracts, and automatic sync of package-shipped skills."
+    }
+  ]
+}

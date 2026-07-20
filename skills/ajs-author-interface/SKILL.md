@@ -1,6 +1,6 @@
 ---
 name: ajs-author-interface
-description: Authoring or versioning an AntelopeJS interface package itself (@antelopejs/interface-*). Use when editing an interface's contract surface, defining a new interface, or deciding whether a change is breaking and which version to bump.
+description: Guides authoring or versioning an AntelopeJS interface package itself (@antelopejs/interface-*). Use when editing an interface's contract surface, defining a new interface, or deciding whether a change is breaking and which version to bump.
 ---
 
 # Authoring & versioning interfaces
@@ -16,6 +16,7 @@ interface-<name>/
   src/antelope.test.ts  # test entry (referenced by package.json `antelopeJs.test`)
   dist/*.d.ts           # built contract — what consumers actually type-check against
   docs/                 # hand-written guides (numbered files or directories)
+  skills/               # package-shipped skill(s) synced to consumers (package.json `antelopeJs.skills` + `files`) — update when the contract changes
   package.json          # `exports` + `typesVersions` define the subpath surface
 ```
 
@@ -40,15 +41,13 @@ But an interface is **not limited to proxy points** — it can (and often should
 
 ## Versioning the contract surface
 
-Versions are git tags (`v0.1.1`), cut with release-it (`.release-it.json`, changelog via the release-it-changelogen plugin). Classify every change by its effect on existing consumers:
+Versions are git tags (`v<version>`), cut with release-it (`.release-it.json`, changelog via the release-it-changelogen plugin). Classify every change by its effect on existing consumers:
 
 | Change | Effect |
 | --- | --- |
 | Add a new optional member, new subpath, new event — existing code keeps compiling & behaving | additive |
 | Remove/rename a member, change a signature, tighten a type, change runtime semantics of an existing call | **breaking** |
 | Doc/comment/internal-only change, no surface delta | none |
-
-**Reality check on the bump:** the interfaces are pre-1.0 (`0.x`), and in practice breaking changes have shipped in the minor/patch position — e.g. `interface-database` v0.1.0→v0.1.1 renamed `CROSS_TENANT`→`CROSS_INSTANCE` (a breaking surface change) as a patch bump. So semver here signals *intent*, not a guarantee. Until an interface hits 1.0, treat any non-additive change as breaking regardless of where the number lands, record it in `CHANGELOG.md`, and assume consumers must pin an exact version and re-verify on every bump.
 
 Verify the surface delta mechanically before tagging. Read the *current* contract with the resolver, and diff the committed source against the previous tag. Note `dist/` is gitignored — only `src/` is in git, so diff `src/` (where the exported declarations and their TSDoc live), not the built `.d.ts`:
 

@@ -1,6 +1,6 @@
 ---
 name: antelopejs
-description: Core mental model and router for AntelopeJS. Use whenever working in an AntelopeJS project or interface/module repo, or when the user mentions AntelopeJS. Routes to consume-interface, author-interface, and cli skills, and to the interface contract resolver.
+description: Core mental model and router for AntelopeJS. Use whenever working in an AntelopeJS project or interface/module repo, or when the user mentions AntelopeJS. Routes to the ajs-consume-interface, ajs-author-interface, and ajs-cli skills, and to the interface contract resolver.
 ---
 
 # AntelopeJS
@@ -27,6 +27,7 @@ Every module-to-module link is built in exactly two steps:
 export const GetUser = InterfaceFunction<(id: string) => User>();
 
 // 2. Implementing module requires the interface and attaches onto it
+import { ImplementInterface } from "@antelopejs/interface-core";
 import * as UserInterface from "@antelopejs/interface-user";
 ImplementInterface(UserInterface, { GetUser: (id) => db.find(id) });
 
@@ -65,24 +66,32 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" show database
 node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" contract database query
 
 # A specific published version, and the list of available versions
-node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" show database@0.1.0
+node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" show database@<version>
 node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" versions database
 ```
 
 The resolver reads contracts straight from the published `@antelopejs/interface-*` packages on
 **npm** — no local checkout needed; it fetches and caches the package on demand. `<name>` accepts
 `core`, `interface-core`, or `@antelopejs/interface-core`, optionally `@<version>` (default: the
-`latest` dist-tag). A locally-present copy (the project's `node_modules/@antelopejs`, or
-`$AJS_INTERFACES_DIR`) is used as an offline fast-path when available. Flags: `--remote` (force a
-fresh npm fetch), `--offline` (local only). `npm` honours `.npmrc`, so private scopes resolve too.
+`latest` dist-tag). Bare names resolve against the public scope plus any scope discovered from
+the current project's dependencies (`@<scope>/interface-*` deps contribute their scope;
+`AJS_INTERFACE_SCOPES` adds more). A locally-present copy (the project's `node_modules`,
+`.antelope/cache`, or `$AJS_INTERFACES_DIR`) is used as an offline fast-path when available.
+Flags: `--remote` (force a fresh npm fetch), `--offline` (local only). `npm` honours `.npmrc`,
+so scopes served from private registries resolve too.
 
-It also resolves **CMS interfaces**, mostly exposed as subpaths of a host package — use the
-`cms:<name>` shorthand or the full import path, e.g.
-`… show cms:cms-base`, `… contract cms:cms-base form`, or
-`… show @antelopejs-private/cms-database/interfaces/cms-database`. Some contracts are dedicated
-packages on the private registry instead (`@antelopejs-private/interface-<name>`, e.g.
-`cms-automation`) — bare names resolve those too. (For the CMS itself, see the separate
-**antelopejs-cms** plugin.)
+It also resolves **host-package interfaces** — interfaces exposed as subpaths of a host package
+(a package whose `package.json` sets `antelopeJs.cms` or exports `./interfaces/<group>`
+subpaths). Hosts are discovered from the current project (dependencies, `.antelope/cache`,
+source checkouts under `AJS_CMS_DIR`/cwd; `AJS_CMS_PACKAGES` names extras). Use the
+`<host-short-name>:<group>` shorthand, the full import path, or a bare group name, e.g.
+`… show cms-host:cms-base`, `… contract cms-host:cms-base form`,
+`… show @acme/cms-host/interfaces/cms-auth`, or `… show cms-base`.
+
+Products built as a host package usually ship their own skills inside their packages: start a
+project from the product's template, install the dependencies, and those skills sync into the
+project automatically (see the package-shipped skills mechanism) — that is where the
+product-specific mental model and workflows live.
 
 When asked anything about a specific interface's API (what methods exist, a signature, which version has X), run `contract`/`show` and answer from the output — do not rely on training data, which goes stale as contracts version.
 

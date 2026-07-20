@@ -6,67 +6,79 @@
 // never hand-maintain (and never stale) per-interface docs.
 //
 // Two shapes of interface are supported:
-//   1. Dedicated interface packages — `@antelopejs/interface-<name>`, or in the
-//      private scope `@antelopejs-private/interface-<name>` (e.g. the
-//      cms-automation contract, extracted from its host module in 2026-07). The
-//      whole package is one interface; its `exports` subpaths are its parts.
-//   2. CMS-style interfaces — exposed as SUBPATHS of a host package, e.g.
-//      `@antelopejs-private/cms/interfaces/cms-base`,
-//      `@antelopejs-private/cms-database/interfaces/cms-database`, or a
-//      module's singular `@antelopejs-private/mqtt/interface`. One host
-//      package hosts many interface "groups" under `dist/interfaces/<group>/`.
+//   1. Dedicated interface packages — `@<scope>/interface-<name>`, e.g.
+//      `@antelopejs/interface-database` in the public scope, or
+//      `@acme/interface-payments` in any other scope. The whole package is one
+//      interface; its `exports` subpaths are its parts.
+//   2. Host-package interfaces — exposed as SUBPATHS of a host package, e.g.
+//      `@acme/cms-host/interfaces/<group>` or a module's singular
+//      `@acme/broker/interface`. One host package hosts many interface
+//      "groups" under `<baseUrl>/interfaces/<group>/`.
+//
+// Nothing beyond the framework's public `@antelopejs` scope is hardcoded.
+// Additional scopes are DISCOVERED from the project the script runs in: every
+// dependency (or optionalDependency) in the cwd's package.json matching
+// `@<scope>/interface-*` contributes its scope, and `AJS_INTERFACE_SCOPES`
+// (comma-separated) adds more. Host packages are discovered too: a package is a
+// host when its package.json sets `antelopeJs.cms` or exports `./interfaces/*`
+// subpaths — candidates come from the project's dependencies (looked up in
+// node_modules and the CLI's `.antelope/cache`), a scan of `.antelope/cache`
+// itself, a directory walk of AJS_CMS_DIR / the cwd, and `AJS_CMS_PACKAGES`.
 //
 // Source of truth is the registry (npm) — no local checkout required. Published
 // tarballs ship the built `.d.ts`, so the script fetches `<pkg>@<version>` on
 // demand, caches the extracted tarball, and reads it. `npm` honours the user's
-// `.npmrc`, so private scopes (e.g. `@antelopejs-private`) resolve too. A locally
-// present copy is used as an offline fast-path when available, never required.
+// `.npmrc`, so scopes served from private registries resolve too — the script
+// never needs to know which registry a scope lives on. A locally present copy
+// is used as an offline fast-path when available, never required.
 //
 // Naming the interface:
-//   database | interface-database | @antelopejs/interface-database     (kind 1)
-//   cms-automation | @antelopejs-private/interface-cms-automation      (kind 1, private scope)
-//   @antelopejs-private/cms/interfaces/cms-base                         (kind 2, full)
-//   @antelopejs-private/cms/interfaces/cms-base/form                    (kind 2, a part)
-//   @antelopejs-private/mqtt/interface                                 (kind 2, singular)
-//   cms:cms-base   ==  @antelopejs-private/cms/interfaces/cms-base      (shorthand)
-//   cms-base       (bare — resolved against known CMS host packages)
+//   database | interface-database | @antelopejs/interface-database  (kind 1)
+//   payments                    (kind 1, tried across discovered scopes)
+//   @acme/interface-payments    (kind 1, explicit scope)
+//   @acme/cms-host/interfaces/cms-base         (kind 2, full)
+//   @acme/cms-host/interfaces/cms-base/form    (kind 2, a part)
+//   @acme/broker/interface                     (kind 2, singular)
+//   cms-host:cms-base    (kind 2 shorthand — <host-short-name>:<group>)
+//   cms-base             (bare — resolved against discovered host packages)
 // Any of the above may carry `@<version>` on the package (default: dist-tag latest).
 //
 // Flags: --remote (force a fresh npm fetch), --offline (local only, no network),
 //        --json (machine output for list/show).
-// Env: AJS_INTERFACES_DIR (extra local interface-package roots, colon-sep),
-//      AJS_CMS_PACKAGES (extra CMS host package names, comma-sep),
-//      AJS_CMS_DIR (local CMS source roots to scan, colon-sep),
+// Env: AJS_INTERFACE_SCOPES (extra npm scopes to try for bare names, comma-sep),
+//      AJS_INTERFACES_DIR (extra local interface-package roots, colon-sep),
+//      AJS_CMS_PACKAGES (extra host package names, comma-sep),
+//      AJS_CMS_DIR (local host source roots to scan, colon-sep),
 //      AJS_RESOLVER_CACHE (tarball cache dir), AJS_RESOLVER_OFFLINE=1 (= --offline).
 //
 // Usage:
-//   resolve-interface.mjs list                       Interfaces on npm + any local (incl. CMS)
+//   resolve-interface.mjs list                       Interfaces on npm + any local (incl. hosts)
 //   resolve-interface.mjs show <name>[@version]      Metadata + export subpaths + exported symbols
 //   resolve-interface.mjs contract <name>[@version] [subpath]   Print the raw .d.ts for a part ('.' default)
 //   resolve-interface.mjs versions <name>            Published versions + dist-tag latest
-//   resolve-interface.mjs implementations <name>     Known implementations (registry manifest; n/a for CMS)
+//   resolve-interface.mjs implementations <name>     Known implementations (registry manifest; n/a for host interfaces)
 
 import { readFileSync, readdirSync, existsSync, statSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { execFileSync } from "node:child_process";
 
-const PKG_PREFIX = "@antelopejs/interface-";
-const PRIVATE_PKG_PREFIX = "@antelopejs-private/interface-";
+const PUBLIC_SCOPE = "@antelopejs";
+const PKG_PREFIX = `${PUBLIC_SCOPE}/interface-`;
 const SHORT_PREFIX = "interface-";
+const INTERFACE_PKG_RE = /^@[^/]+\/interface-/;
 const CACHE_ROOT =
   process.env.AJS_RESOLVER_CACHE || join(homedir(), ".cache", "ajs-interface-resolver");
 
-// CMS host packages: the default backend, plus any named via env, plus any found
-// locally (a package whose package.json carries `antelopeJs.cms`).
-const CMS_DEFAULT_HOST = "@antelopejs-private/cms";
-const CMS_HOST_SCOPE = "@antelopejs-private/";
+// Host packages named explicitly via env — package names whose interface
+// subpaths should resolve even when the host is not discoverable from the
+// current project.
 const CMS_EXTRA_HOSTS = (process.env.AJS_CMS_PACKAGES || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
-// Local CMS source roots to scan for host packages: $AJS_CMS_DIR (colon-separated) plus the
-// current directory. Defaults to just the cwd — point AJS_CMS_DIR at a CMS checkout to scan it.
+// Local host source roots to scan for host packages: $AJS_CMS_DIR (colon-separated) plus the
+// current directory. Defaults to just the cwd — point AJS_CMS_DIR at a host checkout to scan it.
 const CMS_DIRS = (process.env.AJS_CMS_DIR || "")
   .split(":")
   .filter(Boolean)
@@ -84,6 +96,14 @@ function isDirectorySafe(path) {
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
+}
+
+function readJsonSafe(path) {
+  try {
+    return readJson(path);
+  } catch {
+    return null;
+  }
 }
 
 function fail(msg) {
@@ -105,7 +125,7 @@ function splitSpec(input) {
 }
 
 function shortName(fullName) {
-  return fullName.replace(PKG_PREFIX, "").replace(PRIVATE_PKG_PREFIX, "");
+  return fullName.replace(INTERFACE_PKG_RE, "");
 }
 
 function shortModuleName(pkgName) {
@@ -116,28 +136,72 @@ function baseUrlOf(pkg) {
   return pkg.antelopeJs?.baseUrl || "dist";
 }
 
+// ---- scope discovery ----
+
+// The project's own dependencies + optionalDependencies (empty outside a project).
+function projectDependencyNames() {
+  const pkg = readJsonSafe(join(process.cwd(), "package.json"));
+  if (!pkg) return [];
+  return Object.keys({ ...pkg.dependencies, ...pkg.optionalDependencies });
+}
+
+function normalizeScope(raw) {
+  const s = raw.trim().replace(/^@/, "");
+  return s ? `@${s}` : null;
+}
+
+// npm scopes that bare interface names resolve against. The framework's public
+// scope is always first; the rest are discovered from the current project's
+// dependencies (a project depending on `@acme/interface-x` evidently resolves
+// `@acme` through its .npmrc), plus AJS_INTERFACE_SCOPES (comma-separated,
+// with or without the leading @).
+let scopeCache = null;
+function candidateScopes() {
+  if (scopeCache) return scopeCache;
+  const scopes = [PUBLIC_SCOPE];
+  const add = (scope) => {
+    if (scope && !scopes.includes(scope)) scopes.push(scope);
+  };
+  for (const dep of projectDependencyNames()) {
+    if (INTERFACE_PKG_RE.test(dep)) add(dep.slice(0, dep.indexOf("/")));
+  }
+  for (const s of (process.env.AJS_INTERFACE_SCOPES || "").split(",")) {
+    if (s.trim()) add(normalizeScope(s));
+  }
+  scopeCache = scopes;
+  return scopes;
+}
+
 // ---- local discovery (interface packages) ----
+
+// Scope directories under the CLI's module cache (`.antelope/cache/@scope/pkg`),
+// plus the cache root itself for non-scoped entries (`.antelope/cache/pkg`).
+function cacheScopeRoots() {
+  const cache = join(process.cwd(), ".antelope", "cache");
+  if (!isDirectorySafe(cache)) return [];
+  const roots = [cache];
+  for (const entry of readdirSync(cache)) {
+    if (entry.startsWith("@") && isDirectorySafe(join(cache, entry))) roots.push(join(cache, entry));
+  }
+  return roots;
+}
 
 function discoveryRoots() {
   const roots = [];
   if (process.env.AJS_INTERFACES_DIR) {
     roots.push(...process.env.AJS_INTERFACES_DIR.split(":").filter(Boolean));
   }
-  roots.push(join(process.cwd(), "node_modules", "@antelopejs"));
-  roots.push(join(process.cwd(), "node_modules", "@antelopejs-private"));
   // Point AJS_INTERFACES_DIR at a local interfaces checkout for an offline fast-path.
+  for (const scope of candidateScopes()) {
+    roots.push(join(process.cwd(), "node_modules", scope));
+  }
+  roots.push(...cacheScopeRoots());
   return roots.filter(isDirectorySafe);
 }
 
 function isInterfacePackage(dir) {
-  const pkgPath = join(dir, "package.json");
-  if (!existsSync(pkgPath)) return false;
-  try {
-    const name = readJson(pkgPath).name;
-    return name?.startsWith(PKG_PREFIX) === true || name?.startsWith(PRIVATE_PKG_PREFIX) === true;
-  } catch {
-    return false;
-  }
+  const pkg = readJsonSafe(join(dir, "package.json"));
+  return typeof pkg?.name === "string" && INTERFACE_PKG_RE.test(pkg.name);
 }
 
 let interfaceCache = null;
@@ -157,12 +221,12 @@ function discoverInterfaces() {
 }
 
 // Full package names a raw name may refer to. A fully-scoped input is taken as
-// is; a bare/short name is tried in the public scope first, then the private one
-// (dedicated interface packages exist in both, e.g. `@antelopejs-private/interface-cms-automation`).
+// is; a bare/short name is tried as `interface-<name>` in the public scope
+// first, then in every discovered scope.
 function candidateFullNames(rawName) {
-  if (rawName.startsWith(PKG_PREFIX) || rawName.startsWith(PRIVATE_PKG_PREFIX)) return [rawName];
+  if (rawName.startsWith("@")) return [rawName];
   const short = rawName.startsWith(SHORT_PREFIX) ? rawName.slice(SHORT_PREFIX.length) : rawName;
-  return [`${PKG_PREFIX}${short}`, `${PRIVATE_PKG_PREFIX}${short}`];
+  return candidateScopes().map((scope) => `${scope}/${SHORT_PREFIX}${short}`);
 }
 
 function findLocalInterface(rawName) {
@@ -173,32 +237,65 @@ function findLocalInterface(rawName) {
   return null;
 }
 
-// ---- local discovery (CMS host packages) ----
+// ---- local discovery (host packages) ----
 
+// A host package exposes interfaces as export subpaths instead of being one
+// interface itself. It marks itself with a truthy `antelopeJs.cms`, exports
+// `./interfaces/<group>` entry points, or a module's singular `./interface`.
 function isCmsHost(pkg) {
-  return !!(
-    pkg &&
-    (pkg.antelopeJs?.cms ||
-      (typeof pkg.name === "string" && pkg.name.startsWith(`${CMS_HOST_SCOPE}cms`)))
-  );
+  if (!pkg) return false;
+  if (pkg.antelopeJs?.cms) return true;
+  return Object.keys(pkg.exports ?? {}).some((k) => k === "./interface" || k.startsWith("./interfaces/"));
+}
+
+// A package by name as installed in the current project: node_modules first,
+// then the CLI's `.antelope/cache` (modules from antelope.config live there).
+function installedPackageEntry(pkgName) {
+  const parts = pkgName.split("/");
+  const bases = [join(process.cwd(), "node_modules"), join(process.cwd(), ".antelope", "cache")];
+  for (const base of bases) {
+    const dir = join(base, ...parts);
+    const pkg = readJsonSafe(join(dir, "package.json"));
+    if (pkg) return { dir, pkg };
+  }
+  return null;
 }
 
 let cmsHostCache = null;
 function discoverCmsHosts() {
   if (cmsHostCache) return cmsHostCache;
   const found = new Map();
+  const consider = (entry) => {
+    if (entry && isCmsHost(entry.pkg) && entry.pkg.name && !found.has(entry.pkg.name)) {
+      found.set(entry.pkg.name, entry);
+    }
+  };
+
+  // Hosts among the project's own dependencies (installed copies).
+  for (const dep of projectDependencyNames()) consider(installedPackageEntry(dep));
+
+  // Hosts among the modules the CLI cached for antelope.config — those are not
+  // necessarily package.json dependencies.
+  for (const root of cacheScopeRoots()) {
+    for (const entry of readdirSync(root)) {
+      const dir = join(root, entry);
+      if (!isDirectorySafe(dir)) continue;
+      const pkg = readJsonSafe(join(dir, "package.json"));
+      if (pkg) consider({ dir, pkg });
+    }
+  }
+
+  // Hosts in source checkouts: walk AJS_CMS_DIR roots plus the cwd.
   const skip = new Set(["node_modules", "dist", ".git"]);
   const walk = (dir, depth) => {
     if (depth < 0 || !isDirectorySafe(dir)) return;
     const pkgPath = join(dir, "package.json");
     if (existsSync(pkgPath)) {
-      try {
-        const pkg = readJson(pkgPath);
-        if (isCmsHost(pkg) && !found.has(pkg.name)) found.set(pkg.name, { dir, pkg });
-      } catch {
-        /* unreadable package.json — ignore */
-      }
-      return; // a package root doesn't nest other CMS hosts — stop descending
+      const pkg = readJsonSafe(pkgPath);
+      consider({ dir, pkg });
+      // A host package root doesn't nest other hosts, but a non-host package
+      // (e.g. a monorepo root) may — keep descending in that case.
+      if (isCmsHost(pkg)) return;
     }
     let entries;
     try {
@@ -217,9 +314,7 @@ function discoverCmsHosts() {
 }
 
 function findLocalPackage(pkgName) {
-  const dir = join(process.cwd(), "node_modules", ...pkgName.split("/"));
-  if (existsSync(join(dir, "package.json"))) return { dir, pkg: readJson(join(dir, "package.json")) };
-  return discoverCmsHosts().get(pkgName) ?? null;
+  return installedPackageEntry(pkgName) ?? discoverCmsHosts().get(pkgName) ?? null;
 }
 
 // ---- npm registry layer ----
@@ -237,7 +332,13 @@ function npm(args) {
 }
 
 function npmErrText(e) {
-  return ((e && (e.stderr || e.message)) || "").toString().trim().split("\n").pop();
+  // npm ends stderr with a "complete log" pointer — surface the actual cause
+  // (the first real `npm error` line) instead.
+  const lines = ((e && (e.stderr || e.message)) || "").toString().trim().split("\n");
+  const informative = lines.find(
+    (l) => l.startsWith("npm error") && !l.includes("A complete log"),
+  );
+  return informative || lines.filter((l) => !l.includes("A complete log")).pop() || lines.pop();
 }
 
 function remoteVersions(fullName) {
@@ -296,7 +397,7 @@ function fetchToCache(fullName, version) {
   return pkgDir;
 }
 
-// Resolve any package (interface or CMS host) by full name to a { dir, pkg } entry:
+// Resolve any package (interface or host) by full name to a { dir, pkg } entry:
 // local copy when present and no version pinned / --remote off, else npm. Throws.
 function resolvePackageEntry(fullName, wanted, localLookup) {
   if (!FORCE_REMOTE && !wanted) {
@@ -305,7 +406,15 @@ function resolvePackageEntry(fullName, wanted, localLookup) {
   }
   if (OFFLINE) {
     const hit = localLookup(fullName);
-    if (hit) return hit;
+    if (hit) {
+      // A pinned version must not silently resolve to a different local copy.
+      if (wanted && wanted !== "latest" && hit.pkg.version !== wanted.replace(/^v/, "")) {
+        throw new Error(
+          `${fullName}@${wanted} is not available locally (offline); local copy is v${hit.pkg.version}`,
+        );
+      }
+      return hit;
+    }
     throw new Error(`${fullName} is not available locally (offline)`);
   }
   try {
@@ -402,7 +511,7 @@ function subpaths(entry) {
     );
 }
 
-// The interface "groups" a CMS host package exposes: a directory under
+// The interface "groups" a host package exposes: a directory under
 // `<baseUrl>/interfaces/<group>` (or the singular `<baseUrl>/interface`). Returns
 // [{ name, sub }] where `sub` is the import subpath of the group's entry point.
 function cmsGroups(entry) {
@@ -429,7 +538,7 @@ function cmsGroups(entry) {
   return [...groups].map(([name, sub]) => ({ name, sub }));
 }
 
-// The importable parts of one CMS interface group: every .d.ts under its dir
+// The importable parts of one host interface group: every .d.ts under its dir
 // (depth-limited), as { subpath, import, dts } with the index folded to '.'.
 function cmsGroupParts(entry, groupSub) {
   const base = baseUrlOf(entry.pkg);
@@ -466,7 +575,7 @@ const DECL_RE =
 const DEFAULT_RE = /^export\s+default\s+([A-Za-z0-9_]+)\s*;/;
 const REEXPORT_RE = /^export\s*\{([^}]*)\}\s*(?:from\b|;)/;
 // `export * from "./form"` / `export * as NS from "./x"` — barrel index files
-// (e.g. cms-base/index) aggregate their parts this way; surface the source so
+// (e.g. a group's index) aggregate their parts this way; surface the source so
 // the index isn't reported as empty.
 const REEXPORT_STAR_RE = /^export\s+\*\s+(?:as\s+([A-Za-z0-9_]+)\s+)?from\s*["']([^"']+)["']/;
 
@@ -529,7 +638,7 @@ function gitTags(dir) {
   }
 }
 
-// ---- target resolution (interface package OR CMS subpath) ----
+// ---- target resolution (interface package OR host subpath) ----
 
 // A resolved target: { entry, displayName, versionsPkg, parts, defaultSubpath }.
 // `parts` is the uniform [{subpath, import, dts}] list both show/contract consume.
@@ -556,21 +665,48 @@ function cmsTarget(entry, group, focusSub) {
   };
 }
 
-// Parse a CMS-style spec into { pkgSpec, interfaceSub } or null. Handles the
-// `cms:` shorthand, full `…/interfaces/<group>[/part]` specifiers, and the
-// singular `…/interface`.
+// The full name of a discovered (or env-named) host whose short module name
+// (the part after the last /) equals `alias` — e.g. alias `cms-host` matches
+// `@acme/cms-host`.
+function hostForAlias(alias) {
+  for (const name of discoverCmsHosts().keys()) {
+    if (shortModuleName(name) === alias) return name;
+  }
+  for (const name of CMS_EXTRA_HOSTS) {
+    if (shortModuleName(name) === alias) return name;
+  }
+  return null;
+}
+
+// Parse a host-style spec into { pkgSpec, interfaceSub } or null. Handles the
+// `<alias>:<group>` shorthand (alias = a host's short module name), full
+// `…/interfaces/<group>[/part]` specifiers, and the singular `…/interface`.
 function parseCmsSpec(input) {
   let spec = input;
-  if (spec.startsWith("cms:")) {
-    // The shorthand carries any `@version` on the group token (cms:cms-base@1.2.3);
+  const aliased = spec.match(/^([^/@:]+):(.+)$/);
+  if (aliased) {
+    const host = hostForAlias(aliased[1]);
+    if (!host) {
+      fail(
+        `no known host package matches alias '${aliased[1]}'. Hosts are discovered from the ` +
+          `current project (dependencies, .antelope/cache, AJS_CMS_DIR) — run from a project ` +
+          `that depends on the host, or name it via AJS_CMS_PACKAGES (comma-separated).`,
+      );
+    }
+    // The shorthand carries any `@version` on the group token (<alias>:<group>@1.2.3);
     // move it onto the host package, where the version actually belongs.
-    const { rawName: group, version } = splitSpec(spec.slice(4));
-    spec = `${CMS_DEFAULT_HOST}${version ? `@${version}` : ""}/interfaces/${group}`;
+    const { rawName: group, version } = splitSpec(aliased[2]);
+    spec = `${host}${version ? `@${version}` : ""}/interfaces/${group}`;
   }
   const at = spec.indexOf("/interfaces/");
-  if (at > 0) return { pkgSpec: spec.slice(0, at), interfaceSub: spec.slice(at + 1) };
-  if (spec.endsWith("/interface")) {
-    return { pkgSpec: spec.slice(0, -"/interface".length), interfaceSub: "interface" };
+  if (at > 0) {
+    // A `@version` pinned on the group/part token belongs to the host package.
+    const { rawName: sub, version } = splitSpec(spec.slice(at + 1));
+    return { pkgSpec: `${spec.slice(0, at)}${version ? `@${version}` : ""}`, interfaceSub: sub };
+  }
+  const singular = spec.match(/^(.+)\/interface(@[^/@]+)?$/);
+  if (singular) {
+    return { pkgSpec: `${singular[1]}${singular[2] ?? ""}`, interfaceSub: "interface" };
   }
   return null;
 }
@@ -581,9 +717,8 @@ function groupForSub(entry, interfaceSub) {
   return { name, sub: `interfaces/${name}` };
 }
 
-// CMS interface by bare name, resolved against known host packages. When no version
-// is pinned, local hosts first (offline-friendly); then the default host +
-// `@antelopejs-private/<name>`, honouring a pinned version.
+// A host interface by bare group name, resolved against discovered host
+// packages (plus any named via AJS_CMS_PACKAGES). No host name is guessed.
 function resolveCmsBare(name, version) {
   // A locally-discovered host is one fixed version — only usable when nothing is pinned.
   if (!version) {
@@ -592,7 +727,7 @@ function resolveCmsBare(name, version) {
       if (g) return cmsTarget(entry, g);
     }
   }
-  const hosts = [CMS_DEFAULT_HOST, `${CMS_HOST_SCOPE}${name}`, ...CMS_EXTRA_HOSTS];
+  const hosts = [...discoverCmsHosts().keys(), ...CMS_EXTRA_HOSTS];
   for (const host of hosts) {
     try {
       const entry = resolvePackageEntry(host, version, findLocalPackage);
@@ -606,7 +741,7 @@ function resolveCmsBare(name, version) {
 }
 
 function resolveTarget(input) {
-  // Explicit CMS specifier (full path or cms: shorthand).
+  // Explicit host specifier (full path or <alias>: shorthand).
   const cms = parseCmsSpec(input);
   if (cms) {
     const { rawName: pkg, version } = splitSpec(cms.pkgSpec);
@@ -625,7 +760,7 @@ function resolveTarget(input) {
   if (!FORCE_REMOTE && !version) {
     const local = findLocalInterface(rawName);
     if (local) return pkgTarget(local);
-    // Local CMS host with a matching group (no network) before reaching out.
+    // Local host with a matching group (no network) before reaching out.
     for (const [, entry] of discoverCmsHosts()) {
       const g = cmsGroups(entry).find((g) => g.name === rawName);
       if (g) return cmsTarget(entry, g);
@@ -634,14 +769,18 @@ function resolveTarget(input) {
 
   if (OFFLINE) {
     const local = findLocalInterface(rawName);
-    if (local) return pkgTarget(local);
+    if (local) {
+      const pinned = version && version !== "latest" ? version.replace(/^v/, "") : null;
+      if (!pinned || local.pkg.version === pinned) return pkgTarget(local);
+      fail(`'${input}' is not available locally (offline); local copy is v${local.pkg.version}.`);
+    }
     const cmsHit = resolveCmsBare(rawName, version);
     if (cmsHit) return cmsHit;
     const known = [...discoverInterfaces().keys()].map(shortName).join(", ");
     fail(`'${input}' is not available locally (offline). Locally present: ${known || "(none)"}.`);
   }
 
-  // Remote interface package: public scope first, then private.
+  // Remote interface package: public scope first, then every discovered scope.
   let interfaceErr;
   for (const fullName of candidateFullNames(rawName)) {
     try {
@@ -652,7 +791,7 @@ function resolveTarget(input) {
       interfaceErr ??= e;
     }
   }
-  // Not a published interface package — try CMS host resolution by bare name.
+  // Not a published interface package — try host resolution by bare group name.
   const cmsHit = resolveCmsBare(rawName, version);
   if (cmsHit) return cmsHit;
   fail(`could not resolve '${input}': ${npmErrText(interfaceErr)}`);
@@ -663,12 +802,12 @@ function resolveTarget(input) {
 function cmsHostsForListing() {
   const hosts = new Map(discoverCmsHosts());
   if (!OFFLINE) {
-    for (const name of [CMS_DEFAULT_HOST, ...CMS_EXTRA_HOSTS]) {
+    for (const name of CMS_EXTRA_HOSTS) {
       if (hosts.has(name)) continue;
       try {
         hosts.set(name, resolvePackageEntry(name, undefined, findLocalPackage));
       } catch (e) {
-        warn(`could not list CMS host ${name} (${npmErrText(e)}).`);
+        warn(`could not list host package ${name} (${npmErrText(e)}).`);
       }
     }
   }
@@ -703,22 +842,25 @@ function cmdList(json) {
       if (!byKey.size) warn(`npm search failed (${npmErrText(e)}).`);
       else warn(`npm search failed (${npmErrText(e)}); interface-package list may be incomplete.`);
     }
-    // Private-scope interface packages — best-effort: `npm search` may not reach
-    // the private registry, in which case local discovery is the only source.
-    try {
-      for (const r of npm(["search", PRIVATE_PKG_PREFIX])) {
-        if (typeof r.name !== "string" || !r.name.startsWith(PRIVATE_PKG_PREFIX) || byKey.has(r.name))
-          continue;
-        byKey.set(r.name, {
-          name: shortName(r.name),
-          package: r.name,
-          version: r.version ?? "",
-          description: r.description ?? "",
-          source: "npm",
-        });
+    // Interface packages in discovered non-public scopes — best-effort and
+    // quiet: `npm search` may not cover the registry a scope is served from,
+    // in which case local discovery is the only source.
+    for (const scope of candidateScopes().slice(1)) {
+      const prefix = `${scope}/${SHORT_PREFIX}`;
+      try {
+        for (const r of npm(["search", prefix])) {
+          if (typeof r.name !== "string" || !r.name.startsWith(prefix) || byKey.has(r.name)) continue;
+          byKey.set(r.name, {
+            name: shortName(r.name),
+            package: r.name,
+            version: r.version ?? "",
+            description: r.description ?? "",
+            source: "npm",
+          });
+        }
+      } catch {
+        /* registry without search support — rely on local discovery */
       }
-    } catch {
-      /* private registry without search support — rely on local discovery */
     }
   }
 
@@ -729,7 +871,7 @@ function cmdList(json) {
         name: `${host}/${g.sub}`,
         package: host,
         version: entry.pkg.version,
-        description: `CMS interface (${g.name})`,
+        description: `host interface (${g.name})`,
         source: "cms",
       });
     }
@@ -743,7 +885,7 @@ function cmdList(json) {
     console.log(`${r.name.padEnd(26)} ${(r.version ? `v${r.version}` : "").padEnd(9)} ${r.description}`);
   }
   if (cms.length) {
-    console.log("\nCMS interfaces (import path):");
+    console.log("\nHost-package interfaces (import path):");
     for (const r of cms) console.log(`  ${r.name.padEnd(52)} ${r.description}`);
   }
 }
@@ -813,8 +955,8 @@ function cmdVersions(input) {
     localEntry = findLocalInterface(rawName);
     fullName = localEntry ? localEntry.pkg.name : candidateFullNames(rawName)[0];
     if (!localEntry) {
-      // Could be a private-scope interface package or a bare CMS interface —
-      // resolve fully to learn the actual package name.
+      // Could be an interface package in a discovered scope or a bare host
+      // interface — resolve fully to learn the actual package name.
       const t = resolveTarget(input);
       fullName = t.versionsPkg;
       localEntry = t.entry.remote ? null : t.entry;
@@ -847,14 +989,28 @@ async function fetchRegistryManifest(name) {
 async function cmdImplementations(input) {
   if (parseCmsSpec(input)) {
     console.log(
-      `'${input}' is a CMS interface (a subpath of a host package). Implementations are not\n` +
-        `tracked in the AntelopeJS interfaces registry — a CMS interface is provided by its\n` +
+      `'${input}' is a host-package interface (a subpath of a host package). Implementations are\n` +
+        `not tracked in the AntelopeJS interfaces registry — a host interface is provided by its\n` +
         `host module directly (antelopeJs.implements in that module's package.json).`,
     );
     return;
   }
   const { rawName } = splitSpec(input);
   const local = findLocalInterface(rawName);
+  // A bare name may be a host-interface group (e.g. `cms-base`) — same n/a case
+  // as an explicit host spec, and better than a misleading registry miss.
+  if (!local) {
+    for (const [, entry] of discoverCmsHosts()) {
+      if (cmsGroups(entry).some((g) => g.name === rawName)) {
+        console.log(
+          `'${input}' is a host-package interface (a subpath of ${entry.pkg.name}). Implementations are\n` +
+            `not tracked in the AntelopeJS interfaces registry — a host interface is provided by its\n` +
+            `host module directly (antelopeJs.implements in that module's package.json).`,
+        );
+        return;
+      }
+    }
+  }
   const name = shortName(local?.pkg.name ?? candidateFullNames(rawName)[0]);
 
   if (local) {

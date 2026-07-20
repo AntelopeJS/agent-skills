@@ -1,6 +1,6 @@
 ---
 name: ajs-cli
-description: Running the `ajs` CLI. Use when creating, running, building, testing, or managing modules in an AntelopeJS project, or when the user asks what an `ajs` command does.
+description: Guides running the `ajs` CLI. Use when creating, running, building, testing, or managing modules in an AntelopeJS project, or when the user asks what an `ajs` command does.
 ---
 
 # The `ajs` CLI
@@ -42,7 +42,7 @@ ajs module init <path>       # scaffold a module from a template (proposes inter
 ajs module test [path]       # run the module's tests via Mocha (-f, --file <path> to target specific files)
 ```
 
-`ajs module test` reads the module's `antelopeJs.test` entry (e.g. `src/antelope.test.ts`) as a test *config*, then discovers `.test.ts`/`.spec.ts` files under the `test` folder (or the config's `folder`) plus interface tests. `init` and `test` are the only `ajs module` subcommands.
+`ajs module test` reads the module's `antelopeJs.test` entry (e.g. `src/antelope.test.ts`) as a test *config*, then discovers `.test.ts`/`.spec.ts` (and `.js` equivalents) files under the `test` folder (or the config's `folder`) plus interface tests. `init` and `test` are the only `ajs module` subcommands.
 
 A module's `package.json` carries an `antelopeJs` block (it can also live in a dedicated `antelope.module.json`). The interface-relevant fields are `implements` (the interface packages this module *provides*, e.g. `["@antelopejs/interface-database"]`) and `test` (the test entry); other fields: `defaultConfig`, `baseUrl`, `paths`, `moduleAliases`. Interfaces a module *consumes* are ordinary `dependencies` (or `optionalDependencies`), not a manifest field — see **ajs-consume-interface**. `ajs module init` sets this up; after editing deps, run `ajs project modules install` to resolve.
 
