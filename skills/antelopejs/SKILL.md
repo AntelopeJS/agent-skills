@@ -85,8 +85,8 @@ It also resolves **host-package interfaces** — interfaces exposed as subpaths 
 subpaths). Hosts are discovered from the current project (dependencies, `.antelope/cache`,
 source checkouts under `AJS_CMS_DIR`/cwd; `AJS_CMS_PACKAGES` names extras). Use the
 `<host-short-name>:<group>` shorthand, the full import path, or a bare group name, e.g.
-`… show cms-host:cms-base`, `… contract cms-host:cms-base form`,
-`… show @acme/cms-host/interfaces/cms-auth`, or `… show cms-base`.
+`… show shop-host:shop-catalog`, `… contract shop-host:shop-catalog pricing`,
+`… show @acme/shop-host/interfaces/shop-billing`, or `… show shop-catalog`.
 
 Products built as a host package usually ship their own skills inside their packages: start a
 project from the product's template, install the dependencies, and those skills sync into the
