@@ -66,6 +66,6 @@ Because consumers pin a version, prefer **additive evolution** over mutation:
 - Reserve a real removal for a deliberate major release, and note it in `CHANGELOG.md`.
 - A provider module must implement the full contract surface of the version it exports — when you add a required member, that's breaking for providers too, not just consumers.
 
-## Conventions (enforced in these repos)
+## Building & publishing
 
-pnpm only; English-only; no `switch`/`case` (use maps/objects); functions ≤ ~40 lines; no magic values; no inline/anonymous types; no comments except TSDoc on public APIs; index files: AGENTS.md prefers `export * from './module'`, existing barrels mostly use named re-exports. Publishing rebuilds via the `prepack` hook, but build locally too (`pnpm build`) so `dist/*.d.ts` — the contract consumers see — stays current for local tooling.
+Repo-wide coding conventions: see the **antelopejs** skill (and each repo's `AGENTS.md`). Publishing rebuilds via the `prepack` hook, but build locally too (`pnpm build`) so `dist/*.d.ts` — the contract consumers see — stays current for local tooling.
