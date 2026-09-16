@@ -11,7 +11,7 @@
 //      `@acme/interface-payments` in any other scope. The whole package is one
 //      interface; its `exports` subpaths are its parts.
 //   2. Host-package interfaces — exposed as SUBPATHS of a host package, e.g.
-//      `@acme/cms-host/interfaces/<group>` or a module's singular
+//      `@acme/dms-host/interfaces/<group>` or a module's singular
 //      `@acme/broker/interface`. One host package hosts many interface
 //      "groups" under `<baseUrl>/interfaces/<group>/`.
 //
@@ -20,10 +20,10 @@
 // dependency (or optionalDependency) in the cwd's package.json matching
 // `@<scope>/interface-*` contributes its scope, and `AJS_INTERFACE_SCOPES`
 // (comma-separated) adds more. Host packages are discovered too: a package is a
-// host when its package.json sets `antelopeJs.cms` or exports `./interfaces/*`
+// host when its package.json sets `antelopeJs.dms` or exports `./interfaces/*`
 // subpaths — candidates come from the project's dependencies (looked up in
 // node_modules and the CLI's `.antelope/cache`), a scan of `.antelope/cache`
-// itself, a directory walk of AJS_CMS_DIR / the cwd, and `AJS_CMS_PACKAGES`.
+// itself, a directory walk of AJS_DMS_DIR / the cwd, and `AJS_DMS_PACKAGES`.
 //
 // Source of truth is the registry (npm) — no local checkout required. Published
 // tarballs ship the built `.d.ts`, so the script fetches `<pkg>@<version>` on
@@ -36,19 +36,19 @@
 //   database | interface-database | @antelopejs/interface-database  (kind 1)
 //   payments                    (kind 1, tried across discovered scopes)
 //   @acme/interface-payments    (kind 1, explicit scope)
-//   @acme/cms-host/interfaces/cms-base         (kind 2, full)
-//   @acme/cms-host/interfaces/cms-base/form    (kind 2, a part)
+//   @acme/dms-host/interfaces/dms-base         (kind 2, full)
+//   @acme/dms-host/interfaces/dms-base/form    (kind 2, a part)
 //   @acme/broker/interface                     (kind 2, singular)
-//   cms-host:cms-base    (kind 2 shorthand — <host-short-name>:<group>)
-//   cms-base             (bare — resolved against discovered host packages)
+//   dms-host:dms-base    (kind 2 shorthand — <host-short-name>:<group>)
+//   dms-base             (bare — resolved against discovered host packages)
 // Any of the above may carry `@<version>` on the package (default: dist-tag latest).
 //
 // Flags: --remote (force a fresh npm fetch), --offline (local only, no network),
 //        --json (machine output for list/show).
 // Env: AJS_INTERFACE_SCOPES (extra npm scopes to try for bare names, comma-sep),
 //      AJS_INTERFACES_DIR (extra local interface-package roots, colon-sep),
-//      AJS_CMS_PACKAGES (extra host package names, comma-sep),
-//      AJS_CMS_DIR (local host source roots to scan, colon-sep),
+//      AJS_DMS_PACKAGES (extra host package names, comma-sep),
+//      AJS_DMS_DIR (local host source roots to scan, colon-sep),
 //      AJS_RESOLVER_CACHE (tarball cache dir), AJS_RESOLVER_OFFLINE=1 (= --offline).
 //
 // Usage:
@@ -73,13 +73,13 @@ const CACHE_ROOT =
 // Host packages named explicitly via env — package names whose interface
 // subpaths should resolve even when the host is not discoverable from the
 // current project.
-const CMS_EXTRA_HOSTS = (process.env.AJS_CMS_PACKAGES || "")
+const DMS_EXTRA_HOSTS = (process.env.AJS_DMS_PACKAGES || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
-// Local host source roots to scan for host packages: $AJS_CMS_DIR (colon-separated) plus the
-// current directory. Defaults to just the cwd — point AJS_CMS_DIR at a host checkout to scan it.
-const CMS_DIRS = (process.env.AJS_CMS_DIR || "")
+// Local host source roots to scan for host packages: $AJS_DMS_DIR (colon-separated) plus the
+// current directory. Defaults to just the cwd — point AJS_DMS_DIR at a host checkout to scan it.
+const DMS_DIRS = (process.env.AJS_DMS_DIR || "")
   .split(":")
   .filter(Boolean)
   .concat(process.cwd());
@@ -240,11 +240,11 @@ function findLocalInterface(rawName) {
 // ---- local discovery (host packages) ----
 
 // A host package exposes interfaces as export subpaths instead of being one
-// interface itself. It marks itself with a truthy `antelopeJs.cms`, exports
+// interface itself. It marks itself with a truthy `antelopeJs.dms`, exports
 // `./interfaces/<group>` entry points, or a module's singular `./interface`.
-function isCmsHost(pkg) {
+function isDmsHost(pkg) {
   if (!pkg) return false;
-  if (pkg.antelopeJs?.cms) return true;
+  if (pkg.antelopeJs?.dms) return true;
   return Object.keys(pkg.exports ?? {}).some((k) => k === "./interface" || k.startsWith("./interfaces/"));
 }
 
@@ -261,12 +261,12 @@ function installedPackageEntry(pkgName) {
   return null;
 }
 
-let cmsHostCache = null;
-function discoverCmsHosts() {
-  if (cmsHostCache) return cmsHostCache;
+let dmsHostCache = null;
+function discoverDmsHosts() {
+  if (dmsHostCache) return dmsHostCache;
   const found = new Map();
   const consider = (entry) => {
-    if (entry && isCmsHost(entry.pkg) && entry.pkg.name && !found.has(entry.pkg.name)) {
+    if (entry && isDmsHost(entry.pkg) && entry.pkg.name && !found.has(entry.pkg.name)) {
       found.set(entry.pkg.name, entry);
     }
   };
@@ -285,7 +285,7 @@ function discoverCmsHosts() {
     }
   }
 
-  // Hosts in source checkouts: walk AJS_CMS_DIR roots plus the cwd.
+  // Hosts in source checkouts: walk AJS_DMS_DIR roots plus the cwd.
   const skip = new Set(["node_modules", "dist", ".git"]);
   const walk = (dir, depth) => {
     if (depth < 0 || !isDirectorySafe(dir)) return;
@@ -295,7 +295,7 @@ function discoverCmsHosts() {
       consider({ dir, pkg });
       // A host package root doesn't nest other hosts, but a non-host package
       // (e.g. a monorepo root) may — keep descending in that case.
-      if (isCmsHost(pkg)) return;
+      if (isDmsHost(pkg)) return;
     }
     let entries;
     try {
@@ -308,13 +308,13 @@ function discoverCmsHosts() {
       walk(join(dir, e), depth - 1);
     }
   };
-  for (const root of CMS_DIRS) walk(root, 4);
-  cmsHostCache = found;
+  for (const root of DMS_DIRS) walk(root, 4);
+  dmsHostCache = found;
   return found;
 }
 
 function findLocalPackage(pkgName) {
-  return installedPackageEntry(pkgName) ?? discoverCmsHosts().get(pkgName) ?? null;
+  return installedPackageEntry(pkgName) ?? discoverDmsHosts().get(pkgName) ?? null;
 }
 
 // ---- npm registry layer ----
@@ -514,7 +514,7 @@ function subpaths(entry) {
 // The interface "groups" a host package exposes: a directory under
 // `<baseUrl>/interfaces/<group>` (or the singular `<baseUrl>/interface`). Returns
 // [{ name, sub }] where `sub` is the import subpath of the group's entry point.
-function cmsGroups(entry) {
+function dmsGroups(entry) {
   const groups = new Map();
   for (const key of Object.keys(entry.pkg.exports ?? {})) {
     if (key === "." || key === "./package.json") continue;
@@ -540,7 +540,7 @@ function cmsGroups(entry) {
 
 // The importable parts of one host interface group: every .d.ts under its dir
 // (depth-limited), as { subpath, import, dts } with the index folded to '.'.
-function cmsGroupParts(entry, groupSub) {
+function dmsGroupParts(entry, groupSub) {
   const base = baseUrlOf(entry.pkg);
   const root = join(entry.dir, base, groupSub);
   const parts = [];
@@ -653,8 +653,8 @@ function pkgTarget(entry) {
   };
 }
 
-function cmsTarget(entry, group, focusSub) {
-  const parts = cmsGroupParts(entry, group.sub);
+function dmsTarget(entry, group, focusSub) {
+  const parts = dmsGroupParts(entry, group.sub);
   const rel = focusSub && focusSub !== group.sub ? focusSub.slice(group.sub.length + 1) : ".";
   return {
     entry,
@@ -666,13 +666,13 @@ function cmsTarget(entry, group, focusSub) {
 }
 
 // The full name of a discovered (or env-named) host whose short module name
-// (the part after the last /) equals `alias` — e.g. alias `cms-host` matches
-// `@acme/cms-host`.
+// (the part after the last /) equals `alias` — e.g. alias `dms-host` matches
+// `@acme/dms-host`.
 function hostForAlias(alias) {
-  for (const name of discoverCmsHosts().keys()) {
+  for (const name of discoverDmsHosts().keys()) {
     if (shortModuleName(name) === alias) return name;
   }
-  for (const name of CMS_EXTRA_HOSTS) {
+  for (const name of DMS_EXTRA_HOSTS) {
     if (shortModuleName(name) === alias) return name;
   }
   return null;
@@ -681,7 +681,7 @@ function hostForAlias(alias) {
 // Parse a host-style spec into { pkgSpec, interfaceSub } or null. Handles the
 // `<alias>:<group>` shorthand (alias = a host's short module name), full
 // `…/interfaces/<group>[/part]` specifiers, and the singular `…/interface`.
-function parseCmsSpec(input) {
+function parseDmsSpec(input) {
   let spec = input;
   const aliased = spec.match(/^([^/@:]+):(.+)$/);
   if (aliased) {
@@ -689,8 +689,8 @@ function parseCmsSpec(input) {
     if (!host) {
       fail(
         `no known host package matches alias '${aliased[1]}'. Hosts are discovered from the ` +
-          `current project (dependencies, .antelope/cache, AJS_CMS_DIR) — run from a project ` +
-          `that depends on the host, or name it via AJS_CMS_PACKAGES (comma-separated).`,
+          `current project (dependencies, .antelope/cache, AJS_DMS_DIR) — run from a project ` +
+          `that depends on the host, or name it via AJS_DMS_PACKAGES (comma-separated).`,
       );
     }
     // The shorthand carries any `@version` on the group token (<alias>:<group>@1.2.3);
@@ -718,21 +718,21 @@ function groupForSub(entry, interfaceSub) {
 }
 
 // A host interface by bare group name, resolved against discovered host
-// packages (plus any named via AJS_CMS_PACKAGES). No host name is guessed.
-function resolveCmsBare(name, version) {
+// packages (plus any named via AJS_DMS_PACKAGES). No host name is guessed.
+function resolveDmsBare(name, version) {
   // A locally-discovered host is one fixed version — only usable when nothing is pinned.
   if (!version) {
-    for (const [, entry] of discoverCmsHosts()) {
-      const g = cmsGroups(entry).find((g) => g.name === name);
-      if (g) return cmsTarget(entry, g);
+    for (const [, entry] of discoverDmsHosts()) {
+      const g = dmsGroups(entry).find((g) => g.name === name);
+      if (g) return dmsTarget(entry, g);
     }
   }
-  const hosts = [...discoverCmsHosts().keys(), ...CMS_EXTRA_HOSTS];
+  const hosts = [...discoverDmsHosts().keys(), ...DMS_EXTRA_HOSTS];
   for (const host of hosts) {
     try {
       const entry = resolvePackageEntry(host, version, findLocalPackage);
-      const g = cmsGroups(entry).find((g) => g.name === name);
-      if (g) return cmsTarget(entry, g);
+      const g = dmsGroups(entry).find((g) => g.name === name);
+      if (g) return dmsTarget(entry, g);
     } catch {
       /* host not resolvable / no such group — try the next */
     }
@@ -742,16 +742,16 @@ function resolveCmsBare(name, version) {
 
 function resolveTarget(input) {
   // Explicit host specifier (full path or <alias>: shorthand).
-  const cms = parseCmsSpec(input);
-  if (cms) {
-    const { rawName: pkg, version } = splitSpec(cms.pkgSpec);
+  const dms = parseDmsSpec(input);
+  if (dms) {
+    const { rawName: pkg, version } = splitSpec(dms.pkgSpec);
     let entry;
     try {
       entry = resolvePackageEntry(pkg, version, findLocalPackage);
     } catch (e) {
       fail(`could not resolve host package '${pkg}': ${npmErrText(e)}`);
     }
-    return cmsTarget(entry, groupForSub(entry, cms.interfaceSub), cms.interfaceSub);
+    return dmsTarget(entry, groupForSub(entry, dms.interfaceSub), dms.interfaceSub);
   }
 
   const { rawName, version } = splitSpec(input);
@@ -761,9 +761,9 @@ function resolveTarget(input) {
     const local = findLocalInterface(rawName);
     if (local) return pkgTarget(local);
     // Local host with a matching group (no network) before reaching out.
-    for (const [, entry] of discoverCmsHosts()) {
-      const g = cmsGroups(entry).find((g) => g.name === rawName);
-      if (g) return cmsTarget(entry, g);
+    for (const [, entry] of discoverDmsHosts()) {
+      const g = dmsGroups(entry).find((g) => g.name === rawName);
+      if (g) return dmsTarget(entry, g);
     }
   }
 
@@ -774,8 +774,8 @@ function resolveTarget(input) {
       if (!pinned || local.pkg.version === pinned) return pkgTarget(local);
       fail(`'${input}' is not available locally (offline); local copy is v${local.pkg.version}.`);
     }
-    const cmsHit = resolveCmsBare(rawName, version);
-    if (cmsHit) return cmsHit;
+    const dmsHit = resolveDmsBare(rawName, version);
+    if (dmsHit) return dmsHit;
     const known = [...discoverInterfaces().keys()].map(shortName).join(", ");
     fail(`'${input}' is not available locally (offline). Locally present: ${known || "(none)"}.`);
   }
@@ -792,17 +792,17 @@ function resolveTarget(input) {
     }
   }
   // Not a published interface package — try host resolution by bare group name.
-  const cmsHit = resolveCmsBare(rawName, version);
-  if (cmsHit) return cmsHit;
+  const dmsHit = resolveDmsBare(rawName, version);
+  if (dmsHit) return dmsHit;
   fail(`could not resolve '${input}': ${npmErrText(interfaceErr)}`);
 }
 
 // ---- commands ----
 
-function cmsHostsForListing() {
-  const hosts = new Map(discoverCmsHosts());
+function dmsHostsForListing() {
+  const hosts = new Map(discoverDmsHosts());
   if (!OFFLINE) {
-    for (const name of CMS_EXTRA_HOSTS) {
+    for (const name of DMS_EXTRA_HOSTS) {
       if (hosts.has(name)) continue;
       try {
         hosts.set(name, resolvePackageEntry(name, undefined, findLocalPackage));
@@ -864,29 +864,29 @@ function cmdList(json) {
     }
   }
 
-  const cms = [];
-  for (const [host, entry] of cmsHostsForListing()) {
-    for (const g of cmsGroups(entry)) {
-      cms.push({
+  const dms = [];
+  for (const [host, entry] of dmsHostsForListing()) {
+    for (const g of dmsGroups(entry)) {
+      dms.push({
         name: `${host}/${g.sub}`,
         package: host,
         version: entry.pkg.version,
         description: `host interface (${g.name})`,
-        source: "cms",
+        source: "dms",
       });
     }
   }
 
   const rows = [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));
-  cms.sort((a, b) => a.name.localeCompare(b.name));
-  if (json) return console.log(JSON.stringify([...rows, ...cms], null, 2));
+  dms.sort((a, b) => a.name.localeCompare(b.name));
+  if (json) return console.log(JSON.stringify([...rows, ...dms], null, 2));
 
   for (const r of rows) {
     console.log(`${r.name.padEnd(26)} ${(r.version ? `v${r.version}` : "").padEnd(9)} ${r.description}`);
   }
-  if (cms.length) {
+  if (dms.length) {
     console.log("\nHost-package interfaces (import path):");
-    for (const r of cms) console.log(`  ${r.name.padEnd(52)} ${r.description}`);
+    for (const r of dms) console.log(`  ${r.name.padEnd(52)} ${r.description}`);
   }
 }
 
@@ -944,11 +944,11 @@ function cmdContract(input, subpath) {
 function cmdVersions(input) {
   // Resolve to a target only to learn the package the versions belong to, but
   // avoid fetching a tarball when we can derive the package name cheaply.
-  const cms = parseCmsSpec(input);
+  const dms = parseDmsSpec(input);
   let fullName;
   let localEntry;
-  if (cms) {
-    fullName = splitSpec(cms.pkgSpec).rawName;
+  if (dms) {
+    fullName = splitSpec(dms.pkgSpec).rawName;
     localEntry = findLocalPackage(fullName);
   } else {
     const { rawName } = splitSpec(input);
@@ -987,7 +987,7 @@ async function fetchRegistryManifest(name) {
 }
 
 async function cmdImplementations(input) {
-  if (parseCmsSpec(input)) {
+  if (parseDmsSpec(input)) {
     console.log(
       `'${input}' is a host-package interface (a subpath of a host package). Implementations are\n` +
         `not tracked in the AntelopeJS interfaces registry — a host interface is provided by its\n` +
@@ -997,11 +997,11 @@ async function cmdImplementations(input) {
   }
   const { rawName } = splitSpec(input);
   const local = findLocalInterface(rawName);
-  // A bare name may be a host-interface group (e.g. `cms-base`) — same n/a case
+  // A bare name may be a host-interface group (e.g. `dms-base`) — same n/a case
   // as an explicit host spec, and better than a misleading registry miss.
   if (!local) {
-    for (const [, entry] of discoverCmsHosts()) {
-      if (cmsGroups(entry).some((g) => g.name === rawName)) {
+    for (const [, entry] of discoverDmsHosts()) {
+      if (dmsGroups(entry).some((g) => g.name === rawName)) {
         console.log(
           `'${input}' is a host-package interface (a subpath of ${entry.pkg.name}). Implementations are\n` +
             `not tracked in the AntelopeJS interfaces registry — a host interface is provided by its\n` +

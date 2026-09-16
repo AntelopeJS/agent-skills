@@ -62,18 +62,18 @@ scope-specific is hardcoded — a project depending on `@acme/interface-payments
 `show payments` resolve, and private registries work through your own `.npmrc` without the
 plugin knowing any name.
 
-**Host-package interfaces too.** Some packages (CMS-style) expose interfaces as *subpaths* of
+**Host-package interfaces too.** Some packages (DMS-style) expose interfaces as *subpaths* of
 a host package rather than as standalone interface packages — a package is recognized as a
-host when its `package.json` sets `antelopeJs.cms` or exports `./interfaces/<group>` subpaths.
+host when its `package.json` sets `antelopeJs.dms` or exports `./interfaces/<group>` subpaths.
 Hosts are discovered from the current project (its dependencies in `node_modules`, the CLI's
-`.antelope/cache`, and a scan of `AJS_CMS_DIR`/the cwd for source checkouts); `AJS_CMS_PACKAGES`
+`.antelope/cache`, and a scan of `AJS_DMS_DIR`/the cwd for source checkouts); `AJS_DMS_PACKAGES`
 (comma-separated) names extra hosts explicitly. The resolver handles both shapes:
 
 ```bash
-node scripts/resolve-interface.mjs show cms-host:cms-base            # <host-short-name>:<group> shorthand
-node scripts/resolve-interface.mjs contract cms-host:cms-base form   # a part of the interface
-node scripts/resolve-interface.mjs show @acme/cms-host/interfaces/cms-auth   # full import path
-node scripts/resolve-interface.mjs show cms-base                     # bare group name (discovered hosts)
+node scripts/resolve-interface.mjs show dms-host:dms-base            # <host-short-name>:<group> shorthand
+node scripts/resolve-interface.mjs contract dms-host:dms-base form   # a part of the interface
+node scripts/resolve-interface.mjs show @acme/dms-host/interfaces/dms-auth   # full import path
+node scripts/resolve-interface.mjs show dms-base                     # bare group name (discovered hosts)
 ```
 
 `list` includes a host-interface section built from the discovered hosts.
