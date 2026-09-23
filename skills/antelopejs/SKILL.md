@@ -81,11 +81,11 @@ Flags: `--remote` (force a fresh npm fetch), `--offline` (local only). `npm` hon
 so scopes served from private registries resolve too.
 
 It also resolves **host-package interfaces** — interfaces exposed as subpaths of a host package
-(a package whose `package.json` sets `antelopeJs.cms` or exports `./interfaces/<group>`
-subpaths; despite the name, the `cms` marker — like `AJS_CMS_DIR`/`AJS_CMS_PACKAGES` below —
-is the framework's fixed hook for any host package, whatever its domain). Hosts are
+(a package whose `package.json` sets `antelopeJs.dms` or exports `./interfaces/<group>`
+subpaths; the `dms` marker — like `AJS_DMS_DIR`/`AJS_DMS_PACKAGES` below — is the framework's
+hook for any host package, whatever its domain). Hosts are
 discovered from the current project (dependencies, `.antelope/cache`,
-source checkouts under `AJS_CMS_DIR`/cwd; `AJS_CMS_PACKAGES` names extras). Use the
+source checkouts under `AJS_DMS_DIR`/cwd; `AJS_DMS_PACKAGES` names extras). Use the
 `<host-short-name>:<group>` shorthand, the full import path, or a bare group name, e.g.
 `… show shop-host:shop-catalog`, `… contract shop-host:shop-catalog pricing`,
 `… show @acme/shop-host/interfaces/shop-billing`, or `… show shop-catalog`.
