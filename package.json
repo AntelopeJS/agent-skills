@@ -1,0 +1,9 @@
+{
+  "name": "claude-antelopejs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "packageManager": "pnpm@10.2.0"
+}

@@ -1,6 +1,6 @@
 ---
 name: antelopejs
-description: Core mental model and router for AntelopeJS. Use whenever working in an AntelopeJS project or interface/module repo, or when the user mentions AntelopeJS. Routes to the ajs-consume-interface, ajs-author-interface, and ajs-cli skills, and to the interface contract resolver.
+description: Core mental model and router for AntelopeJS. Use whenever working in an AntelopeJS project or interface/module repo (including DMS projects), or when the user mentions AntelopeJS. Routes to the ajs-consume-interface, ajs-author-interface, and ajs-cli skills, to the interface contract resolver, and to the skills synced from the project's packages.
 ---
 
 # AntelopeJS
@@ -9,9 +9,9 @@ AntelopeJS is a modular Node.js framework. Read this overview first, then jump t
 
 ## The model in one screen
 
-- **Core + CLI (`ajs`)** — a small runtime that loads modules, wires their interfaces together, and manages the dev/build/start lifecycle. Users rarely edit the core; they run it via `ajs`.
+- **Core + CLI (`ajs`)** — a small runtime that loads modules, wires their interfaces together, and manages the dev/build/start lifecycle. Users rarely edit the core; they run it via `ajs` (modules declared in `antelope.config.ts`). It can also run **embedded** as a guest inside a host app that owns the process (`createRuntime` from `@antelopejs/core`, e.g. the AdonisJS DMS template): no `antelope.config.ts`, modules are plain npm dependencies, and host code reaches interfaces through `runtime.use("<interface package>[/subpath]")`, never by importing them.
 - **Modules** — independent units of functionality. A module may import **interfaces**, never another module's files. Its *only* links to the rest of the project are the interface proxy points it attaches to — nothing else crosses the boundary.
-- **Interfaces** — **versioned contracts**, published as `@antelopejs/interface-<name>` packages. An interface package contains the **proxy points** (`InterfaceFunction`, `EventProxy`, `RegisteringProxy`, …) that actually cross to the provider, the **types** that pass across — and often substantial **client-side code** built over those proxies. It is not just empty slots: the `database` interface is mostly chainable `Table`/`Query`/`Datum` classes that assemble a query *in the caller's process*, crossing the boundary only when `.run()` invokes the underlying `RunQuery` proxy. The contract is the package's whole TypeScript surface (`exports` subpaths + `.d.ts`), versioned with semver git tags. **Interfaces may depend on other interfaces** (e.g. `data-api` builds on `api`, `api-util`, `core`, `database`, and `database-decorators`) — that composition is allowed and normal. What's forbidden is modules reaching into each other.
+- **Interfaces** — **versioned contracts**, usually published as standalone `@<scope>/interface-<name>` packages (a module may also start with an *embedded* interface it exports itself, e.g. `@acme/broker/interface`, and extract it once a second implementation appears). An interface package contains the **proxy points** (`InterfaceFunction`, `EventProxy`, `RegisteringProxy`, …) that actually cross to the provider, the **types** that pass across — and often substantial **client-side code** built over those proxies. It is not just empty slots: the `database` interface is mostly chainable `Table`/`Query`/`Datum` classes that assemble a query *in the caller's process*, crossing the boundary only when `.run()` invokes the underlying `RunQuery` proxy. The contract is the package's whole TypeScript surface (`exports` subpaths + `.d.ts`), versioned with semver git tags. **Interfaces may depend on other interfaces** (e.g. `data-api` builds on `api`, `api-util`, `core`, `database`, and `database-decorators`) — that composition is allowed and normal. What's forbidden is modules reaching into each other.
 
 The golden rule: **the only connections between a module and the rest of the project go through interface proxy points** — never a direct `import` of another module's file. Everything else follows from that.
 
@@ -51,6 +51,21 @@ Because every connection lives on a known proxy and nothing else crosses the bou
 | Define a new interface, add/version a contract, decide a semver bump, ship breaking changes | **ajs-author-interface** |
 | Run, build, scaffold, test via the CLI (`ajs project …`, `ajs module …`) | **ajs-cli** |
 
+## Skills shipped by the project's packages
+
+Product and module knowledge does not live in this plugin: packages ship it as skills, declared under
+`antelopeJs.skills` in their `package.json`. The plugin syncs them into the project's
+`.claude/skills/` as `<package-short-name>--<skill>` on session start and after every Bash command,
+from the workspace (source checkouts), `node_modules`, and `.antelope/cache`. Run
+`/antelopejs:skills` to see which skills are synced and which package ships each one.
+
+**DMS projects** get the DMS suite this way: `dms` (the DMS router; start there), `dms-project`,
+`dms-module`, `dms-pages`, `dms-auth`, `dms-dev`, `dms-best-practices` from `@antelopejs/dms`, plus
+one skill per installed `dms-*` module (e.g. `dms-saas`). For DMS work, invoke `dms` first and follow
+its routing. When those skills are missing, the dependencies are not installed yet: run
+`pnpm install` (and `ajs project modules install` for modules declared in `antelope.config.ts`),
+then `/antelopejs:sync-skills`.
+
 ## Interface contract resolver (use this instead of guessing)
 
 Contracts are versioned data, not memorized facts. Never invent an interface's methods — look them up:
@@ -80,20 +95,10 @@ the current project's dependencies (`@<scope>/interface-*` deps contribute their
 Flags: `--remote` (force a fresh npm fetch), `--offline` (local only). `npm` honours `.npmrc`,
 so scopes served from private registries resolve too.
 
-It also resolves **host-package interfaces** — interfaces exposed as subpaths of a host package
-(a package whose `package.json` sets `antelopeJs.dms` or exports `./interfaces/<group>`
-subpaths; the `dms` marker — like `AJS_DMS_DIR`/`AJS_DMS_PACKAGES` below — is the framework's
-hook for any host package, whatever its domain). Hosts are
-discovered from the current project (dependencies, `.antelope/cache`,
-source checkouts under `AJS_DMS_DIR`/cwd; `AJS_DMS_PACKAGES` names extras). Use the
-`<host-short-name>:<group>` shorthand, the full import path, or a bare group name, e.g.
-`… show shop-host:shop-catalog`, `… contract shop-host:shop-catalog pricing`,
-`… show @acme/shop-host/interfaces/shop-billing`, or `… show shop-catalog`.
-
-Products built as a host package usually ship their own skills inside their packages: start a
-project from the product's template, install the dependencies, and those skills sync into the
-project automatically (see the package-shipped skills mechanism) — that is where the
-product-specific mental model and workflows live.
+It also resolves interfaces exposed as **subpaths of a module package**: an embedded interface
+(`<module>/interface`) or a host package exporting `./interfaces/<group>` (older DMS releases did
+this). Use the full import path (`… show @acme/broker/interface`) or `<host-short-name>:<group>`;
+hosts are discovered from the current project, and `AJS_DMS_PACKAGES` names extras.
 
 When asked anything about a specific interface's API (what methods exist, a signature, which version has X), run `contract`/`show` and answer from the output — do not rely on training data, which goes stale as contracts version.
 

@@ -5,7 +5,7 @@ description: Guides authoring or versioning an AntelopeJS interface package itse
 
 # Authoring & versioning interfaces
 
-An interface is a **versioned contract** shipped as `@antelopejs/interface-<name>`. Its public surface IS the contract: the `exports` subpaths plus the `.d.ts` they point to. Changing that surface is changing the contract — treat it with the discipline of a public API.
+An interface is a **versioned contract** shipped as `@<scope>/interface-<name>` (`@antelopejs/…` for the official ones). Its public surface IS the contract: the `exports` subpaths plus the `.d.ts` they point to. Changing that surface is changing the contract — treat it with the discipline of a public API.
 
 ## Anatomy of an interface package
 
@@ -17,8 +17,12 @@ interface-<name>/
   dist/*.d.ts           # built contract — what consumers actually type-check against
   docs/                 # hand-written guides (numbered files or directories)
   skills/               # package-shipped skill(s) synced to consumers (package.json `antelopeJs.skills` + `files`) — update when the contract changes
-  package.json          # `exports` + `typesVersions` define the subpath surface
+  package.json          # `exports` (plus `typesVersions` in older packages) define the subpath surface
 ```
+
+The core tells an interface package from a runtime module by `antelopeJs.implements`: absent or `[]` means interface package (depending on it requires a provider), a list means runtime module. Keep it empty in an interface package.
+
+An interface can also start **embedded** in the module that implements it (`src/interface/`, exported as `<module>/interface`, with the module listing its own package in `implements`). Extract it to a standalone `interface-<name>` package once a second implementation appears.
 
 Each `exports` subpath is an import consumers pin to — add subpaths deliberately, and keep each one cohesive. Inspect any existing interface's shape as a template:
 

@@ -59,10 +59,10 @@ The proxy layer attaches the implementation on module load and detaches on unloa
 An interface in a module's `dependencies` is **required**: if no loaded module provides it, the runtime aborts startup with `Unresolved interface dependencies: …` rather than running in a half-wired state. When `ajs` reports unresolved imports, a module needs an interface that no loaded module provides. Run:
 
 ```bash
-ajs project modules install    # detects unresolved imports, lists providers, prompts you to pick one
+ajs project modules install    # adds a provider module for every unresolved interface
 ```
 
-`install` reads the registry manifest for each unresolved interface (which lists *all* implementing modules — you choose, there's no single default) and adds the chosen provider to `antelope.config`. (`ajs project modules add <modules...>` only adds modules you name explicitly; it does not resolve imports.) To see candidate providers for an interface:
+`install` looks up each unresolved interface in the interface repository and adds an implementing module to `antelope.config.ts`: a single implementer is added without a question, several are offered as a choice (`-y` takes the first). (`ajs project modules add <modules...>` only adds modules you name explicitly; it does not resolve imports.) To see candidate providers for an interface:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" implementations <name>
@@ -78,10 +78,7 @@ The difference is what happens when nothing provides it. A missing **required** 
 - **registering proxies keep queuing** — `register` calls are retained and replay if a provider is loaded later; **event emits reach nobody** while stubbed. Neither throws.
 - a one-time **warning** is logged at startup: `Optional interface '<name>' has no provider; async calls on it will reject, sync usage will no-op.`
 
-**Detecting whether an optional interface is implemented:** there is no direct probe for a plain optional dependency. `GetInterfaceInstances(interfaceID)` (from `@antelopejs/interface-core`) returns the calling module's connection descriptors, but the core only wires connections for interfaces listed in `dependencies` or given an explicit `importOverrides` entry — for an interface declared only under `optionalDependencies` it returns `[]` even while a provider is loaded, so it is *not* a valid guard there. Two working approaches:
-
-- `try/catch` the first `await` — the stub rejects deterministically with the message above; it never hangs.
-- add an `importOverrides` entry for the consumer (see below): that creates a connection descriptor, making `GetInterfaceInstances(...).length > 0` a valid guard, and `GetInterfaceInstance(interfaceID, connectionID)` selects a specific provider when several implement the interface.
+**Detecting whether an optional interface is implemented:** `GetInterfaceInstances(interfaceID)` (from `@antelopejs/interface-core`) returns the calling module's connections to the providers of an interface it declares in `dependencies` or `optionalDependencies`, so `GetInterfaceInstances(id).length > 0` is a valid guard. `try/catch` around the first `await` works too: the stub rejects deterministically with the message above and never hangs.
 
 For a declared dependency, a call is either connected, rejected (stubbed optional), or startup-blocked (unprovided required) — with one caveat: startup only validates manifest-level `implements` lists, so a provider that declares an interface but omits one `InterfaceFunction` from its `ImplementInterface` call leaves that particular method's proxy unattached, and an `await` on it queues indefinitely. If a call hangs while the interface is otherwise connected, suspect a partially-implemented provider.
 
@@ -89,17 +86,20 @@ For a declared dependency, a call is either connected, rejected (stubbed optiona
 
 ## Wiring & overriding in antelope.config
 
-Modules are declared in `antelope.config.ts` (authored with `defineConfig` from `@antelopejs/interface-core/config`): `modules: Record<string, string | AntelopeModuleConfig>` — a plain string is a version shorthand. Per-module knobs that matter when consuming interfaces:
+Modules are declared in `antelope.config.ts` (authored with `defineConfig` from `@antelopejs/interface-core/config`; read the full shape with `contract core config`): `modules: Record<string, string | AntelopeModuleConfig>` — a plain string is a version shorthand, otherwise `source` is one of `package`, `git`, `local`, `local-folder`. Per-module knobs that matter when consuming interfaces:
 
 - `importOverrides` — force a specific source/provider for an interface, either as a list of `{ interface, source, id }` entries or a `{ interface: source }` shorthand map; e.g. to bind a consumer to a particular implementation when several exist.
 - `disabledExports` — stop a module from providing an interface it would otherwise export.
+- `exportPriority` — `{ "<interface package>": <number> }` on a provider: the highest becomes the default provider of that interface; a negative value keeps it from becoming the default by accident.
 - `config` — module-specific configuration passed at load.
 
-If two providers export the same interface, the binding is ambiguous — disambiguate with `importOverrides` rather than relying on load order.
+When several loaded modules implement the same interface, each consumer is bound to one of them: its own `importOverrides` pin, a pin carried down from a module above it, or the **default provider** (highest `exportPriority` for that interface on the provider's module entry, alphabetical on a tie, with a startup warning naming where one pin would settle it). Two paths that carry different bindings to the same module stop startup with an error naming that module: pin the interface there. Several `importOverrides` entries with an `id` give one module several connections; `GetInterfaceInstance(interfaceID, id).path` is what to `require()` for the copy bound to that connection.
+
+Config values can reference what another module publishes with `${@<module>.<VAR_NAME>}` (the provider lists the names under `antelopeJs.configVars`), e.g. `apiBaseUrl: "${@api.API_PUBLIC_BASE_URL}"`. `envOverrides` maps environment variables onto config paths, and `environments` holds per-`--env` overrides.
 
 ## Pinning interface versions
 
-Interfaces are semver-tagged, but there is **no runtime version negotiation**: the core wires consumer to provider purely by interface *package name*. At runtime it redirects **every** module's import of an interface package to a single shared copy — resolved from the provider's installation (or the first consumer's, for a stubbed optional) — so proxies are shared objects; your own npm-resolved copy is what you *typecheck* against, not necessarily what executes. Your `dependencies` range therefore governs the compile-time contract, which is exactly why it should match what the provider actually implements. Check what a project resolves vs. what's available:
+Interfaces are semver-tagged, but there is **no runtime version negotiation**: the core wires consumer to provider purely by interface *package name*. It evaluates the interface package once per provider it is bound to (modules bound the same way share one copy), so the proxies a consumer calls belong to its bound provider; your own npm-resolved copy is what you *typecheck* against, not necessarily what executes. Your `dependencies` range therefore governs the compile-time contract, which is exactly why it should match what the provider actually implements. Check what a project resolves vs. what's available:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" versions <name>

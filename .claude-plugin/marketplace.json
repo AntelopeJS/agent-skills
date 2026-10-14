@@ -1,5 +1,6 @@
 {
   "name": "antelopejs",
+  "description": "Claude Code plugins for AntelopeJS and the AntelopeJS DMS.",
   "owner": {
     "name": "AntelopeJS",
     "email": "contact@antelopejs.com"
@@ -8,7 +9,7 @@
     {
       "name": "antelopejs",
       "source": "./",
-      "description": "Knowledge and tools for building with AntelopeJS: the interface-based module framework, its ajs CLI, a live resolver for versioned interface contracts, and automatic sync of package-shipped skills."
+      "description": "Knowledge and tools for building with AntelopeJS: the interface-based module framework, its ajs CLI, a live resolver for versioned interface contracts, and automatic sync of the skills shipped by the project's packages (the DMS suite included)."
     }
   ]
 }
