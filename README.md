@@ -1,4 +1,12 @@
-# AntelopeJS agent skills
+<div align="center">
+  <img src="./.github/assets/logo.png" alt="AntelopeJS logo" width="88">
+  <h1>AntelopeJS agent skills</h1>
+  <p><strong>The AntelopeJS and DMS skills, synced into Claude Code and Codex.</strong></p>
+
+<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
+<a href="https://dms.antelopejs.com/docs/ai-and-claude-code/overview"><img alt="Docs" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
+
+</div>
 
 Tools for coding agents building with [AntelopeJS](https://github.com/AntelopeJS) — the Node.js framework where a tight core + `ajs` CLI orchestrate modules that communicate **only** through versioned *interface* contracts — and with the AntelopeJS DMS. Every skill ships inside an npm package (the framework skills in `@antelopejs/core`, the DMS suite in `@antelopejs/dms`, one per module or interface); this plugin syncs them into your project, resolves interface contracts live, and adds a few commands.
 
