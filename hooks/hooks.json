@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/sync-skills.mjs\" --quiet",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/sync-skills.mjs\" --quiet --target claude",
             "timeout": 30
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/sync-skills.mjs\" --quiet",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/sync-skills.mjs\" --quiet --target claude",
             "timeout": 30
           }
         ]

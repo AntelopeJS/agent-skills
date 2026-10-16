@@ -1,5 +1,6 @@
 {
   "name": "antelopejs",
+  "description": "AntelopeJS agent tools for Claude Code and OpenAI Codex: skill sync, interface resolver, commands.",
   "owner": {
     "name": "AntelopeJS",
     "email": "contact@antelopejs.com"
@@ -8,7 +9,7 @@
     {
       "name": "antelopejs",
       "source": "./",
-      "description": "Knowledge and tools for building with AntelopeJS: the interface-based module framework, its ajs CLI, a live resolver for versioned interface contracts, and automatic sync of package-shipped skills."
+      "description": "Tools for building with AntelopeJS: the sync of the agent skills shipped by the project's packages (the framework skills from @antelopejs/core and the DMS suite included), a live resolver for versioned interface contracts, and commands for the ajs CLI."
     }
   ]
 }

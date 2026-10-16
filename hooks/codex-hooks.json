@@ -1,0 +1,29 @@
+{
+  "description": "Sync the skills shipped by the project's AntelopeJS packages into .agents/skills.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/sync-skills.mjs\" --quiet --target codex",
+            "statusMessage": "Syncing AntelopeJS skills",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/scripts/sync-skills.mjs\" --quiet --target codex",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
