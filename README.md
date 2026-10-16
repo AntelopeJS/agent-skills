@@ -61,7 +61,7 @@ The sync needs only Node.js. From a project root, this links the package-shipped
 npx -y github:AntelopeJS/agent-skills sync
 ```
 
-`list` shows what would be synced, `--target claude|codex` restricts the sync to one directory, and `interface` runs the contract resolver (`npx -y github:AntelopeJS/agent-skills interface show database`).
+`list` shows what would be synced, `--target claude|codex` restricts the sync to one directory, `interface` runs the contract resolver (`npx -y github:AntelopeJS/agent-skills interface show database`), and `verify` / `evals` check answers and skills (see [Evaluating the skills](#evaluating-the-skills)).
 
 ## What you get
 
@@ -73,6 +73,7 @@ npx -y github:AntelopeJS/agent-skills sync
 | Command (Claude Code) | `/antelopejs:sync-skills` | Sync those skills now |
 | Hooks | `SessionStart`, `PostToolUse` (Bash) | Run the skill sync automatically (Claude Code; Codex desktop once trusted) |
 | Script | `scripts/resolve-interface.mjs` | The interface contract resolver, also run as `npx -y github:AntelopeJS/agent-skills interface …` |
+| CLI | `verify`, `evals` | Report invented API names in an answer or a diff; score which skills a prompt triggers |
 
 The plugin carries no skill of its own. The framework skills — `antelopejs` (mental model and router), `ajs-cli`, `ajs-consume-interface` and `ajs-author-interface` — ship with `@antelopejs/core` and are synced like any package skill, as `core--<skill>`. They follow the core version the project installs.
 
@@ -205,11 +206,17 @@ agent-skills/
     hooks.json             # Claude Code: skill sync into .claude/skills (SessionStart + after Bash)
     codex-hooks.json       # Codex: skill sync into .agents/skills
   bin/
-    agent-skills.mjs       # npx entry: sync, list, interface
+    agent-skills.mjs       # npx entry: sync, list, interface, verify, evals
   scripts/
     resolve-interface.mjs  # Layer 3 — live contract resolver
     sync-skills.mjs        # syncs package-shipped skills into .claude/skills and .agents/skills
-  test/                    # node:test suites for both scripts
+    verify.mjs             # API names of an answer or diff vs the installed .d.ts
+    evals.mjs              # trigger and answer-quality evals
+    lib/                   # corpus loader, dataset schema, baseline, scoring, model backend
+  evals/
+    cases.json             # the eval dataset
+    packages.json          # published packages of the CI corpus (--published)
+  test/                    # node:test suites
 ```
 
 ## The resolver
@@ -273,10 +280,70 @@ Each `skills/<name>/SKILL.md` becomes `.claude/skills/<package-short-name>--<nam
 `npx -y github:AntelopeJS/agent-skills list` (or `/antelopejs:skills`) in a consuming project to
 check what it picks up.
 
+## Evaluating the skills
+
+A skill only helps when the agent loads it, and a loaded skill only helps when the answer it produces uses real APIs. Two evals and one checker measure both, over the dataset in [`evals/cases.json`](evals/cases.json).
+
+### The dataset
+
+Each case is a user prompt, the skills an agent should load for it (`expect.skills`), the ones it may load without penalty (`expect.acceptable`), and optionally API names the answer must or must not mention and an expected behaviour (`asks-first`: ask the user before writing code, as `dms-best-practices` requires before leaving DMS blocks). Cases cover the framework (each question in a well-formed and a casual variant), DMS page building, permissions, dev servers, the frontend CLI and deployment, the `dms-*` modules, dms-ai, and installing the skills. `scripts/lib/dataset.mjs` is the schema; `pnpm test` rejects an invalid dataset.
+
+### The corpus
+
+The skills an eval runs against, by name and description, read from their `SKILL.md`:
+
+| Option | Source |
+| --- | --- |
+| `--project <dir>` (default: the current directory) | what the sync finds there: workspace, `node_modules`, `.antelope/cache` |
+| `--skills <dir>` (repeatable) | every `SKILL.md` under the directory, e.g. a checkout under review |
+| `--packages <a,b>` / `--published` | the skills shipped by npm packages, fetched as tarballs; `--published` takes the list in `evals/packages.json` |
+
+When two sources ship a skill of the same name, the first wins, in that order. An expected skill missing from the corpus is left out of the score, and a case with none left is reported `skipped`, so the evals keep working while skills move between packages.
+
+### Trigger eval
+
+```bash
+npx -y github:AntelopeJS/agent-skills evals --project .                       # deterministic baseline
+npx -y github:AntelopeJS/agent-skills evals --project . --backend anthropic   # ask a model
+npx -y github:AntelopeJS/agent-skills evals --backend anthropic --dry-run     # print the prompt, call nothing
+```
+
+For each case it asks which skills would be loaded, then prints recall (expected skills picked) and precision (picks that were expected or acceptable) per case, per question style and overall. `--min-recall` and `--min-precision` make it exit 1 under a threshold.
+
+- **`--backend baseline`** (default) needs no key: it scores each skill by the overlap between the prompt's terms and the skill's name and description. It cannot read intent; it goes red when a description stops carrying the terms users type, which is what CI watches.
+- **`--backend anthropic`** sends the model only the skills' names and descriptions, as a coding agent sees them before loading one, and reads its picks as structured output. It uses `ANTHROPIC_API_KEY` and `$EVAL_MODEL` (default `claude-opus-5-5`, or `--model`); without a key it prints a notice and exits 0.
+- **`--backend <module.mjs>`** plugs any other model: the module exports `complete({ system, user, schema, effort, maxTokens })` returning the reply text.
+
+### Answer-quality eval
+
+```bash
+npx -y github:AntelopeJS/agent-skills evals answers --project . --out answers/
+```
+
+The model answers each prompt with the case's expected skills loaded in full; `verify` then counts the API names it invented. The report adds the expected names the answer left out, the forbidden ones it used, and whether it asked first when it had to. `--max-invented` sets the failing rate. It needs a key and is skipped without one.
+
+### `verify`
+
+```bash
+npx -y github:AntelopeJS/agent-skills verify answer.md
+git diff main | npx -y github:AntelopeJS/agent-skills verify -
+```
+
+It extracts the API names a Markdown answer relies on (imports, code fences, inline code) or the imports a unified diff adds, then resolves each module specifier to the `.d.ts` of the installed package: its `exports` map (conditions and `*` patterns) or `types` field, following `export *` chains. Interface packages that are not installed are fetched through the contract resolver (`--offline` prevents it). It reports names a module does not export, subpaths a package does not expose, `@antelopejs` packages that do not exist, and, in answers, unimported API-shaped names (`KpiCard`, `@RegisterPage`, `new Foo`) that no installed `@antelopejs` package exports. It exits 1 when it finds one. Prose claims and misused real names pass through.
+
+### In CI
+
+`.github/workflows/ci.yml` runs the tests and the baseline trigger eval (`pnpm evals:baseline`, against the skills of the `--published` packages) on every push and pull request. The model-backed trigger and answer evals run on manual dispatch and on pull requests that touch the evals, only when the `ANTHROPIC_API_KEY` secret exists.
+
+### Background
+
+The evals and `verify` come from [AntelopeJS/docs-assistant](https://github.com/AntelopeJS/docs-assistant), a retrieval experiment over the AntelopeJS docs whose benchmark showed a small model inventing most of the API names it cited without the docs, and none with them. Three of its measured decisions carry over: no fixed similarity threshold (relevance scores of right and wrong passages overlapped, so judging relevance is left to the model, here the trigger eval); sections merged into chunks of about 250 words (truncated passages hurt more than blurred ones, which is also why skills load whole); and query rewriting rejected (rewritten casual questions scored higher but drifted off topic and lost recall, hence the casual variants in the dataset, scored as typed). Its 24 framework questions, translated to English, are the first cases of the dataset, and its `verify`, which only searched backticked names in the indexed docs, became the `.d.ts`-based checker above.
+
 ## Development
 
 ```bash
-pnpm test                         # node:test suites for both scripts (no install needed)
+pnpm test                         # node:test suites (no install needed)
+pnpm evals:baseline               # trigger eval against the published skills, as CI runs it
 claude plugin validate .          # Claude Code manifests, commands, hooks
 claude --plugin-dir .             # load this checkout in a Claude Code session
 codex plugin marketplace add .    # register this checkout as a Codex marketplace

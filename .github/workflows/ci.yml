@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - name: Trigger eval, deterministic baseline
+        run: pnpm evals:baseline
+
+  model-eval:
+    needs: test
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Decide whether to run
+        id: gate
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "No ANTHROPIC_API_KEY secret: skipping the model-backed eval."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only HEAD^1 HEAD | grep -qE '^(evals/|scripts/lib/(model|baseline|scoring|corpus|answers)\.mjs)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "The pull request touches no skill or eval: skipping the model-backed eval."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.run == 'true'
+        uses: pnpm/action-setup@v4
+      - if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - if: steps.gate.outputs.run == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: Trigger eval, model-backed
+        if: steps.gate.outputs.run == 'true'
+        run: pnpm evals:model
+      - name: Install the interface packages verify resolves against
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/eval-project"
+          echo '{ "name": "eval-project", "private": true }' > "$RUNNER_TEMP/eval-project/package.json"
+          pnpm --dir "$RUNNER_TEMP/eval-project" add --ignore-scripts @antelopejs/core @antelopejs/interface-dms @antelopejs/interface-api @antelopejs/interface-auth @antelopejs/interface-core @antelopejs/interface-database @antelopejs/interface-database-decorators @antelopejs/interface-data-api @antelopejs/interface-dms-mailing @antelopejs/interface-dms-media @antelopejs/interface-dms-saas @antelopejs/interface-dms-automation
+      - name: Answer-quality eval
+        if: steps.gate.outputs.run == 'true'
+        run: pnpm evals:answers --project "$RUNNER_TEMP/eval-project"

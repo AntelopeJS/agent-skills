@@ -1,0 +1,25 @@
+{
+  "description": "Published packages whose shipped skills make the corpus of `evals --published` (the CI baseline).",
+  "packages": [
+    "@antelopejs/core",
+    "@antelopejs/dms",
+    "@antelopejs/dms-frontend",
+    "@antelopejs/dms-ai",
+    "@antelopejs/dms-api",
+    "@antelopejs/dms-automation",
+    "@antelopejs/interface-dms-automation",
+    "@antelopejs/dms-builder",
+    "@antelopejs/dms-database",
+    "@antelopejs/dms-lang",
+    "@antelopejs/dms-mailing",
+    "@antelopejs/dms-marketing",
+    "@antelopejs/dms-media",
+    "@antelopejs/dms-saas",
+    "@antelopejs/interface-api",
+    "@antelopejs/interface-auth",
+    "@antelopejs/interface-core",
+    "@antelopejs/interface-data-api",
+    "@antelopejs/interface-database",
+    "@antelopejs/interface-database-decorators"
+  ]
+}
