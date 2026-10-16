@@ -203,3 +203,19 @@ test("the agent-skills bin forwards sync to the sync script", () => {
 
   assert.deepEqual(forTarget(JSON.parse(output), "codex").added, ["mod-a--alpha"]);
 });
+
+test("links the framework skills @antelopejs/core ships into an embedded-runtime app", () => {
+  writeJson(join(root, "package.json"), { name: "host-app", dependencies: { "@antelopejs/core": "^1.0.0" } });
+  const frameworkSkills = ["ajs-author-interface", "ajs-cli", "ajs-consume-interface", "antelopejs"];
+  writeSkillPackage(join(root, "node_modules", "@antelopejs", "core"), "@antelopejs/core", frameworkSkills);
+
+  const result = sync(root);
+
+  assert.deepEqual(forTarget(result).added.sort(), frameworkSkills.map((skill) => `core--${skill}`));
+  assert.equal(byName(result)["core--antelopejs"].skill, "antelopejs");
+});
+
+test("the plugin bundles no skill that would shadow a package-shipped one", () => {
+  const pluginRoot = join(import.meta.dirname, "..");
+  assert.equal(existsSync(join(pluginRoot, "skills")), false);
+});

@@ -2,7 +2,7 @@
   "name": "agent-skills",
   "version": "0.3.0",
   "private": true,
-  "description": "AntelopeJS agent skills for Claude Code and OpenAI Codex, and the sync of the skills shipped by AntelopeJS packages.",
+  "description": "AntelopeJS agent tools for Claude Code and OpenAI Codex: the sync of the skills shipped by AntelopeJS packages and the interface contract resolver.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AntelopeJS/agent-skills.git"

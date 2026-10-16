@@ -6,7 +6,7 @@ allowed-tools: Bash(ajs:*), Bash(node:*), Bash(pnpm:*)
 
 Help the user scaffold a new AntelopeJS module at `$ARGUMENTS`.
 
-Follow the **ajs-consume-interface** and **ajs-cli** skills. Steps:
+Follow the **ajs-consume-interface** and **ajs-cli** skills (synced from `@antelopejs/core`). Steps:
 
 1. Scaffold with `ajs module init <path>`. Your shell has no terminal, so answer every question with a flag or the command exits with code `2`: `-t <template>` (ask the user when unsure; `ajs module init --help` shows the flags), `--interfaces a,b` for the interfaces the user named, `--pm pnpm`, and `--git-init` or `--no-git-init`.
 2. For each interface the module should consume, confirm it exists and inspect its surface so you import the right symbols:
