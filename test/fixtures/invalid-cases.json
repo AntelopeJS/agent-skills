@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "cases": [
+    { "id": "Bad Id", "area": "dms", "style": "clean", "prompt": "x", "expect": { "skills": ["dms-pages"] } },
+    { "id": "ok", "area": "nowhere", "style": "clean", "prompt": "x", "expect": { "skills": ["dms-pages"] } }
+  ]
+}

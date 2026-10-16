@@ -12,7 +12,13 @@
     "agent-skills": "bin/agent-skills.mjs"
   },
   "scripts": {
-    "test": "node --test \"test/*.test.mjs\""
+    "test": "node --test \"test/*.test.mjs\"",
+    "evals:baseline": "node scripts/evals.mjs --published --skills skills --min-recall 0.5 --min-precision 0.5",
+    "evals:model": "node scripts/evals.mjs --backend anthropic --published --skills skills --min-recall 0.7 --min-precision 0.6",
+    "evals:answers": "node scripts/evals.mjs answers --published --skills skills --max-invented 0.1"
   },
-  "packageManager": "pnpm@10.2.0"
+  "packageManager": "pnpm@10.2.0",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0"
+  }
 }

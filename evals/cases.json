@@ -1,0 +1,1110 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "protect-route",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "How do I protect a route with authentication?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "auth-interface"
+        ],
+        "acceptable": [
+          "api-interface",
+          "ajs-consume-interface",
+          "antelopejs"
+        ],
+        "mustMention": [
+          "Authentication"
+        ]
+      }
+    },
+    {
+      "id": "protect-route-casual",
+      "area": "framework",
+      "style": "casual",
+      "prompt": "what do i need to do so my route is protected?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "auth-interface"
+        ],
+        "acceptable": [
+          "api-interface",
+          "ajs-consume-interface",
+          "antelopejs"
+        ],
+        "mustMention": [
+          "Authentication"
+        ]
+      }
+    },
+    {
+      "id": "log-levels",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "What log levels are available?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "core-interface"
+        ],
+        "acceptable": [
+          "antelopejs"
+        ],
+        "mustMention": [
+          "Logging"
+        ]
+      }
+    },
+    {
+      "id": "log-levels-casual",
+      "area": "framework",
+      "style": "casual",
+      "prompt": "wat r the log levels",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "core-interface"
+        ],
+        "acceptable": [
+          "antelopejs"
+        ],
+        "mustMention": [
+          "Logging"
+        ]
+      }
+    },
+    {
+      "id": "new-module",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "How do I create a new module from scratch?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "ajs-cli"
+        ],
+        "acceptable": [
+          "antelopejs",
+          "ajs-consume-interface"
+        ]
+      }
+    },
+    {
+      "id": "new-module-casual",
+      "area": "framework",
+      "style": "casual",
+      "prompt": "wanna start a new module, where do i begin",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "ajs-cli"
+        ],
+        "acceptable": [
+          "antelopejs",
+          "ajs-consume-interface"
+        ]
+      }
+    },
+    {
+      "id": "table-relations",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "How do I define relations between tables?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "database-decorators-interface"
+        ],
+        "acceptable": [
+          "database-interface"
+        ],
+        "mustMention": [
+          "Relation"
+        ]
+      }
+    },
+    {
+      "id": "table-relations-casual",
+      "area": "framework",
+      "style": "casual",
+      "prompt": "how do i link two tables together",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "database-decorators-interface"
+        ],
+        "acceptable": [
+          "database-interface"
+        ],
+        "mustMention": [
+          "Relation"
+        ]
+      }
+    },
+    {
+      "id": "streaming-response",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "How do I return a streaming response?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "api-interface"
+        ],
+        "acceptable": [
+          "antelopejs"
+        ],
+        "mustMention": [
+          "WriteStream"
+        ]
+      }
+    },
+    {
+      "id": "streaming-response-casual",
+      "area": "framework",
+      "style": "casual",
+      "prompt": "sending data continuously, how does that work",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "api-interface"
+        ],
+        "acceptable": [
+          "antelopejs"
+        ],
+        "mustMention": [
+          "WriteStream"
+        ]
+      }
+    },
+    {
+      "id": "project-config",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "Where is the project configured?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "antelopejs"
+        ],
+        "acceptable": [
+          "ajs-cli",
+          "core-interface"
+        ],
+        "mustMention": [
+          "defineConfig"
+        ]
+      }
+    },
+    {
+      "id": "project-config-casual",
+      "area": "framework",
+      "style": "casual",
+      "prompt": "where's the config file",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "antelopejs"
+        ],
+        "acceptable": [
+          "ajs-cli",
+          "core-interface"
+        ],
+        "mustMention": [
+          "defineConfig"
+        ]
+      }
+    },
+    {
+      "id": "run-tests",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "How do I run the tests?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "ajs-cli"
+        ],
+        "acceptable": [
+          "antelopejs"
+        ]
+      }
+    },
+    {
+      "id": "run-tests-casual",
+      "area": "framework",
+      "style": "casual",
+      "prompt": "how do i run my tests",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "ajs-cli"
+        ],
+        "acceptable": [
+          "antelopejs"
+        ]
+      }
+    },
+    {
+      "id": "add-module",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "How do I add a module to my project?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "ajs-cli"
+        ],
+        "acceptable": [
+          "antelopejs"
+        ]
+      }
+    },
+    {
+      "id": "add-module-casual",
+      "area": "framework",
+      "style": "casual",
+      "prompt": "i wanna add a module to my project",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "ajs-cli"
+        ],
+        "acceptable": [
+          "antelopejs"
+        ]
+      }
+    },
+    {
+      "id": "proxies",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "What is a proxy for?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "core-interface"
+        ],
+        "acceptable": [
+          "antelopejs",
+          "ajs-author-interface",
+          "ajs-consume-interface"
+        ]
+      }
+    },
+    {
+      "id": "proxies-casual",
+      "area": "framework",
+      "style": "casual",
+      "prompt": "proxies, what are they actually for",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "core-interface"
+        ],
+        "acceptable": [
+          "antelopejs",
+          "ajs-author-interface",
+          "ajs-consume-interface"
+        ]
+      }
+    },
+    {
+      "id": "read-records",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "How do I read records from the database?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "database-interface"
+        ],
+        "acceptable": [
+          "database-decorators-interface",
+          "data-api-interface",
+          "ajs-consume-interface"
+        ],
+        "mustNotMention": [
+          "DatabaseService"
+        ]
+      }
+    },
+    {
+      "id": "read-records-casual",
+      "area": "framework",
+      "style": "casual",
+      "prompt": "what does a db request to get customers look like?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "database-interface"
+        ],
+        "acceptable": [
+          "database-decorators-interface",
+          "data-api-interface",
+          "ajs-consume-interface"
+        ],
+        "mustNotMention": [
+          "DatabaseService"
+        ]
+      }
+    },
+    {
+      "id": "publish-interface",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "How do I publish an interface to the registry?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "ajs-author-interface"
+        ],
+        "acceptable": [
+          "antelopejs",
+          "ajs-cli"
+        ]
+      }
+    },
+    {
+      "id": "publish-interface-casual",
+      "area": "framework",
+      "style": "casual",
+      "prompt": "how do i put my interface in the registry",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "ajs-author-interface"
+        ],
+        "acceptable": [
+          "antelopejs",
+          "ajs-cli"
+        ]
+      }
+    },
+    {
+      "id": "embedded-vs-standalone",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "What is the difference between an embedded and a standalone interface?",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "ajs-author-interface"
+        ],
+        "acceptable": [
+          "antelopejs",
+          "ajs-consume-interface"
+        ]
+      }
+    },
+    {
+      "id": "embedded-vs-standalone-casual",
+      "area": "framework",
+      "style": "casual",
+      "prompt": "embedded or standalone, which one do i pick",
+      "origin": "docs-assistant",
+      "expect": {
+        "skills": [
+          "ajs-author-interface"
+        ],
+        "acceptable": [
+          "antelopejs",
+          "ajs-consume-interface"
+        ]
+      }
+    },
+    {
+      "id": "orders-table",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add an orders page to the dashboard with a table of the orders: customer, total and status.",
+      "expect": {
+        "skills": [
+          "dms-pages",
+          "dms-best-practices"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-builder-safe",
+          "dms-builder-page",
+          "data-api-interface",
+          "database-decorators-interface"
+        ],
+        "mustMention": [
+          "TableView",
+          "RegisterPage"
+        ],
+        "mustNotMention": [
+          "CustomComponent"
+        ]
+      }
+    },
+    {
+      "id": "orders-table-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "need a table of all the orders in the admin asap",
+      "expect": {
+        "skills": [
+          "dms-pages",
+          "dms-best-practices"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-builder-safe",
+          "dms-builder-page",
+          "data-api-interface",
+          "database-decorators-interface"
+        ],
+        "mustMention": [
+          "TableView"
+        ]
+      }
+    },
+    {
+      "id": "kpi-row-revenue",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a row of KPI cards at the top of the dashboard: revenue, number of orders and average basket.",
+      "expect": {
+        "skills": [
+          "dms-pages",
+          "dms-best-practices"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-builder-safe",
+          "dms-builder-page",
+          "data-api-interface",
+          "database-decorators-interface"
+        ],
+        "mustMention": [
+          "KpiCard"
+        ],
+        "mustNotMention": [
+          "CustomComponent"
+        ]
+      }
+    },
+    {
+      "id": "reproduce-mockup",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Here is a mockup of our analytics dashboard (screenshot attached). Reproduce it in the DMS.",
+      "expect": {
+        "skills": [
+          "dms-best-practices"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-pages",
+          "dms-builder-safe",
+          "dms-builder-page"
+        ],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "reproduce-figma-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "can u make the customers screen look exactly like this figma frame",
+      "expect": {
+        "skills": [
+          "dms-best-practices"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-pages",
+          "dms-builder-safe",
+          "dms-builder-page"
+        ],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "kanban-board",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a drag-and-drop kanban board for the support tickets, one column per status.",
+      "expect": {
+        "skills": [
+          "dms-best-practices",
+          "dms-pages"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-module",
+          "dms-frontend"
+        ],
+        "mustMention": [
+          "CustomComponent"
+        ],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "gantt-chart-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "put a gantt chart of the project milestones on the projects page",
+      "expect": {
+        "skills": [
+          "dms-best-practices",
+          "dms-pages"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-frontend"
+        ],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "settings-form",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a settings page with a form to edit the company name, address and VAT number.",
+      "expect": {
+        "skills": [
+          "dms-pages"
+        ],
+        "acceptable": [
+          "dms-best-practices",
+          "dms",
+          "dms-builder-safe",
+          "dms-builder-page"
+        ],
+        "mustMention": [
+          "Form"
+        ]
+      }
+    },
+    {
+      "id": "custom-block-role-editor",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "my custom block doesnt show up in the role editor, why",
+      "expect": {
+        "skills": [
+          "dms-best-practices"
+        ],
+        "acceptable": [
+          "dms-auth",
+          "dms-pages",
+          "dms"
+        ],
+        "mustMention": [
+          "CustomComponent"
+        ]
+      }
+    },
+    {
+      "id": "admins-only-page",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Only administrators should be able to open the billing page.",
+      "expect": {
+        "skills": [
+          "dms-auth"
+        ],
+        "acceptable": [
+          "dms-pages",
+          "dms-best-practices",
+          "dms-saas",
+          "dms"
+        ]
+      }
+    },
+    {
+      "id": "route-permission",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Protect this API route so only users with the orders.write permission can call it.",
+      "expect": {
+        "skills": [
+          "dms-auth"
+        ],
+        "acceptable": [
+          "api-interface",
+          "auth-interface",
+          "dms"
+        ],
+        "mustMention": [
+          "AuthUserWithPermission"
+        ]
+      }
+    },
+    {
+      "id": "restart-backend",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Restart the backend.",
+      "expect": {
+        "skills": [
+          "dms-project"
+        ],
+        "acceptable": [
+          "dms-dev",
+          "dms",
+          "dms-frontend"
+        ]
+      }
+    },
+    {
+      "id": "change-not-showing-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "i changed the page but nothing shows up in the dashboard??",
+      "expect": {
+        "skills": [
+          "dms-project"
+        ],
+        "acceptable": [
+          "dms-dev",
+          "dms-frontend",
+          "dms",
+          "dms-pages"
+        ]
+      }
+    },
+    {
+      "id": "backend-logs",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Where can I read the logs of the DMS dev servers?",
+      "expect": {
+        "skills": [
+          "dms-project"
+        ],
+        "acceptable": [
+          "dms-dev",
+          "dms-frontend",
+          "dms"
+        ]
+      }
+    },
+    {
+      "id": "new-dms-project",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Create a new project that uses the DMS, starting from the template.",
+      "expect": {
+        "skills": [
+          "dms-project"
+        ],
+        "acceptable": [
+          "dms",
+          "antelopejs",
+          "ajs-cli"
+        ]
+      }
+    },
+    {
+      "id": "deploy-dashboard",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Deploy the dashboard to production behind an nginx reverse proxy.",
+      "expect": {
+        "skills": [
+          "dms-frontend"
+        ],
+        "acceptable": [
+          "dms-project",
+          "dms"
+        ]
+      }
+    },
+    {
+      "id": "dms-build-401-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "ajs dms build fails with a 401, wtf",
+      "expect": {
+        "skills": [
+          "dms-frontend"
+        ],
+        "acceptable": [
+          "dms-project",
+          "ajs-cli"
+        ]
+      }
+    },
+    {
+      "id": "frontend-session-secret",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "The frontend server refuses to start because of a missing session secret. How do I configure it?",
+      "expect": {
+        "skills": [
+          "dms-frontend"
+        ],
+        "acceptable": [
+          "dms-project"
+        ]
+      }
+    },
+    {
+      "id": "frontend-server-route",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a server route to my module's frontend (dms.server.ts) that proxies to an external API.",
+      "expect": {
+        "skills": [
+          "dms-frontend"
+        ],
+        "acceptable": [
+          "dms-module",
+          "dms"
+        ]
+      }
+    },
+    {
+      "id": "package-module",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Package our invoicing pages as a reusable DMS module that other projects can install.",
+      "expect": {
+        "skills": [
+          "dms-module"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-pages",
+          "ajs-author-interface",
+          "dms-frontend"
+        ]
+      }
+    },
+    {
+      "id": "mailing-send-template",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Send the welcome e-mail template when a user signs up.",
+      "expect": {
+        "skills": [
+          "dms-mailing"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-auth"
+        ],
+        "mustMention": [
+          "SendTemplate"
+        ]
+      }
+    },
+    {
+      "id": "mailing-bounces",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Our e-mail provider reports bounces through a webhook. How do we record them?",
+      "expect": {
+        "skills": [
+          "dms-mailing"
+        ],
+        "acceptable": [
+          "dms"
+        ],
+        "mustMention": [
+          "RecordEmailEvent"
+        ]
+      }
+    },
+    {
+      "id": "mailing-missing-variable-casual",
+      "area": "modules",
+      "style": "casual",
+      "prompt": "mail send says missing variable firstName??",
+      "expect": {
+        "skills": [
+          "dms-mailing"
+        ],
+        "acceptable": [
+          "dms"
+        ]
+      }
+    },
+    {
+      "id": "media-image-field",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Add an image upload field for the product photos in the product form.",
+      "expect": {
+        "skills": [
+          "dms-media"
+        ],
+        "acceptable": [
+          "dms-pages",
+          "dms",
+          "dms-best-practices"
+        ],
+        "mustMention": [
+          "AssetType"
+        ]
+      }
+    },
+    {
+      "id": "media-upload-refused-casual",
+      "area": "modules",
+      "style": "casual",
+      "prompt": "uploads get refused on the media folder, cors maybe?",
+      "expect": {
+        "skills": [
+          "dms-media"
+        ],
+        "acceptable": [
+          "dms"
+        ]
+      }
+    },
+    {
+      "id": "lang-translate-dashboard",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Translate the dashboard into German.",
+      "expect": {
+        "skills": [
+          "dms-lang"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-pages"
+        ]
+      }
+    },
+    {
+      "id": "lang-raw-keys-casual",
+      "area": "modules",
+      "style": "casual",
+      "prompt": "some labels show the raw i18n key instead of the text",
+      "expect": {
+        "skills": [
+          "dms-lang"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-pages"
+        ]
+      }
+    },
+    {
+      "id": "saas-pro-plan",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Add a Pro plan that unlocks the CSV exports.",
+      "expect": {
+        "skills": [
+          "dms-saas"
+        ],
+        "acceptable": [
+          "dms-auth",
+          "dms"
+        ]
+      }
+    },
+    {
+      "id": "saas-stripe-webhook-casual",
+      "area": "modules",
+      "style": "casual",
+      "prompt": "stripe webhook keeps failing signature check",
+      "expect": {
+        "skills": [
+          "dms-saas"
+        ],
+        "acceptable": [
+          "dms"
+        ]
+      }
+    },
+    {
+      "id": "marketing-track-event",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Track a signup event from our marketing website.",
+      "expect": {
+        "skills": [
+          "dms-marketing"
+        ],
+        "acceptable": [
+          "dms"
+        ]
+      }
+    },
+    {
+      "id": "automation-nightly-report",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Run a procedure every night that e-mails a sales report.",
+      "expect": {
+        "skills": [
+          "dms-automation"
+        ],
+        "acceptable": [
+          "dms-mailing",
+          "dms-automation-interface",
+          "dms"
+        ]
+      }
+    },
+    {
+      "id": "automation-custom-action",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Declare a new automation action from my module so it appears in the procedure editor.",
+      "expect": {
+        "skills": [
+          "dms-automation-interface"
+        ],
+        "acceptable": [
+          "dms-automation",
+          "dms-module"
+        ]
+      }
+    },
+    {
+      "id": "api-slow-routes",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Which API routes are the slowest, and why does this one fail?",
+      "expect": {
+        "skills": [
+          "dms-api"
+        ],
+        "acceptable": [
+          "dms",
+          "api-interface"
+        ]
+      }
+    },
+    {
+      "id": "database-aql-console",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Run an AQL query on the orders table from the dashboard.",
+      "expect": {
+        "skills": [
+          "dms-database"
+        ],
+        "acceptable": [
+          "database-interface",
+          "dms"
+        ]
+      }
+    },
+    {
+      "id": "builder-edit-button-missing",
+      "area": "modules",
+      "style": "casual",
+      "prompt": "the edit this page button is gone",
+      "expect": {
+        "skills": [
+          "dms-builder"
+        ],
+        "acceptable": [
+          "dms-builder-safe",
+          "dms",
+          "dms-ai"
+        ]
+      }
+    },
+    {
+      "id": "ai-install-codex",
+      "area": "dms-ai",
+      "style": "clean",
+      "prompt": "Install dms-ai and make it use Codex instead of Claude Code.",
+      "expect": {
+        "skills": [
+          "dms-ai"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-project"
+        ]
+      }
+    },
+    {
+      "id": "ai-offline-casual",
+      "area": "dms-ai",
+      "style": "casual",
+      "prompt": "the ai assistant says offline",
+      "expect": {
+        "skills": [
+          "dms-ai"
+        ],
+        "acceptable": [
+          "dms",
+          "dms-project"
+        ]
+      }
+    },
+    {
+      "id": "ai-builder-add-chart",
+      "area": "dms-ai",
+      "style": "clean",
+      "prompt": "Using the Builder tools, add a revenue chart to the sales page.",
+      "expect": {
+        "skills": [
+          "dms-builder-safe"
+        ],
+        "acceptable": [
+          "dms-pages",
+          "dms-best-practices",
+          "dms-builder-page",
+          "dms-builder"
+        ]
+      }
+    },
+    {
+      "id": "ai-ship-module-skills",
+      "area": "dms-ai",
+      "style": "clean",
+      "prompt": "Make our module ship its own skill so dms-ai loads it.",
+      "expect": {
+        "skills": [
+          "dms-module"
+        ],
+        "acceptable": [
+          "dms-ai",
+          "antelopejs"
+        ]
+      }
+    },
+    {
+      "id": "install-claude-code",
+      "area": "install",
+      "style": "clean",
+      "prompt": "How do I install the AntelopeJS skills in Claude Code?",
+      "expect": {
+        "skills": [
+          "antelopejs"
+        ],
+        "acceptable": [
+          "ajs-cli",
+          "dms",
+          "dms-ai"
+        ]
+      }
+    },
+    {
+      "id": "install-codex-casual",
+      "area": "install",
+      "style": "casual",
+      "prompt": "the dms skills dont show up in codex",
+      "expect": {
+        "skills": [
+          "antelopejs"
+        ],
+        "acceptable": [
+          "dms",
+          "ajs-cli",
+          "dms-ai"
+        ]
+      }
+    }
+  ]
+}
