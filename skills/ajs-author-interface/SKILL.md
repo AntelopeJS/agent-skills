@@ -24,7 +24,7 @@ The core tells an interface package from a runtime module by `antelopeJs.impleme
 
 An interface can also start **embedded** in the module that implements it (`src/interface/`, exported as `<module>/interface`, with the module listing its own package in `implements`). Extract it to a standalone `interface-<name>` package once a second implementation appears.
 
-Each `exports` subpath is an import consumers pin to — add subpaths deliberately, and keep each one cohesive. Inspect any existing interface's shape as a template:
+Each `exports` subpath is an import consumers pin to — add subpaths deliberately, and keep each one cohesive. Inspect any existing interface's shape as a template (`${CLAUDE_PLUGIN_ROOT}` is the plugin root; in Codex, where it is unset, use the directory two levels above this skill's folder):
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" show <name>

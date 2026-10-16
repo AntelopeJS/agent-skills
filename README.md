@@ -1,63 +1,92 @@
-# AntelopeJS plugin for Claude Code
+# AntelopeJS agent skills
 
-Knowledge and tools for building with [AntelopeJS](https://github.com/AntelopeJS) — the Node.js framework where a tight core + `ajs` CLI orchestrate modules that communicate **only** through versioned *interface* contracts — and for the AntelopeJS DMS, whose skills ship inside its packages and are synced into your project by this plugin.
+Knowledge and tools for building with [AntelopeJS](https://github.com/AntelopeJS) — the Node.js framework where a tight core + `ajs` CLI orchestrate modules that communicate **only** through versioned *interface* contracts — and for the AntelopeJS DMS, whose skills ship inside its packages and are synced into your project.
+
+The repository is one plugin, `antelopejs`, packaged for **Claude Code** and **OpenAI Codex**, from one marketplace also named `antelopejs`.
 
 ## Install
 
-> [!IMPORTANT]
-> This repository is **internal** to the AntelopeJS organization today. Claude Code clones it with your own git credentials, so you need read access to `AntelopeJS/claude-antelopejs` on GitHub (an SSH key loaded in `ssh-agent`, or a stored HTTPS credential, e.g. `gh auth login` then `gh auth setup-git`). Without access, `marketplace add` fails with a clone error.
+### Claude Code
 
-One command per step, from your shell:
+From your shell:
 
 ```bash
-claude plugin marketplace add AntelopeJS/claude-antelopejs
+claude plugin marketplace add AntelopeJS/agent-skills
 claude plugin install antelopejs@antelopejs
 ```
 
-The same from inside a Claude Code session:
+Or from inside a Claude Code session:
 
 ```
-/plugin marketplace add AntelopeJS/claude-antelopejs
+/plugin marketplace add AntelopeJS/agent-skills
 /plugin install antelopejs@antelopejs
 ```
 
-`antelopejs@antelopejs` is the plugin `antelopejs` from the marketplace `antelopejs` (this repository). The install lands in your user scope, so every project sees it. Restart the session (or run `/reload-plugins`) to load it.
+`antelopejs@antelopejs` is the plugin `antelopejs` from the marketplace `antelopejs` (this repository). The install lands in your user scope, so every project sees it. Restart the session (or run `/reload-plugins`) to load it. To install it for one repository only, recorded in that repository's `.claude/settings.json`, add `--scope project` to both commands.
 
-To install it for one repository only, so it is recorded in that repository's `.claude/settings.json`, add `--scope project` to both commands.
+The plugin's hooks sync the project's package-shipped skills into `.claude/skills/` on their own.
+
+### Codex
+
+Add the marketplace from your shell:
+
+```bash
+codex plugin marketplace add AntelopeJS/agent-skills
+```
+
+Then open `/plugins` in Codex (or the Plugins directory of the desktop app), pick the **AntelopeJS** marketplace and install `antelopejs`. Codex loads the plugin's skills (`antelopejs`, `ajs-*`) from then on.
+
+Sync the project's package-shipped skills into `.agents/skills/`, where Codex discovers them, from the project root:
+
+```bash
+npx -y github:AntelopeJS/agent-skills sync --target codex
+```
+
+Run it again after installing or upgrading packages. The plugin also declares the same sync hooks as for Claude Code (`hooks/codex-hooks.json`), but Codex runs plugin hooks only for plugins installed in the desktop app, and only once you trust them in `/hooks`; in the Codex CLI, rely on the command above.
+
+### Without a plugin
+
+The sync needs only Node.js. From a project root, this links the package-shipped skills into both `.claude/skills/` and `.agents/skills/`:
+
+```bash
+npx -y github:AntelopeJS/agent-skills sync
+```
+
+`list` shows what would be synced, `--target claude|codex` restricts the sync to one directory, and `interface` runs the contract resolver (`npx -y github:AntelopeJS/agent-skills interface show database`).
 
 ## What you get
 
 | Kind | Name | Use |
 | --- | --- | --- |
-| Skill | `antelopejs` | Framework mental model and router; Claude loads it in any AntelopeJS project |
+| Skill | `antelopejs` | Framework mental model and router; the agent loads it in any AntelopeJS project |
 | Skill | `ajs-consume-interface` | Import, call, or implement an interface; unresolved and optional interfaces; provider bindings |
 | Skill | `ajs-author-interface` | Author and version an interface package |
 | Skill | `ajs-cli` | The `ajs` CLI and its plugins; `ajs dms …` is left to the `dms-frontend` skill |
-| Command | `/antelopejs:interface <name> [subpath]` | Look up an interface contract |
-| Command | `/antelopejs:new-module <path>` | Scaffold a module and wire its interfaces |
-| Command | `/antelopejs:skills` | List the skills synced from the project's packages and where each comes from |
-| Command | `/antelopejs:sync-skills` | Sync those skills now |
-| Hooks | `SessionStart`, `PostToolUse` (Bash) | Run the skill sync automatically |
+| Command (Claude Code) | `/antelopejs:interface <name> [subpath]` | Look up an interface contract |
+| Command (Claude Code) | `/antelopejs:new-module <path>` | Scaffold a module and wire its interfaces |
+| Command (Claude Code) | `/antelopejs:skills` | List the skills synced from the project's packages and where each comes from |
+| Command (Claude Code) | `/antelopejs:sync-skills` | Sync those skills now |
+| Hooks | `SessionStart`, `PostToolUse` (Bash) | Run the skill sync automatically (Claude Code; Codex desktop once trusted) |
 
-## What syncs automatically, and when
+## What syncs, and when
 
-Packages ship their own skills: a package declares `antelopeJs.skills` in its `package.json` (directories whose subdirectories each hold a `SKILL.md`). The plugin links every such skill into the open project's `.claude/skills/` as `<package-short-name>--<skill>`:
+Packages ship their own skills: a package declares `antelopeJs.skills` in its `package.json` (directories whose subdirectories each hold a `SKILL.md`). The sync links every such skill as `<package-short-name>--<skill>` into the open project's `.claude/skills/` (Claude Code) and `.agents/skills/` (Codex):
 
-- **When**: at session start, and after every Bash command (so `pnpm install`, `ajs project dev`, or `ajs project modules add` that bring new packages are picked up). Claude Code loads the new skills in the running session; if `.claude/skills/` did not exist when the session started, run `/reload-skills` once.
+- **When**: through the hooks, at session start and after every Bash command (so `pnpm install`, `ajs project dev`, or `ajs project modules add` that bring new packages are picked up); otherwise when you run the sync command. Claude Code loads the new skills in the running session; if `.claude/skills/` did not exist when the session started, run `/reload-skills` once. Codex detects skill changes on its own; restart it if a skill does not appear.
 - **Where it looks**, first hit per package wins:
   1. the **workspace**: the current package, its parents up to the repository root, and the packages listed in that root's `pnpm-workspace.yaml` or `package.json` `workspaces` (source checkouts and module playgrounds);
   2. **`node_modules`** of the project and of the workspace root (pnpm's symlinks into `.pnpm` included; the link goes through `node_modules/<pkg>` so it survives version bumps);
   3. **`.antelope/cache`**, where `ajs` downloads the modules declared in `antelope.config.ts` on `ajs project dev`, `build`, or `modules add`.
 - **Which projects**: a directory holding `antelope.config.*`, or an app whose `package.json` depends on `@antelopejs/core` (an embedded runtime, like the AdonisJS DMS template). Anywhere else the sync does nothing.
-- **Safety**: only the entries the plugin created are touched. They are tracked in `.claude/skills/.ajs-managed.json` and listed in a generated `.claude/skills/.gitignore`, so your repository stays clean; a skill of yours with the same entry name is skipped, never overwritten; entries whose package disappeared are removed.
+- **Safety**: only the entries the sync created are touched. Each skills directory tracks them in its own `.ajs-managed.json` and lists them in a generated `.gitignore`, so your repository stays clean; a skill of yours with the same entry name is skipped, never overwritten; entries whose package disappeared are removed.
 
-In a **DMS project** this brings the DMS suite: `dms` (the DMS router, start there), `dms-project`, `dms-module`, `dms-pages`, `dms-auth` and `dms-best-practices` from `@antelopejs/dms`, `dms-frontend` from `@antelopejs/dms-frontend`, plus one skill per installed `dms-*` module. Run `/antelopejs:skills` to see them; the [skill catalog](https://dms.antelopejs.com/docs/ai-and-claude-code/skill-catalog) lists the whole suite, the package that ships each skill and when it triggers.
+In a **DMS project** this brings the DMS suite: `dms` (the DMS router, start there), `dms-project`, `dms-module`, `dms-pages`, `dms-auth` and `dms-best-practices` from `@antelopejs/dms`, `dms-frontend` from `@antelopejs/dms-frontend`, plus one skill per installed `dms-*` module. Run `/antelopejs:skills` (or `npx -y github:AntelopeJS/agent-skills list`) to see them; the [skill catalog](https://dms.antelopejs.com/docs/ai-and-claude-code/skill-catalog) lists the whole suite, the package that ships each skill and when it triggers.
 
-**dms-ai** (the DMS AI assistant) needs none of this: it loads the skills of every loaded module by itself. The plugin is for Claude Code working on the project's code.
+**dms-ai** (the DMS AI assistant) needs none of this: it loads the skills of every loaded module by itself. The plugin is for the coding agent working on the project's code.
 
 ## Prompt every contributor to install it
 
-Commit this `.claude/settings.json` in a project (the DMS templates ship it):
+For Claude Code, commit this `.claude/settings.json` in a project (the DMS templates ship it):
 
 ```json
 {
@@ -65,7 +94,7 @@ Commit this `.claude/settings.json` in a project (the DMS templates ship it):
     "antelopejs": {
       "source": {
         "source": "github",
-        "repo": "AntelopeJS/claude-antelopejs"
+        "repo": "AntelopeJS/agent-skills"
       }
     }
   },
@@ -75,39 +104,60 @@ Commit this `.claude/settings.json` in a project (the DMS templates ship it):
 }
 ```
 
-When a contributor opens the project in Claude Code and accepts the workspace trust dialog, Claude Code registers the marketplace and enables the plugin; the `/plugin` menu shows it. `claude plugin marketplace add AntelopeJS/claude-antelopejs --scope project` followed by `claude plugin install antelopejs@antelopejs --scope project` writes the same file. Contributors still need read access to this repository.
+When a contributor opens the project in Claude Code and accepts the workspace trust dialog, Claude Code registers the marketplace and enables the plugin; the `/plugin` menu shows it. `claude plugin marketplace add AntelopeJS/agent-skills --scope project` followed by `claude plugin install antelopejs@antelopejs --scope project` writes the same file.
+
+For Codex, document the two commands of [Install › Codex](#codex) in the project's `README.md` or `AGENTS.md`; the DMS templates do both.
 
 ## Update
+
+Claude Code:
 
 ```bash
 claude plugin marketplace update antelopejs
 claude plugin update antelopejs@antelopejs
 ```
 
-In a session: `/plugin marketplace update antelopejs`, then restart. Updates arrive when `version` in `.claude-plugin/plugin.json` changes, so bump it on every release. To update in the background, open `/plugin` → **Marketplaces** → `antelopejs` → **Enable auto-update**.
+In a session: `/plugin marketplace update antelopejs`, then restart. To update in the background, open `/plugin` → **Marketplaces** → `antelopejs` → **Enable auto-update**.
+
+Codex:
+
+```bash
+codex plugin marketplace upgrade antelopejs
+```
+
+Installed copies update when `version` changes in `.claude-plugin/plugin.json` and `plugin.json`, so bump both on every release. `npx -y github:AntelopeJS/agent-skills` always runs the latest commit of the default branch.
 
 The synced skills follow your packages, not the plugin: upgrade `@antelopejs/dms` or a module and the next sync points at the new version.
 
 ## Uninstall
+
+Claude Code:
 
 ```bash
 claude plugin uninstall antelopejs@antelopejs
 claude plugin marketplace remove antelopejs
 ```
 
-Add `--scope project` to `uninstall` when it was installed for one repository, and remove the two keys from that repository's `.claude/settings.json`. To drop the synced skills from a project, delete the entries listed in `.claude/skills/.ajs-managed.json` along with that file and `.claude/skills/.gitignore`.
+Add `--scope project` to `uninstall` when it was installed for one repository, and remove the two keys from that repository's `.claude/settings.json`.
+
+Codex: uninstall `antelopejs` from `/plugins`, then remove the marketplace:
+
+```bash
+codex plugin marketplace remove antelopejs
+```
+
+To drop the synced skills from a project, delete the entries listed in `.claude/skills/.ajs-managed.json` and `.agents/skills/.ajs-managed.json`, along with those files and the `.gitignore` next to each.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 | --- | --- |
-| `marketplace add` fails to clone | You lack read access to this internal repository, or git has no stored credential. Check with `git ls-remote https://github.com/AntelopeJS/claude-antelopejs`. Without a GitHub SSH key, set `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1`. |
-| The project settings do not prompt | The folder is not trusted yet: restart Claude Code in it and accept the trust dialog. In `-p` runs the entries apply only in folders trusted interactively before. |
-| No DMS skills in `/antelopejs:skills` | The packages are not installed: run `pnpm install`; modules declared in `antelope.config.ts` arrive in `.antelope/cache` on the first `ajs project dev`. Then `/antelopejs:sync-skills`. |
-| "Not an AntelopeJS project" | Start Claude Code in the directory holding `antelope.config.*` (or the app depending on `@antelopejs/core`), not in a parent folder. |
-| A synced skill does not show up | Run `/reload-skills`; `.claude/skills/` did not exist when the session started. |
-| An entry is reported `skipped` | A file or folder of yours already uses that name in `.claude/skills/`; rename or remove it. |
-| Hooks seem not to run | Check `claude plugin list` shows the plugin enabled; `node` must be on `PATH`. |
+| The Claude Code project settings do not prompt | The folder is not trusted yet: restart Claude Code in it and accept the trust dialog. In `-p` runs the entries apply only in folders trusted interactively before. |
+| No DMS skills in `/antelopejs:skills` or `list` | The packages are not installed: run `pnpm install`; modules declared in `antelope.config.ts` arrive in `.antelope/cache` on the first `ajs project dev`. Then sync again. |
+| "Not an AntelopeJS project" | Run the agent (or the sync) in the directory holding `antelope.config.*` (or the app depending on `@antelopejs/core`), not in a parent folder. |
+| A synced skill does not show up | Claude Code: run `/reload-skills`; `.claude/skills/` did not exist when the session started. Codex: restart it. |
+| An entry is reported `skipped` | A file or folder of yours already uses that name in the skills directory; rename or remove it. |
+| Hooks seem not to run | Claude Code: check `claude plugin list` shows the plugin enabled; `node` must be on `PATH`. Codex: trust the hooks in `/hooks`, or run the sync command yourself. |
 
 ## Design: three layers of knowledge
 
@@ -125,25 +175,31 @@ Skills are split by **intent**, not audience: a framework user asking "how do I 
 ## Layout
 
 ```
-claude-antelopejs/
+agent-skills/
   .claude-plugin/
-    plugin.json
-    marketplace.json       # lets this repo be added directly as a marketplace
+    plugin.json            # Claude Code manifest
+    marketplace.json       # Claude Code marketplace (this repo)
+  plugin.json              # portable manifest read by Codex (hooks under extensions.com.openai)
+  .agents/plugins/
+    marketplace.json       # Codex marketplace (this repo)
   skills/
     antelopejs/            # Layer 1 — concepts + router
     ajs-consume-interface/ # Layer 2 — build modules ON the framework
     ajs-author-interface/  # Layer 2 — author & version interfaces
     ajs-cli/               # Layer 2 — the ajs CLI
-  commands/
+  commands/                # Claude Code slash commands
     interface.md           # /antelopejs:interface <name> [subpath]
     new-module.md          # /antelopejs:new-module <path>
     skills.md              # /antelopejs:skills
     sync-skills.md         # /antelopejs:sync-skills
   hooks/
-    hooks.json             # auto-runs the skill sync (SessionStart + after Bash)
+    hooks.json             # Claude Code: skill sync into .claude/skills (SessionStart + after Bash)
+    codex-hooks.json       # Codex: skill sync into .agents/skills
+  bin/
+    agent-skills.mjs       # npx entry: sync, list, interface
   scripts/
     resolve-interface.mjs  # Layer 3 — live contract resolver
-    sync-skills.mjs        # syncs package-shipped skills into .claude/skills/
+    sync-skills.mjs        # syncs package-shipped skills into .claude/skills and .agents/skills
   test/                    # node:test suites for both scripts
 ```
 
@@ -203,16 +259,18 @@ Declare the skill directories in the package's `package.json`, and publish them:
 "antelopeJs": { "skills": ["./skills"] }
 ```
 
-Each `skills/<name>/SKILL.md` becomes `.claude/skills/<package-short-name>--<name>` in every
-project that installs the package. Run `node scripts/sync-skills.mjs --list` (or
-`/antelopejs:skills`) in a consuming project to check what it picks up.
+Each `skills/<name>/SKILL.md` becomes `.claude/skills/<package-short-name>--<name>` and
+`.agents/skills/<package-short-name>--<name>` in every project that installs the package. Run
+`npx -y github:AntelopeJS/agent-skills list` (or `/antelopejs:skills`) in a consuming project to
+check what it picks up.
 
 ## Development
 
 ```bash
 pnpm test                         # node:test suites for both scripts (no install needed)
-claude plugin validate .          # manifests, skills, commands, hooks
-claude --plugin-dir .             # load this checkout in a session
+claude plugin validate .          # Claude Code manifests, skills, commands, hooks
+claude --plugin-dir .             # load this checkout in a Claude Code session
+codex plugin marketplace add .    # register this checkout as a Codex marketplace
 ```
 
-Bump `version` in `.claude-plugin/plugin.json` on every release: installed copies only update when it changes.
+Bump `version` in `.claude-plugin/plugin.json`, `plugin.json` and `package.json` together on every release: installed copies only update when it changes.

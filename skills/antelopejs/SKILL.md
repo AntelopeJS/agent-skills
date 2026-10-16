@@ -55,10 +55,11 @@ Because every connection lives on a known proxy and nothing else crosses the bou
 ## Skills shipped by the project's packages
 
 Product and module knowledge does not live in this plugin: packages ship it as skills, declared under
-`antelopeJs.skills` in their `package.json`. The plugin syncs them into the project's
-`.claude/skills/` as `<package-short-name>--<skill>` on session start and after every Bash command,
-from the workspace (source checkouts), `node_modules`, and `.antelope/cache`. Run
-`/antelopejs:skills` to see which skills are synced and which package ships each one.
+`antelopeJs.skills` in their `package.json`. The plugin syncs them as `<package-short-name>--<skill>`
+into the project's `.claude/skills/` (Claude Code) or `.agents/skills/` (Codex) on session start and
+after every Bash command, from the workspace (source checkouts), `node_modules`, and
+`.antelope/cache`. Run `/antelopejs:skills` (in Codex: `npx -y github:AntelopeJS/agent-skills list`)
+to see which skills are synced and which package ships each one.
 
 **DMS projects** get the DMS suite this way: `dms` (the DMS router; start there), `dms-project`,
 `dms-module`, `dms-pages`, `dms-auth`, `dms-best-practices` from `@antelopejs/dms`, `dms-frontend`
@@ -66,11 +67,12 @@ from the workspace (source checkouts), `node_modules`, and `.antelope/cache`. Ru
 installed `dms-*` module (e.g. `dms-saas`). For DMS work, invoke `dms` first and follow
 its routing. When those skills are missing, the dependencies are not installed yet: run
 `pnpm install` (and `ajs project modules install` for modules declared in `antelope.config.ts`),
-then `/antelopejs:sync-skills`.
+then `/antelopejs:sync-skills` (in Codex: `npx -y github:AntelopeJS/agent-skills sync --target codex`).
 
 ## Interface contract resolver (use this instead of guessing)
 
-Contracts are versioned data, not memorized facts. Never invent an interface's methods — look them up:
+Contracts are versioned data, not memorized facts. Never invent an interface's methods — look them up
+(`${CLAUDE_PLUGIN_ROOT}` is the plugin root; in Codex, where it is unset, use the directory two levels above this skill's folder):
 
 ```bash
 # List interfaces published on npm (plus any installed locally)

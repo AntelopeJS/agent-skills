@@ -1,12 +1,12 @@
 {
   "name": "antelopejs",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Knowledge and tools for building with AntelopeJS: the interface-based module framework, its `ajs` CLI, a live resolver for versioned interface contracts, and automatic sync of the skills shipped by the project's packages (the DMS suite included).",
   "author": {
     "name": "AntelopeJS",
     "email": "contact@antelopejs.com"
   },
-  "homepage": "https://github.com/AntelopeJS",
-  "repository": "https://github.com/AntelopeJS/claude-antelopejs",
+  "homepage": "https://github.com/AntelopeJS/agent-skills",
+  "repository": "https://github.com/AntelopeJS/agent-skills",
   "keywords": ["antelopejs", "ajs", "interface", "module", "framework", "dms"]
 }

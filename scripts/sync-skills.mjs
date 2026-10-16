@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-// Sync package-shipped Claude Code skills into the current project.
+// Sync package-shipped agent skills into the current project.
 //
 // A package ships skills by declaring `antelopeJs.skills` in its package.json:
 // an array of directories (relative to the package root) whose subdirectories
-// each contain a SKILL.md. Every declared skill is linked into
-// `.claude/skills/<module-short-name>--<skill-dir-name>` as a RELATIVE symlink.
+// each contain a SKILL.md. Every declared skill is linked, as a RELATIVE
+// symlink named `<module-short-name>--<skill-dir-name>`, into each target:
+//   claude — `.claude/skills/` (Claude Code)
+//   codex  — `.agents/skills/` (OpenAI Codex)
 //
 // Packages are discovered, first hit per package name wins, in:
 //   1. workspace  — the cwd, its ancestors up to the repository/workspace root,
@@ -20,11 +22,14 @@
 // when its package.json depends on `@antelopejs/core` (embedded runtime, e.g.
 // the AdonisJS template). Anywhere else the script exits 0 and does nothing.
 //
-// Only entries the script created are ever touched: they are tracked in
-// `.claude/skills/.ajs-managed.json`, and `.claude/skills/.gitignore` keeps them
-// out of git. Managed entries whose package or skill disappeared are pruned.
+// Only entries the script created are ever touched: each target directory
+// tracks them in its own `.ajs-managed.json`, and a generated `.gitignore` there
+// keeps them out of git. Managed entries whose package or skill disappeared are
+// pruned.
 //
 // Flags:
+//   --target claude|codex|all
+//              Which skills directories to sync (default: all).
 //   --quiet    No output, warnings included (hook mode).
 //   --json     Machine-readable summary on stdout.
 //   --dry-run  Report what would change without touching the filesystem.
@@ -45,16 +50,23 @@ import {
 } from "node:fs";
 import { join, relative, resolve, dirname, isAbsolute } from "node:path";
 
-const argv = new Set(process.argv.slice(2));
+const args = process.argv.slice(2);
+const argv = new Set(args);
 const LIST = argv.has("--list");
 const QUIET = argv.has("--quiet");
 const JSON_OUT = argv.has("--json");
 const DRY_RUN = argv.has("--dry-run") || LIST;
 
 const cwd = process.cwd();
-const SKILLS_DIR = join(cwd, ".claude", "skills");
-const MANIFEST_PATH = join(SKILLS_DIR, ".ajs-managed.json");
-const GITIGNORE_PATH = join(SKILLS_DIR, ".gitignore");
+const MANIFEST_FILE = ".ajs-managed.json";
+const GITIGNORE_FILE = ".gitignore";
+const TARGET_FLAG = "--target";
+const ALL_TARGETS = "all";
+const USAGE_EXIT_CODE = 2;
+const TARGETS = {
+  claude: { name: "claude", label: ".claude/skills", dir: join(cwd, ".claude", "skills") },
+  codex: { name: "codex", label: ".agents/skills", dir: join(cwd, ".agents", "skills") },
+};
 const CONFIG_VARIANTS = ["antelope.config.ts", "antelope.config.js", "antelope.config.mjs", "antelope.config.cjs", "antelope.config.json"];
 const CORE_PACKAGE = "@antelopejs/core";
 const DEPENDENCY_FIELDS = ["dependencies", "devDependencies", "optionalDependencies"];
@@ -109,6 +121,23 @@ function readdirSafe(path) {
   } catch {
     return [];
   }
+}
+
+// ---- targets ----
+
+function targetFlagValue() {
+  const inline = args.find((arg) => arg.startsWith(`${TARGET_FLAG}=`));
+  if (inline) return inline.slice(TARGET_FLAG.length + 1);
+  const index = args.indexOf(TARGET_FLAG);
+  return index < 0 ? ALL_TARGETS : args[index + 1];
+}
+
+function selectedTargets() {
+  const value = targetFlagValue();
+  if (value === ALL_TARGETS) return Object.values(TARGETS);
+  if (Object.hasOwn(TARGETS, value ?? "")) return [TARGETS[value]];
+  process.stderr.write(`error: ${TARGET_FLAG} expects one of ${[...Object.keys(TARGETS), ALL_TARGETS].join(", ")}.\n`);
+  process.exit(USAGE_EXIT_CODE);
 }
 
 // ---- project detection ----
@@ -268,25 +297,26 @@ function collectPackageSkills(source, declaredDirs, skills, warnings) {
 
 // ---- manifest ----
 
-function loadManifest() {
-  const data = readJsonSafe(MANIFEST_PATH);
+function loadManifest(target) {
+  const data = readJsonSafe(join(target.dir, MANIFEST_FILE));
   return Array.isArray(data?.entries) ? data.entries.filter((e) => typeof e === "string") : [];
 }
 
-function saveManifest(entries) {
-  writeFileSync(MANIFEST_PATH, `${JSON.stringify({ entries: [...entries].sort() }, null, 2)}\n`);
+function saveManifest(target, entries) {
+  writeFileSync(join(target.dir, MANIFEST_FILE), `${JSON.stringify({ entries: [...entries].sort() }, null, 2)}\n`);
 }
 
-function writeGitignore(entries) {
+function writeGitignore(target, entries) {
+  const path = join(target.dir, GITIGNORE_FILE);
   const lines = [
-    "# Managed by the antelopejs plugin (sync-skills) — do not edit.",
-    ".gitignore",
-    ".ajs-managed.json",
+    "# Managed by the antelopejs agent skills sync — do not edit.",
+    GITIGNORE_FILE,
+    MANIFEST_FILE,
     ...[...entries].sort(),
   ];
   const content = `${lines.join("\n")}\n`;
-  if (readTextSafe(GITIGNORE_PATH) === content) return;
-  writeFileSync(GITIGNORE_PATH, content);
+  if (readTextSafe(path) === content) return;
+  writeFileSync(path, content);
 }
 
 // ---- sync ----
@@ -304,9 +334,9 @@ function symlinkPointsTo(linkPath, target) {
 // Drops managed entries that are no longer desired. A managed entry the user
 // replaced with a real file or directory becomes theirs and leaves the manifest.
 function pruneManaged(state) {
-  const { desired, managed, removed, warnings } = state;
+  const { target, desired, managed, removed, warnings } = state;
   for (const name of managed) {
-    const linkPath = join(SKILLS_DIR, name);
+    const linkPath = join(target.dir, name);
     const wanted = desired.has(name);
     const st = lstatSafe(linkPath);
     if (wanted && st?.isSymbolicLink()) continue;
@@ -322,54 +352,66 @@ function pruneManaged(state) {
   }
 }
 
-function linkSkill(name, target, state) {
-  const linkPath = join(SKILLS_DIR, name);
+function linkSkill(name, skillDir, state) {
+  const { target } = state;
+  const linkPath = join(target.dir, name);
   const st = lstatSafe(linkPath);
   if (st && !state.managed.has(name)) {
-    state.warnings.push(`${name}: already exists in .claude/skills and is not managed — skipped.`);
+    state.warnings.push(`${name}: already exists in ${target.label} and is not managed — skipped.`);
     return STATUS.skipped;
   }
   state.managed.add(name);
-  if (symlinkPointsTo(linkPath, target)) return STATUS.linked;
+  if (symlinkPointsTo(linkPath, skillDir)) return STATUS.linked;
   if (!DRY_RUN) {
-    mkdirSync(SKILLS_DIR, { recursive: true });
+    mkdirSync(target.dir, { recursive: true });
     if (st) unlinkSync(linkPath);
-    symlinkSync(relative(SKILLS_DIR, target), linkPath);
+    symlinkSync(relative(target.dir, skillDir), linkPath);
   }
   return STATUS.added;
 }
 
-function persist(managed) {
-  if (DRY_RUN || (managed.size === 0 && !existsSync(MANIFEST_PATH))) return;
-  mkdirSync(SKILLS_DIR, { recursive: true });
-  saveManifest(managed);
-  writeGitignore(managed);
+function persist(target, managed) {
+  if (DRY_RUN || (managed.size === 0 && !existsSync(join(target.dir, MANIFEST_FILE)))) return;
+  mkdirSync(target.dir, { recursive: true });
+  saveManifest(target, managed);
+  writeGitignore(target, managed);
 }
 
-function sync() {
-  const warnings = [];
-  const desired = discoverSkills(warnings);
-  const state = { desired, managed: new Set(loadManifest()), removed: [], warnings };
+function syncTarget(target, desired, warnings) {
+  const state = { target, desired, managed: new Set(loadManifest(target)), removed: [], warnings };
   pruneManaged(state);
-  const skills = [...desired].map(([name, info]) => ({ name, ...info, status: linkSkill(name, info.target, state) }));
-  persist(state.managed);
-  const named = (status) => skills.filter((s) => s.status === status).map((s) => s.name);
+  const statuses = new Map([...desired].map(([name, info]) => [name, linkSkill(name, info.target, state)]));
+  persist(target, state.managed);
+  const named = (status) => [...statuses].filter(([, s]) => s === status).map(([name]) => name);
   return {
+    target: target.name,
+    dir: target.label,
     added: named(STATUS.added),
     removed: state.removed,
     kept: named(STATUS.linked),
-    warnings,
-    skills,
+    statuses,
   };
+}
+
+function sync(targets) {
+  const warnings = [];
+  const desired = discoverSkills(warnings);
+  const results = targets.map((target) => syncTarget(target, desired, warnings));
+  const statusOf = (name) => Object.fromEntries(results.map((r) => [r.target, r.statuses.get(name)]));
+  const skills = [...desired].map(([name, info]) => ({ name, ...info, status: statusOf(name) }));
+  return { targets: results.map(({ statuses, ...rest }) => rest), warnings, skills };
 }
 
 // ---- output ----
 
-function listRow(skill) {
-  const target = relative(cwd, skill.target);
+function listStatus(status) {
+  return DRY_RUN && status === STATUS.added ? "not synced yet" : status;
+}
+
+function listRow(skill, targets) {
   const pkg = skill.version ? `${skill.package}@${skill.version}` : skill.package;
-  const status = DRY_RUN && skill.status === STATUS.added ? "not synced yet" : skill.status;
-  return [skill.name, skill.skill, pkg, skill.origin, status, target];
+  const statuses = targets.map((t) => listStatus(skill.status[t.target]));
+  return [skill.name, skill.skill, pkg, skill.origin, ...statuses, relative(cwd, skill.target)];
 }
 
 function printTable(rows) {
@@ -382,16 +424,21 @@ function printList(result) {
     log("No installed package ships skills (antelopeJs.skills) — nothing to sync.");
     return;
   }
-  printTable([["ENTRY", "SKILL", "PACKAGE", "FROM", "STATUS", "SOURCE"], ...result.skills.map(listRow)]);
-  for (const name of result.removed) log(`stale: .claude/skills/${name} (its package is gone; the next sync removes it)`);
+  const header = ["ENTRY", "SKILL", "PACKAGE", "FROM", ...result.targets.map((t) => t.dir.toUpperCase()), "SOURCE"];
+  printTable([header, ...result.skills.map((skill) => listRow(skill, result.targets))]);
+  for (const { dir, removed } of result.targets) {
+    for (const name of removed) log(`stale: ${dir}/${name} (its package is gone; the next sync removes it)`);
+  }
 }
 
 function printChanges(result) {
   const verb = DRY_RUN ? "would add" : "add";
   const verbRm = DRY_RUN ? "would remove" : "remove";
-  for (const name of result.added) log(`${verb}    .claude/skills/${name}`);
-  for (const name of result.removed) log(`${verbRm} .claude/skills/${name}`);
-  log(`${result.added.length} added, ${result.removed.length} removed, ${result.kept.length} up to date.`);
+  for (const { dir, added, removed, kept } of result.targets) {
+    for (const name of added) log(`${verb}    ${dir}/${name}`);
+    for (const name of removed) log(`${verbRm} ${dir}/${name}`);
+    log(`${dir}: ${added.length} added, ${removed.length} removed, ${kept.length} up to date.`);
+  }
 }
 
 function printJson(result) {
@@ -401,13 +448,14 @@ function printJson(result) {
 
 // ---- entry ----
 
+const targets = selectedTargets();
 if (!isAntelopeProject(cwd)) {
   log("Not an AntelopeJS project (no antelope.config.* and no @antelopejs/core dependency); nothing to do.");
-  if (JSON_OUT) console.log(JSON.stringify({ project: false, added: [], removed: [], kept: [], skills: [] }));
+  if (JSON_OUT) console.log(JSON.stringify({ project: false, targets: [], warnings: [], skills: [] }));
   process.exit(0);
 }
 
-const result = sync();
+const result = sync(targets);
 for (const w of result.warnings) warn(w);
 const printers = [
   [JSON_OUT, printJson],

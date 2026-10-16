@@ -1,0 +1,20 @@
+{
+  "name": "antelopejs",
+  "interface": {
+    "displayName": "AntelopeJS"
+  },
+  "plugins": [
+    {
+      "name": "antelopejs",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Coding"
+    }
+  ]
+}

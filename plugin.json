@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "antelopejs",
+  "version": "0.3.0",
+  "description": "Knowledge and tools for building with AntelopeJS: the interface-based module framework, its ajs CLI, a live resolver for versioned interface contracts, and the sync of the skills shipped by the project's packages (the DMS suite included).",
+  "author": {
+    "name": "AntelopeJS",
+    "email": "contact@antelopejs.com"
+  },
+  "homepage": "https://github.com/AntelopeJS/agent-skills",
+  "repository": "https://github.com/AntelopeJS/agent-skills",
+  "keywords": ["antelopejs", "ajs", "interface", "module", "framework", "dms"],
+  "extensions": {
+    "com.openai": {
+      "hooks": "./hooks/codex-hooks.json",
+      "interface": {
+        "displayName": "AntelopeJS",
+        "shortDescription": "Build with AntelopeJS and the AntelopeJS DMS",
+        "developerName": "AntelopeJS",
+        "category": "Coding",
+        "websiteURL": "https://github.com/AntelopeJS/agent-skills"
+      }
+    }
+  }
+}

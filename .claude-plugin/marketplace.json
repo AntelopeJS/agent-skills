@@ -1,6 +1,6 @@
 {
   "name": "antelopejs",
-  "description": "Claude Code plugins for AntelopeJS and the AntelopeJS DMS.",
+  "description": "AntelopeJS agent skills and tools for Claude Code and OpenAI Codex.",
   "owner": {
     "name": "AntelopeJS",
     "email": "contact@antelopejs.com"

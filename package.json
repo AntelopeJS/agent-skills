@@ -1,7 +1,16 @@
 {
-  "name": "claude-antelopejs",
+  "name": "agent-skills",
+  "version": "0.3.0",
   "private": true,
+  "description": "AntelopeJS agent skills for Claude Code and OpenAI Codex, and the sync of the skills shipped by AntelopeJS packages.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AntelopeJS/agent-skills.git"
+  },
   "type": "module",
+  "bin": {
+    "agent-skills": "bin/agent-skills.mjs"
+  },
   "scripts": {
     "test": "node --test \"test/*.test.mjs\""
   },

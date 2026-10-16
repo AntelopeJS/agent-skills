@@ -9,7 +9,7 @@ For the framework mental model, see the **antelopejs** skill. This skill is the 
 
 ## Before writing any interface call: resolve the contract
 
-Do not guess method names or signatures — they are versioned and change. Look them up:
+Do not guess method names or signatures — they are versioned and change. Look them up (`${CLAUDE_PLUGIN_ROOT}` is the plugin root; in Codex, where it is unset, use the directory two levels above this skill's folder):
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" show <name>            # surface + versions
@@ -18,7 +18,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" contract <name> [sub]
 
 Each `import "@antelopejs/interface-<name>/<sub>"` line in the output is a literal import you can paste.
 
-**Package-shipped skills first, for installed interfaces.** Interface packages may ship their own skill (declared via `antelopeJs.skills`), which the plugin syncs automatically into the project's `.claude/skills/` as `<module>--<skill>`. For an interface that is already **installed**, prefer that skill plus the installed package's own `dist/*.d.ts` and `docs/` directory — that is exactly the version the project compiles against. Use the resolver for interfaces **not yet installed**, for discovering what exists (`list`), and for comparing versions (`versions`, `show <name>@<version>`).
+**Package-shipped skills first, for installed interfaces.** Interface packages may ship their own skill (declared via `antelopeJs.skills`), which the plugin syncs automatically into the project's `.claude/skills/` (`.agents/skills/` in Codex) as `<module>--<skill>`. For an interface that is already **installed**, prefer that skill plus the installed package's own `dist/*.d.ts` and `docs/` directory — that is exactly the version the project compiles against. Use the resolver for interfaces **not yet installed**, for discovering what exists (`list`), and for comparing versions (`versions`, `show <name>@<version>`).
 
 **The one hard rule:** a module never imports another module's files — only interfaces. Every cross-module link is an attachment onto an interface proxy point, so the core can detach and reattach it on reload. If you're tempted to `import` something from a sibling module, the thing you need belongs in an interface instead.
 

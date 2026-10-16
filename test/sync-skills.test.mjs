@@ -2,6 +2,7 @@ import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, lstatSync, readlinkSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 
 import {
   makeTempDir,
@@ -26,8 +27,14 @@ afterEach(() => {
   removeDir(root);
 });
 
-function skillsDir(project) {
-  return join(project, ".claude", "skills");
+const TARGET_DIRS = { claude: [".claude", "skills"], codex: [".agents", "skills"] };
+
+function skillsDir(project, target = "claude") {
+  return join(project, ...TARGET_DIRS[target]);
+}
+
+function forTarget(result, target = "claude") {
+  return result.targets.find((t) => t.target === target);
 }
 
 function sync(project, args = []) {
@@ -53,7 +60,7 @@ test("follows pnpm symlinks and links through the stable node_modules path", () 
 
   const result = sync(root);
 
-  assert.deepEqual(result.added.sort(), ["dms--dms", "dms--dms-best-practices"]);
+  assert.deepEqual(forTarget(result).added.sort(), ["dms--dms", "dms--dms-best-practices"]);
   const entry = join(skillsDir(root), "dms--dms");
   assert.ok(lstatSync(entry).isSymbolicLink());
   assert.equal(readlinkSync(entry), join("..", "..", "node_modules", "@antelopejs", "dms", "skills", "dms"));
@@ -78,7 +85,7 @@ test("detects an embedded runtime project without antelope.config", () => {
   const result = sync(root);
 
   assert.equal(result.project, true);
-  assert.deepEqual(result.added, ["dms--dms"]);
+  assert.deepEqual(forTarget(result).added, ["dms--dms"]);
 });
 
 test("links workspace packages of a monorepo before installed copies", () => {
@@ -108,10 +115,10 @@ test("prunes skills whose package disappeared and never touches user entries", (
   rmSync(pkg, { recursive: true });
   const result = sync(root);
 
-  assert.deepEqual(result.removed, ["mod-a--alpha"]);
+  assert.deepEqual(forTarget(result).removed, ["mod-a--alpha"]);
   assert.equal(existsSync(join(skillsDir(root), "mod-a--alpha")), false);
   assert.equal(readFileSync(join(skillsDir(root), "mod-b--beta", "SKILL.md"), "utf8"), "user-owned\n");
-  assert.equal(byName(result)["mod-b--beta"].status, "skipped");
+  assert.equal(byName(result)["mod-b--beta"].status.claude, "skipped");
 });
 
 test("keeps managed entries out of git and stays idempotent", () => {
@@ -121,11 +128,13 @@ test("keeps managed entries out of git and stays idempotent", () => {
 
   const second = sync(root);
 
-  assert.deepEqual(second.added, []);
-  assert.deepEqual(second.kept, ["mod-a--alpha"]);
-  const gitignore = readFileSync(join(skillsDir(root), ".gitignore"), "utf8").split("\n");
-  assert.ok(gitignore.includes("mod-a--alpha"));
-  assert.ok(gitignore.includes(".ajs-managed.json"));
+  for (const target of Object.keys(TARGET_DIRS)) {
+    assert.deepEqual(forTarget(second, target).added, []);
+    assert.deepEqual(forTarget(second, target).kept, ["mod-a--alpha"]);
+    const gitignore = readFileSync(join(skillsDir(root, target), ".gitignore"), "utf8").split("\n");
+    assert.ok(gitignore.includes("mod-a--alpha"));
+    assert.ok(gitignore.includes(".ajs-managed.json"));
+  }
 });
 
 test("--list reports skills with their source and changes nothing", () => {
@@ -134,8 +143,10 @@ test("--list reports skills with their source and changes nothing", () => {
 
   const output = runScript(SCRIPT, root, ["--list"]);
 
-  assert.match(output, /mod-a--alpha\s+alpha\s+mod-a@1\.0\.0\s+node_modules\s+not synced yet/);
+  assert.match(output, /\.CLAUDE\/SKILLS\s+\.AGENTS\/SKILLS/);
+  assert.match(output, /mod-a--alpha\s+alpha\s+mod-a@1\.0\.0\s+node_modules\s+not synced yet\s+not synced yet/);
   assert.equal(existsSync(join(root, ".claude")), false);
+  assert.equal(existsSync(join(root, ".agents")), false);
 });
 
 test("skips skill directories that escape their package", () => {
@@ -145,6 +156,50 @@ test("skips skill directories that escape their package", () => {
 
   const result = sync(root);
 
-  assert.deepEqual(result.added, []);
+  assert.deepEqual(forTarget(result).added, []);
   assert.match(result.warnings[0], /escapes the package/);
+});
+
+test("links the same entries into .claude/skills and .agents/skills by default", () => {
+  writeAntelopeConfig(root);
+  writeSkillPackage(join(root, "node_modules", "@antelopejs", "dms"), "@antelopejs/dms", ["dms"]);
+
+  const result = sync(root);
+
+  for (const target of Object.keys(TARGET_DIRS)) {
+    assert.deepEqual(forTarget(result, target).added, ["dms--dms"]);
+    const entry = join(skillsDir(root, target), "dms--dms");
+    assert.equal(readlinkSync(entry), join("..", "..", "node_modules", "@antelopejs", "dms", "skills", "dms"));
+  }
+});
+
+test("--target syncs one directory and leaves the other untouched", () => {
+  writeAntelopeConfig(root);
+  writeSkillPackage(join(root, "node_modules", "mod-a"), "mod-a", ["alpha"]);
+  writeFile(join(skillsDir(root, "claude"), "mod-a--alpha", "SKILL.md"), "user-owned\n");
+
+  const result = sync(root, ["--target", "codex"]);
+  const inline = sync(root, ["--target=codex"]);
+
+  assert.deepEqual(result.targets.map((t) => t.target), ["codex"]);
+  assert.deepEqual(forTarget(result, "codex").added, ["mod-a--alpha"]);
+  assert.deepEqual(forTarget(inline, "codex").kept, ["mod-a--alpha"]);
+  assert.equal(existsSync(join(skillsDir(root, "claude"), ".ajs-managed.json")), false);
+  assert.ok(lstatSync(join(skillsDir(root, "codex"), "mod-a--alpha")).isSymbolicLink());
+});
+
+test("rejects an unknown --target", () => {
+  writeAntelopeConfig(root);
+
+  assert.throws(() => runScript(SCRIPT, root, ["--target", "cursor"]), /expects one of claude, codex, all/);
+});
+
+test("the agent-skills bin forwards sync to the sync script", () => {
+  writeAntelopeConfig(root);
+  writeSkillPackage(join(root, "node_modules", "mod-a"), "mod-a", ["alpha"]);
+  const bin = join(import.meta.dirname, "..", "bin", "agent-skills.mjs");
+
+  const output = execFileSync(process.execPath, [bin, "sync", "--target", "codex", "--json"], { cwd: root, encoding: "utf8" });
+
+  assert.deepEqual(forTarget(JSON.parse(output), "codex").added, ["mod-a--alpha"]);
 });
