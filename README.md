@@ -28,13 +28,14 @@ The plugin's hooks sync the project's package-shipped skills into `.claude/skill
 
 ### Codex
 
-Add the marketplace from your shell:
+From your shell:
 
 ```bash
 codex plugin marketplace add AntelopeJS/agent-skills
+codex plugin add antelopejs@antelopejs
 ```
 
-Then open `/plugins` in Codex (or the Plugins directory of the desktop app), pick the **AntelopeJS** marketplace and install `antelopejs`. Codex loads the plugin's skills (`antelopejs`, `ajs-*`) from then on.
+Or open `/plugins` in Codex (or the Plugins directory of the desktop app) after the first command, and install `antelopejs` from the **AntelopeJS** marketplace. Codex loads the plugin's skills (`antelopejs:antelopejs`, `antelopejs:ajs-*`) from then on.
 
 Sync the project's package-shipped skills into `.agents/skills/`, where Codex discovers them, from the project root:
 
@@ -106,7 +107,7 @@ For Claude Code, commit this `.claude/settings.json` in a project (the DMS templ
 
 When a contributor opens the project in Claude Code and accepts the workspace trust dialog, Claude Code registers the marketplace and enables the plugin; the `/plugin` menu shows it. `claude plugin marketplace add AntelopeJS/agent-skills --scope project` followed by `claude plugin install antelopejs@antelopejs --scope project` writes the same file.
 
-For Codex, document the two commands of [Install › Codex](#codex) in the project's `README.md` or `AGENTS.md`; the DMS templates do both.
+For Codex, document the commands of [Install › Codex](#codex) in the project's `README.md` or `AGENTS.md`; the DMS templates do both.
 
 ## Update
 
@@ -119,7 +120,7 @@ claude plugin update antelopejs@antelopejs
 
 In a session: `/plugin marketplace update antelopejs`, then restart. To update in the background, open `/plugin` → **Marketplaces** → `antelopejs` → **Enable auto-update**.
 
-Codex:
+Codex (refreshes the marketplace snapshot and the installed copy):
 
 ```bash
 codex plugin marketplace upgrade antelopejs
@@ -140,9 +141,10 @@ claude plugin marketplace remove antelopejs
 
 Add `--scope project` to `uninstall` when it was installed for one repository, and remove the two keys from that repository's `.claude/settings.json`.
 
-Codex: uninstall `antelopejs` from `/plugins`, then remove the marketplace:
+Codex:
 
 ```bash
+codex plugin remove antelopejs@antelopejs
 codex plugin marketplace remove antelopejs
 ```
 
