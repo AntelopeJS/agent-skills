@@ -280,6 +280,25 @@
       }
     },
     {
+      "id": "embed-runtime-host",
+      "area": "framework",
+      "style": "clean",
+      "prompt": "How do I start AntelopeJS inside my existing Express or AdonisJS server?",
+      "expect": {
+        "skills": [
+          "ajs-cli"
+        ],
+        "acceptable": [
+          "antelopejs",
+          "ajs-consume-interface",
+          "dms-project"
+        ],
+        "mustMention": [
+          "createRuntime"
+        ]
+      }
+    },
+    {
       "id": "proxies",
       "area": "framework",
       "style": "clean",
@@ -701,6 +720,22 @@
           "dms",
           "antelopejs",
           "ajs-cli"
+        ]
+      }
+    },
+    {
+      "id": "add-dms-module-adonis",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "add dms-lang to my AdonisJS app",
+      "expect": {
+        "skills": [
+          "dms-project"
+        ],
+        "acceptable": [
+          "dms",
+          "ajs-cli",
+          "antelopejs"
         ]
       }
     },
