@@ -143,7 +143,7 @@ test("--list reports skills with their source and changes nothing", () => {
 
   const output = runScript(SCRIPT, root, ["--list"]);
 
-  assert.match(output, /\.CLAUDE\/SKILLS\s+\.AGENTS\/SKILLS/);
+  assert.match(output, /FROM\s+CLAUDE\s+CODEX\s+SOURCE/);
   assert.match(output, /mod-a--alpha\s+alpha\s+mod-a@1\.0\.0\s+node_modules\s+not synced yet\s+not synced yet/);
   assert.equal(existsSync(join(root, ".claude")), false);
   assert.equal(existsSync(join(root, ".agents")), false);

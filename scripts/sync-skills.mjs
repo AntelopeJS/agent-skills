@@ -424,7 +424,7 @@ function printList(result) {
     log("No installed package ships skills (antelopeJs.skills) — nothing to sync.");
     return;
   }
-  const header = ["ENTRY", "SKILL", "PACKAGE", "FROM", ...result.targets.map((t) => t.dir.toUpperCase()), "SOURCE"];
+  const header = ["ENTRY", "SKILL", "PACKAGE", "FROM", ...result.targets.map((t) => t.target.toUpperCase()), "SOURCE"];
   printTable([header, ...result.skills.map((skill) => listRow(skill, result.targets))]);
   for (const { dir, removed } of result.targets) {
     for (const name of removed) log(`stale: ${dir}/${name} (its package is gone; the next sync removes it)`);
