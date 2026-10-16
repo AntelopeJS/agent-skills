@@ -32,7 +32,7 @@ To install it for one repository only, so it is recorded in that repository's `.
 | Skill | `antelopejs` | Framework mental model and router; Claude loads it in any AntelopeJS project |
 | Skill | `ajs-consume-interface` | Import, call, or implement an interface; unresolved and optional interfaces; provider bindings |
 | Skill | `ajs-author-interface` | Author and version an interface package |
-| Skill | `ajs-cli` | The `ajs` CLI and its plugins (`ajs dms …`) |
+| Skill | `ajs-cli` | The `ajs` CLI and its plugins; `ajs dms …` is left to the `dms-frontend` skill |
 | Command | `/antelopejs:interface <name> [subpath]` | Look up an interface contract |
 | Command | `/antelopejs:new-module <path>` | Scaffold a module and wire its interfaces |
 | Command | `/antelopejs:skills` | List the skills synced from the project's packages and where each comes from |
@@ -51,7 +51,7 @@ Packages ship their own skills: a package declares `antelopeJs.skills` in its `p
 - **Which projects**: a directory holding `antelope.config.*`, or an app whose `package.json` depends on `@antelopejs/core` (an embedded runtime, like the AdonisJS DMS template). Anywhere else the sync does nothing.
 - **Safety**: only the entries the plugin created are touched. They are tracked in `.claude/skills/.ajs-managed.json` and listed in a generated `.claude/skills/.gitignore`, so your repository stays clean; a skill of yours with the same entry name is skipped, never overwritten; entries whose package disappeared are removed.
 
-In a **DMS project** this brings the DMS suite: `dms` (the DMS router, start there), `dms-project`, `dms-module`, `dms-pages`, `dms-auth`, `dms-dev`, and `dms-best-practices` from `@antelopejs/dms`, plus one skill per installed `dms-*` module. Run `/antelopejs:skills` to see them.
+In a **DMS project** this brings the DMS suite: `dms` (the DMS router, start there), `dms-project`, `dms-module`, `dms-pages`, `dms-auth` and `dms-best-practices` from `@antelopejs/dms`, `dms-frontend` from `@antelopejs/dms-frontend`, plus one skill per installed `dms-*` module. Run `/antelopejs:skills` to see them; the [skill catalog](https://dms.antelopejs.com/docs/ai-and-claude-code/skill-catalog) lists the whole suite, the package that ships each skill and when it triggers.
 
 **dms-ai** (the DMS AI assistant) needs none of this: it loads the skills of every loaded module by itself. The plugin is for Claude Code working on the project's code.
 

@@ -1,6 +1,6 @@
 ---
 name: antelopejs
-description: Core mental model and router for AntelopeJS. Use whenever working in an AntelopeJS project or interface/module repo (including DMS projects), or when the user mentions AntelopeJS. Routes to the ajs-consume-interface, ajs-author-interface, and ajs-cli skills, to the interface contract resolver, and to the skills synced from the project's packages.
+description: Gives the AntelopeJS mental model (a tight core and the `ajs` CLI orchestrating modules that talk only through versioned interfaces) and routes to the right skill. Use when working in an AntelopeJS project, module or interface repository (DMS projects included), or when the user mentions AntelopeJS. Routes to ajs-consume-interface, ajs-author-interface, ajs-cli, the interface contract resolver, and the skills synced from the project's packages.
 ---
 
 # AntelopeJS
@@ -50,6 +50,7 @@ Because every connection lives on a known proxy and nothing else crosses the bou
 | Build a module / app *on* AntelopeJS, import & call an interface, resolve unresolved imports | **ajs-consume-interface** |
 | Define a new interface, add/version a contract, decide a semver bump, ship breaking changes | **ajs-author-interface** |
 | Run, build, scaffold, test via the CLI (`ajs project …`, `ajs module …`) | **ajs-cli** |
+| Run, build or deploy the DMS frontend (`ajs dms …`), write a frontend module | **dms-frontend** (synced from `@antelopejs/dms-frontend`) |
 
 ## Skills shipped by the project's packages
 
@@ -60,8 +61,9 @@ from the workspace (source checkouts), `node_modules`, and `.antelope/cache`. Ru
 `/antelopejs:skills` to see which skills are synced and which package ships each one.
 
 **DMS projects** get the DMS suite this way: `dms` (the DMS router; start there), `dms-project`,
-`dms-module`, `dms-pages`, `dms-auth`, `dms-dev`, `dms-best-practices` from `@antelopejs/dms`, plus
-one skill per installed `dms-*` module (e.g. `dms-saas`). For DMS work, invoke `dms` first and follow
+`dms-module`, `dms-pages`, `dms-auth`, `dms-best-practices` from `@antelopejs/dms`, `dms-frontend`
+(the `ajs dms` CLI and frontend modules) from `@antelopejs/dms-frontend`, plus one skill per
+installed `dms-*` module (e.g. `dms-saas`). For DMS work, invoke `dms` first and follow
 its routing. When those skills are missing, the dependencies are not installed yet: run
 `pnpm install` (and `ajs project modules install` for modules declared in `antelope.config.ts`),
 then `/antelopejs:sync-skills`.

@@ -1,6 +1,6 @@
 ---
 name: ajs-cli
-description: Guides running the `ajs` CLI. Use when creating, running, building, testing, or managing modules in an AntelopeJS project, running a CLI plugin such as `ajs dms`, or when the user asks what an `ajs` command does.
+description: Guides running the `ajs` CLI (projects, modules, config, plugins, update). Use when creating, running, building, testing, or managing modules in an AntelopeJS project, listing or updating CLI plugins, or when the user asks what an `ajs` command does. Everything under `ajs dms` belongs to the dms-frontend skill.
 ---
 
 # The `ajs` CLI
@@ -54,7 +54,7 @@ A module's `package.json` carries an `antelopeJs` block (it can also live in a d
 
 ## Plugins
 
-Official plugins add command groups: `ajs dms <command>` runs the DMS frontend plugin (`@antelopejs/dms-frontend`, e.g. `ajs dms dev`, `ajs dms build`). A plugin resolves from the nearest `node_modules/.bin` first, then `PATH`; a project that lists it in its dependencies always runs its own version. `ajs plugins` lists them with version, source, and compatibility; `ajs help dms` shows a plugin's help.
+Official plugins add command groups. Everything under `ajs dms` (the DMS frontend, `@antelopejs/dms-frontend`) belongs to the **dms-frontend** skill that package ships ([docs](https://dms.antelopejs.com/docs/frontend/cli/overview)). A plugin resolves from the nearest `node_modules/.bin` first, then `PATH`; a project that lists it in its dependencies always runs its own version. `ajs plugins` lists them with version, source, and compatibility; `ajs help dms` shows a plugin's help.
 
 ## Config
 
