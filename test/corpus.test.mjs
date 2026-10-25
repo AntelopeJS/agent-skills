@@ -4,7 +4,14 @@ import { join } from "node:path";
 
 import { parseFrontmatter } from "../scripts/lib/frontmatter.mjs";
 import { loadCorpus } from "../scripts/lib/corpus.mjs";
-import { makeTempDir, removeDir, writeFile, writeSkillPackage, writeAntelopeConfig, link } from "./helpers.mjs";
+import {
+  makeTempDir,
+  removeDir,
+  writeFile,
+  writeSkillPackage,
+  writeAntelopeConfig,
+  link,
+} from "./helpers.mjs";
 
 let root;
 
@@ -47,13 +54,25 @@ test("a file without frontmatter yields no data", () => {
 });
 
 test("loads every SKILL.md under explicit directories, a skill dir or a parent of skill dirs", () => {
-  writeSkill(join(root, "pack", "skills", "dms-pages"), "name: dms-pages\ndescription: Builds pages.");
-  writeSkill(join(root, "pack", "skills", "dms-auth"), "name: dms-auth\ndescription: Wires auth.");
+  writeSkill(
+    join(root, "pack", "skills", "dms-pages"),
+    "name: dms-pages\ndescription: Builds pages.",
+  );
+  writeSkill(
+    join(root, "pack", "skills", "dms-auth"),
+    "name: dms-auth\ndescription: Wires auth.",
+  );
   writeSkill(join(root, "single"), "name: lone\ndescription: Alone.");
 
-  const corpus = loadCorpus({ dirs: [join(root, "pack"), join(root, "single")] });
+  const corpus = loadCorpus({
+    dirs: [join(root, "pack"), join(root, "single")],
+  });
 
-  assert.deepEqual(corpus.skills.map((s) => s.name).sort(), ["dms-auth", "dms-pages", "lone"]);
+  assert.deepEqual(corpus.skills.map((s) => s.name).sort(), [
+    "dms-auth",
+    "dms-pages",
+    "lone",
+  ]);
   const pages = corpus.skills.find((s) => s.name === "dms-pages");
   assert.equal(pages.description, "Builds pages.");
   assert.match(pages.content, /Body\./);
@@ -80,15 +99,34 @@ test("keeps the first skill of a name and reports the duplicate", () => {
 
 test("discovers package-shipped skills of a project like the sync does", () => {
   writeAntelopeConfig(root);
-  const store = join(root, "node_modules", ".pnpm", "dms", "node_modules", "@antelopejs", "dms");
+  const store = join(
+    root,
+    "node_modules",
+    ".pnpm",
+    "dms",
+    "node_modules",
+    "@antelopejs",
+    "dms",
+  );
   writeSkillPackage(store, "@antelopejs/dms", ["dms", "dms-pages"]);
   link(store, join(root, "node_modules", "@antelopejs", "dms"));
-  writeSkillPackage(join(root, ".antelope", "cache", "@antelopejs", "dms-mailing"), "@antelopejs/dms-mailing", ["dms-mailing"]);
+  writeSkillPackage(
+    join(root, ".antelope", "cache", "@antelopejs", "dms-mailing"),
+    "@antelopejs/dms-mailing",
+    ["dms-mailing"],
+  );
 
   const corpus = loadCorpus({ project: root });
 
-  assert.deepEqual(corpus.skills.map((s) => s.name).sort(), ["dms", "dms-mailing", "dms-pages"]);
-  assert.equal(corpus.skills.find((s) => s.name === "dms").source, "@antelopejs/dms");
+  assert.deepEqual(corpus.skills.map((s) => s.name).sort(), [
+    "dms",
+    "dms-mailing",
+    "dms-pages",
+  ]);
+  assert.equal(
+    corpus.skills.find((s) => s.name === "dms").source,
+    "@antelopejs/dms",
+  );
 });
 
 test("a directory that is not an AntelopeJS project contributes nothing", () => {
@@ -111,5 +149,8 @@ test("reads the skills a fetched package declares", () => {
   });
 
   assert.deepEqual(requested, ["@antelopejs/dms-media@latest"]);
-  assert.deepEqual(corpus.skills.map((s) => [s.name, s.source]), [["dms-media", "@antelopejs/dms-media"]]);
+  assert.deepEqual(
+    corpus.skills.map((s) => [s.name, s.source]),
+    [["dms-media", "@antelopejs/dms-media"]],
+  );
 });

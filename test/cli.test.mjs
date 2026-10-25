@@ -6,29 +6,69 @@ import { fileURLToPath } from "node:url";
 
 import { makeTempDir, removeDir, writeFile, writeJson } from "./helpers.mjs";
 
-const BIN = join(dirname(fileURLToPath(import.meta.url)), "..", "bin", "agent-skills.mjs");
+const BIN = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "bin",
+  "agent-skills.mjs",
+);
 const fence = "```";
 let root;
 
 function run(args, { input, env = {} } = {}) {
   const { ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, ...clean } = process.env;
-  return spawnSync(process.execPath, [BIN, ...args], { cwd: root, input, encoding: "utf8", env: { ...clean, ...env } });
+  return spawnSync(process.execPath, [BIN, ...args], {
+    cwd: root,
+    input,
+    encoding: "utf8",
+    env: { ...clean, ...env },
+  });
 }
 
 before(() => {
   root = makeTempDir();
   writeJson(join(root, "package.json"), { name: "app" });
   const pkg = join(root, "node_modules", "@antelopejs", "interface-dms");
-  writeJson(join(pkg, "package.json"), { name: "@antelopejs/interface-dms", exports: { ".": { types: "./index.d.ts" } } });
-  writeFile(join(pkg, "index.d.ts"), "export declare function KpiCard(): void;\n");
-  writeFile(join(root, "skills", "dms-pages", "SKILL.md"), "---\nname: dms-pages\ndescription: Builds admin pages with tables and KPI cards.\n---\nUse `KpiCard`.\n");
-  writeFile(join(root, "skills", "dms-mailing", "SKILL.md"), "---\nname: dms-mailing\ndescription: Sends email templates.\n---\nBody.\n");
+  writeJson(join(pkg, "package.json"), {
+    name: "@antelopejs/interface-dms",
+    exports: { ".": { types: "./index.d.ts" } },
+  });
+  writeFile(
+    join(pkg, "index.d.ts"),
+    "export declare function KpiCard(): void;\n",
+  );
+  writeFile(
+    join(root, "skills", "dms-pages", "SKILL.md"),
+    "---\nname: dms-pages\ndescription: Builds admin pages with tables and KPI cards.\n---\nUse `KpiCard`.\n",
+  );
+  writeFile(
+    join(root, "skills", "dms-mailing", "SKILL.md"),
+    "---\nname: dms-mailing\ndescription: Sends email templates.\n---\nBody.\n",
+  );
   writeJson(join(root, "cases.json"), {
     version: 1,
     cases: [
-      { id: "kpi", area: "dms", style: "clean", prompt: "Add KPI cards to the admin page", expect: { skills: ["dms-pages"] } },
-      { id: "mail", area: "modules", style: "casual", prompt: "send the welcome email template", expect: { skills: ["dms-mailing"] } },
-      { id: "orders", area: "dms", style: "clean", prompt: "orders please", expect: { skills: ["dms-pages"], mustMention: ["KpiCard"] } },
+      {
+        id: "kpi",
+        area: "dms",
+        style: "clean",
+        prompt: "Add KPI cards to the admin page",
+        expect: { skills: ["dms-pages"] },
+      },
+      {
+        id: "mail",
+        area: "modules",
+        style: "casual",
+        prompt: "send the welcome email template",
+        expect: { skills: ["dms-mailing"] },
+      },
+      {
+        id: "orders",
+        area: "dms",
+        style: "clean",
+        prompt: "orders please",
+        expect: { skills: ["dms-pages"], mustMention: ["KpiCard"] },
+      },
     ],
   });
   writeFile(
@@ -55,7 +95,9 @@ test("the bin lists the verify and evals commands", () => {
 });
 
 test("verify reads stdin and exits 1 on an unknown name", () => {
-  const result = run(["verify", "-"], { input: `${fence}\nimport { KpiCard, KpiRow } from "@antelopejs/interface-dms";\n${fence}\n` });
+  const result = run(["verify", "-"], {
+    input: `${fence}\nimport { KpiCard, KpiRow } from "@antelopejs/interface-dms";\n${fence}\n`,
+  });
 
   assert.equal(result.status, 1);
   assert.match(result.stdout, /KpiRow/);
@@ -95,7 +137,13 @@ test("the anthropic backend is skipped cleanly without a key", () => {
 });
 
 test("dry-run prints the model prompt with names and descriptions only", () => {
-  const result = run(["evals", ...CORPUS, "--backend", "anthropic", "--dry-run"]);
+  const result = run([
+    "evals",
+    ...CORPUS,
+    "--backend",
+    "anthropic",
+    "--dry-run",
+  ]);
 
   assert.equal(result.status, 0);
   assert.match(result.stdout, /- dms-pages: Builds admin pages/);
@@ -103,7 +151,13 @@ test("dry-run prints the model prompt with names and descriptions only", () => {
 });
 
 test("a backend module plugs into the trigger eval", () => {
-  const result = run(["evals", ...CORPUS, "--backend", "stub-backend.mjs", "--json"]);
+  const result = run([
+    "evals",
+    ...CORPUS,
+    "--backend",
+    "stub-backend.mjs",
+    "--json",
+  ]);
   const report = JSON.parse(result.stdout);
 
   assert.equal(result.status, 0);
@@ -111,7 +165,16 @@ test("a backend module plugs into the trigger eval", () => {
 });
 
 test("the answers eval verifies each answer and fails over the invented threshold", () => {
-  const args = ["evals", "answers", ...CORPUS, "--only", "orders", "--backend", "stub-backend.mjs", "--offline"];
+  const args = [
+    "evals",
+    "answers",
+    ...CORPUS,
+    "--only",
+    "orders",
+    "--backend",
+    "stub-backend.mjs",
+    "--offline",
+  ];
 
   const lenient = run(args);
   const strict = run([...args, "--max-invented", "0"]);

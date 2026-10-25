@@ -28,7 +28,9 @@ export function checkAnswer(evalCase, answer) {
 }
 
 async function answerCase(evalCase, { skills, backend, verify }) {
-  const loaded = skills.filter((skill) => evalCase.expect.skills.includes(skill.name));
+  const loaded = skills.filter((skill) =>
+    evalCase.expect.skills.includes(skill.name),
+  );
   if (!loaded.length) return { id: evalCase.id, skipped: true };
   const answer = await backend.complete(answerRequest(loaded, evalCase.prompt));
   const report = await verify(answer);
@@ -46,7 +48,8 @@ async function answerCase(evalCase, { skills, backend, verify }) {
 /** Runs the cases one after the other; `verify(answer)` returns a verify report. */
 export async function runAnswerEval({ cases, skills, backend, verify }) {
   const results = [];
-  for (const evalCase of cases) results.push(await answerCase(evalCase, { skills, backend, verify }));
+  for (const evalCase of cases)
+    results.push(await answerCase(evalCase, { skills, backend, verify }));
   return results;
 }
 
@@ -61,8 +64,11 @@ export function summarizeAnswers(results, { maxInvented = 1 } = {}) {
     checked,
     invented,
     inventedRate,
-    missingMentions: answered.filter((result) => result.missingMentions.length).length,
-    forbiddenMentions: answered.filter((result) => result.forbiddenMentions.length).length,
+    missingMentions: answered.filter((result) => result.missingMentions.length)
+      .length,
+    forbiddenMentions: answered.filter(
+      (result) => result.forbiddenMentions.length,
+    ).length,
     behaviourFailures: answered.filter((result) => !result.behaviourOk).length,
     maxInvented,
     passed: inventedRate <= maxInvented,
@@ -70,11 +76,16 @@ export function summarizeAnswers(results, { maxInvented = 1 } = {}) {
 }
 
 function resultRow(result) {
-  if (result.skipped) return `${result.id}  skipped (no expected skill in the corpus)`;
+  if (result.skipped)
+    return `${result.id}  skipped (no expected skill in the corpus)`;
   const notes = [
     result.unknown.length ? `unknown: ${result.unknown.join(", ")}` : "",
-    result.missingMentions.length ? `missing: ${result.missingMentions.join(", ")}` : "",
-    result.forbiddenMentions.length ? `forbidden: ${result.forbiddenMentions.join(", ")}` : "",
+    result.missingMentions.length
+      ? `missing: ${result.missingMentions.join(", ")}`
+      : "",
+    result.forbiddenMentions.length
+      ? `forbidden: ${result.forbiddenMentions.join(", ")}`
+      : "",
     result.behaviourOk ? "" : "did not ask first",
   ].filter(Boolean);
   return `${result.id}  ${result.invented}/${result.checked} invented  ${notes.join("; ")}`.trimEnd();

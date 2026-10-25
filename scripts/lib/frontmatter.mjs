@@ -46,7 +46,8 @@ export function parseFrontmatter(text) {
       continue;
     }
     const block = [];
-    while (index + 1 < lines.length && isIndented(lines[index + 1])) block.push(lines[(index += 1)]);
+    while (index + 1 < lines.length && isIndented(lines[index + 1]))
+      block.push(lines[(index += 1)]);
     data[name] = blockScalar(rest.trim(), block);
   }
   return { data, body: text.slice(match[0].length) };

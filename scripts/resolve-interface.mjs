@@ -58,7 +58,14 @@
 //   resolve-interface.mjs versions <name>            Published versions + dist-tag latest
 //   resolve-interface.mjs implementations <name>     Known implementations (registry manifest; n/a for host interfaces)
 
-import { readFileSync, readdirSync, existsSync, statSync, mkdirSync, rmSync } from "node:fs";
+import {
+  readFileSync,
+  readdirSync,
+  existsSync,
+  statSync,
+  mkdirSync,
+  rmSync,
+} from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { execFileSync } from "node:child_process";
@@ -68,7 +75,8 @@ const PKG_PREFIX = `${PUBLIC_SCOPE}/interface-`;
 const SHORT_PREFIX = "interface-";
 const INTERFACE_PKG_RE = /^@[^/]+\/interface-/;
 const CACHE_ROOT =
-  process.env.AJS_RESOLVER_CACHE || join(homedir(), ".cache", "ajs-interface-resolver");
+  process.env.AJS_RESOLVER_CACHE ||
+  join(homedir(), ".cache", "ajs-interface-resolver");
 
 // Host packages named explicitly via env — package names whose interface
 // subpaths should resolve even when the host is not discoverable from the
@@ -120,7 +128,8 @@ function warn(msg) {
 // `@antelopejs/interface-core@0.0.4`).
 function splitSpec(input) {
   const at = input.lastIndexOf("@");
-  if (at > 0) return { rawName: input.slice(0, at), version: input.slice(at + 1) };
+  if (at > 0)
+    return { rawName: input.slice(0, at), version: input.slice(at + 1) };
   return { rawName: input, version: undefined };
 }
 
@@ -181,7 +190,8 @@ function cacheScopeRoots() {
   if (!isDirectorySafe(cache)) return [];
   const roots = [cache];
   for (const entry of readdirSync(cache)) {
-    if (entry.startsWith("@") && isDirectorySafe(join(cache, entry))) roots.push(join(cache, entry));
+    if (entry.startsWith("@") && isDirectorySafe(join(cache, entry)))
+      roots.push(join(cache, entry));
   }
   return roots;
 }
@@ -225,7 +235,9 @@ function discoverInterfaces() {
 // first, then in every discovered scope.
 function candidateFullNames(rawName) {
   if (rawName.startsWith("@")) return [rawName];
-  const short = rawName.startsWith(SHORT_PREFIX) ? rawName.slice(SHORT_PREFIX.length) : rawName;
+  const short = rawName.startsWith(SHORT_PREFIX)
+    ? rawName.slice(SHORT_PREFIX.length)
+    : rawName;
   return candidateScopes().map((scope) => `${scope}/${SHORT_PREFIX}${short}`);
 }
 
@@ -245,14 +257,19 @@ function findLocalInterface(rawName) {
 function isDmsHost(pkg) {
   if (!pkg) return false;
   if (pkg.antelopeJs?.dms) return true;
-  return Object.keys(pkg.exports ?? {}).some((k) => k === "./interface" || k.startsWith("./interfaces/"));
+  return Object.keys(pkg.exports ?? {}).some(
+    (k) => k === "./interface" || k.startsWith("./interfaces/"),
+  );
 }
 
 // A package by name as installed in the current project: node_modules first,
 // then the CLI's `.antelope/cache` (modules from antelope.config live there).
 function installedPackageEntry(pkgName) {
   const parts = pkgName.split("/");
-  const bases = [join(process.cwd(), "node_modules"), join(process.cwd(), ".antelope", "cache")];
+  const bases = [
+    join(process.cwd(), "node_modules"),
+    join(process.cwd(), ".antelope", "cache"),
+  ];
   for (const base of bases) {
     const dir = join(base, ...parts);
     const pkg = readJsonSafe(join(dir, "package.json"));
@@ -266,13 +283,19 @@ function discoverDmsHosts() {
   if (dmsHostCache) return dmsHostCache;
   const found = new Map();
   const consider = (entry) => {
-    if (entry && isDmsHost(entry.pkg) && entry.pkg.name && !found.has(entry.pkg.name)) {
+    if (
+      entry &&
+      isDmsHost(entry.pkg) &&
+      entry.pkg.name &&
+      !found.has(entry.pkg.name)
+    ) {
       found.set(entry.pkg.name, entry);
     }
   };
 
   // Hosts among the project's own dependencies (installed copies).
-  for (const dep of projectDependencyNames()) consider(installedPackageEntry(dep));
+  for (const dep of projectDependencyNames())
+    consider(installedPackageEntry(dep));
 
   // Hosts among the modules the CLI cached for antelope.config — those are not
   // necessarily package.json dependencies.
@@ -314,7 +337,9 @@ function discoverDmsHosts() {
 }
 
 function findLocalPackage(pkgName) {
-  return installedPackageEntry(pkgName) ?? discoverDmsHosts().get(pkgName) ?? null;
+  return (
+    installedPackageEntry(pkgName) ?? discoverDmsHosts().get(pkgName) ?? null
+  );
 }
 
 // ---- npm registry layer ----
@@ -334,11 +359,18 @@ function npm(args) {
 function npmErrText(e) {
   // npm ends stderr with a "complete log" pointer — surface the actual cause
   // (the first real `npm error` line) instead.
-  const lines = ((e && (e.stderr || e.message)) || "").toString().trim().split("\n");
+  const lines = ((e && (e.stderr || e.message)) || "")
+    .toString()
+    .trim()
+    .split("\n");
   const informative = lines.find(
     (l) => l.startsWith("npm error") && !l.includes("A complete log"),
   );
-  return informative || lines.filter((l) => !l.includes("A complete log")).pop() || lines.pop();
+  return (
+    informative ||
+    lines.filter((l) => !l.includes("A complete log")).pop() ||
+    lines.pop()
+  );
 }
 
 function remoteVersions(fullName) {
@@ -381,18 +413,30 @@ function fetchToCache(fullName, version) {
   if (existsSync(join(pkgDir, "package.json"))) return pkgDir;
 
   mkdirSync(dest, { recursive: true });
-  const packed = npm(["pack", `${fullName}@${version}`, "--pack-destination", dest]);
-  const filename = Array.isArray(packed) ? packed[0]?.filename : packed?.filename;
-  if (!filename) throw new Error(`npm pack gave no filename for ${fullName}@${version}`);
+  const packed = npm([
+    "pack",
+    `${fullName}@${version}`,
+    "--pack-destination",
+    dest,
+  ]);
+  const filename = Array.isArray(packed)
+    ? packed[0]?.filename
+    : packed?.filename;
+  if (!filename)
+    throw new Error(`npm pack gave no filename for ${fullName}@${version}`);
 
-  execFileSync("tar", ["-xzf", join(dest, filename), "-C", dest], { stdio: "ignore" });
+  execFileSync("tar", ["-xzf", join(dest, filename), "-C", dest], {
+    stdio: "ignore",
+  });
   try {
     rmSync(join(dest, filename));
   } catch {
     /* keep the tarball if it can't be removed — harmless */
   }
   if (!existsSync(join(pkgDir, "package.json"))) {
-    throw new Error(`extracted tarball has no package/package.json at ${pkgDir}`);
+    throw new Error(
+      `extracted tarball has no package/package.json at ${pkgDir}`,
+    );
   }
   return pkgDir;
 }
@@ -408,7 +452,11 @@ function resolvePackageEntry(fullName, wanted, localLookup) {
     const hit = localLookup(fullName);
     if (hit) {
       // A pinned version must not silently resolve to a different local copy.
-      if (wanted && wanted !== "latest" && hit.pkg.version !== wanted.replace(/^v/, "")) {
+      if (
+        wanted &&
+        wanted !== "latest" &&
+        hit.pkg.version !== wanted.replace(/^v/, "")
+      ) {
         throw new Error(
           `${fullName}@${wanted} is not available locally (offline); local copy is v${hit.pkg.version}`,
         );
@@ -425,7 +473,9 @@ function resolvePackageEntry(fullName, wanted, localLookup) {
     if (!wanted) {
       const hit = localLookup(fullName);
       if (hit) {
-        warn(`could not fetch ${fullName} from npm (${npmErrText(e)}); using local copy.`);
+        warn(
+          `could not fetch ${fullName} from npm (${npmErrText(e)}); using local copy.`,
+        );
         return hit;
       }
     }
@@ -438,13 +488,20 @@ function resolvePackageEntry(fullName, wanted, localLookup) {
 function listVersions(fullName, localEntry) {
   if (!OFFLINE) {
     try {
-      return { versions: remoteVersions(fullName).slice().reverse(), latest: remoteLatest(fullName) };
+      return {
+        versions: remoteVersions(fullName).slice().reverse(),
+        latest: remoteLatest(fullName),
+      };
     } catch (e) {
       if (!localEntry) throw e;
-      warn(`registry lookup failed for ${fullName} (${npmErrText(e)}); using local git tags.`);
+      warn(
+        `registry lookup failed for ${fullName} (${npmErrText(e)}); using local git tags.`,
+      );
     }
   }
-  const tags = localEntry ? gitTags(localEntry.dir).map((t) => t.replace(/^v/, "")) : [];
+  const tags = localEntry
+    ? gitTags(localEntry.dir).map((t) => t.replace(/^v/, ""))
+    : [];
   return { versions: tags, latest: null };
 }
 
@@ -477,19 +534,25 @@ function subpaths(entry) {
   for (const [sub, target] of Object.entries(entry.pkg.exports ?? {})) {
     if (sub === "./package.json") continue;
     if (sub.includes("*")) {
-      if (target && typeof target === "object" && target.types) wildcardTypes = target.types;
+      if (target && typeof target === "object" && target.types)
+        wildcardTypes = target.types;
       continue;
     }
     add(sub, dtsForTarget(dir, target));
   }
 
-  for (const [sub, target] of Object.entries(entry.pkg.typesVersions?.["*"] ?? {})) {
+  for (const [sub, target] of Object.entries(
+    entry.pkg.typesVersions?.["*"] ?? {},
+  )) {
     if (sub.includes("*")) continue;
     add(sub, dtsForTarget(dir, target));
   }
 
   if (wildcardTypes) {
-    const distDir = join(dir, wildcardTypes.replace(/\/[^/]*\*[^/]*$/, "").replace(/^\.\//, ""));
+    const distDir = join(
+      dir,
+      wildcardTypes.replace(/\/[^/]*\*[^/]*$/, "").replace(/^\.\//, ""),
+    );
     if (isDirectorySafe(distDir)) {
       for (const file of readdirSync(distDir)) {
         if (!file.endsWith(".d.ts")) continue;
@@ -507,7 +570,11 @@ function subpaths(entry) {
       dts,
     }))
     .sort((a, b) =>
-      a.subpath === "." ? -1 : b.subpath === "." ? 1 : a.subpath.localeCompare(b.subpath),
+      a.subpath === "."
+        ? -1
+        : b.subpath === "."
+          ? 1
+          : a.subpath.localeCompare(b.subpath),
     );
 }
 
@@ -527,11 +594,16 @@ function dmsGroups(entry) {
     if (m && !groups.has(m[1])) groups.set(m[1], `interfaces/${m[1]}`);
   }
   // A `./interfaces/*` wildcard means undeclared groups exist as dist subdirs.
-  if (Object.keys(entry.pkg.exports ?? {}).some((k) => k.startsWith("./interfaces/") && k.includes("*"))) {
+  if (
+    Object.keys(entry.pkg.exports ?? {}).some(
+      (k) => k.startsWith("./interfaces/") && k.includes("*"),
+    )
+  ) {
     const dir = join(entry.dir, baseUrlOf(entry.pkg), "interfaces");
     if (isDirectorySafe(dir)) {
       for (const e of readdirSync(dir)) {
-        if (isDirectorySafe(join(dir, e)) && !groups.has(e)) groups.set(e, `interfaces/${e}`);
+        if (isDirectorySafe(join(dir, e)) && !groups.has(e))
+          groups.set(e, `interfaces/${e}`);
       }
     }
   }
@@ -558,14 +630,21 @@ function dmsGroupParts(entry, groupSub) {
       const subpath = relPart || ".";
       parts.push({
         subpath,
-        import: subpath === "." ? `${entry.pkg.name}/${groupSub}` : `${entry.pkg.name}/${groupSub}/${subpath}`,
+        import:
+          subpath === "."
+            ? `${entry.pkg.name}/${groupSub}`
+            : `${entry.pkg.name}/${groupSub}/${subpath}`,
         dts: full,
       });
     }
   };
   walk(root, "", 2);
   return parts.sort((a, b) =>
-    a.subpath === "." ? -1 : b.subpath === "." ? 1 : a.subpath.localeCompare(b.subpath),
+    a.subpath === "."
+      ? -1
+      : b.subpath === "."
+        ? 1
+        : a.subpath.localeCompare(b.subpath),
   );
 }
 
@@ -577,7 +656,8 @@ const REEXPORT_RE = /^export\s*\{([^}]*)\}\s*(?:from\b|;)/;
 // `export * from "./form"` / `export * as NS from "./x"` — barrel index files
 // (e.g. a group's index) aggregate their parts this way; surface the source so
 // the index isn't reported as empty.
-const REEXPORT_STAR_RE = /^export\s+\*\s+(?:as\s+([A-Za-z0-9_]+)\s+)?from\s*["']([^"']+)["']/;
+const REEXPORT_STAR_RE =
+  /^export\s+\*\s+(?:as\s+([A-Za-z0-9_]+)\s+)?from\s*["']([^"']+)["']/;
 
 function reexportName(token) {
   const aliased = token.match(/\bas\s+([A-Za-z0-9_]+)/);
@@ -616,7 +696,11 @@ function exportedSymbols(dtsPath) {
       continue;
     }
     const star = line.match(REEXPORT_STAR_RE);
-    if (star) push("re-export", star[1] ? `${star[1]} (* from ${star[2]})` : `* from ${star[2]}`);
+    if (star)
+      push(
+        "re-export",
+        star[1] ? `${star[1]} (* from ${star[2]})` : `* from ${star[2]}`,
+      );
   }
   return out;
 }
@@ -655,7 +739,10 @@ function pkgTarget(entry) {
 
 function dmsTarget(entry, group, focusSub) {
   const parts = dmsGroupParts(entry, group.sub);
-  const rel = focusSub && focusSub !== group.sub ? focusSub.slice(group.sub.length + 1) : ".";
+  const rel =
+    focusSub && focusSub !== group.sub
+      ? focusSub.slice(group.sub.length + 1)
+      : ".";
   return {
     entry,
     displayName: `${entry.pkg.name}/${group.sub}`,
@@ -702,17 +789,24 @@ function parseDmsSpec(input) {
   if (at > 0) {
     // A `@version` pinned on the group/part token belongs to the host package.
     const { rawName: sub, version } = splitSpec(spec.slice(at + 1));
-    return { pkgSpec: `${spec.slice(0, at)}${version ? `@${version}` : ""}`, interfaceSub: sub };
+    return {
+      pkgSpec: `${spec.slice(0, at)}${version ? `@${version}` : ""}`,
+      interfaceSub: sub,
+    };
   }
   const singular = spec.match(/^(.+)\/interface(@[^/@]+)?$/);
   if (singular) {
-    return { pkgSpec: `${singular[1]}${singular[2] ?? ""}`, interfaceSub: "interface" };
+    return {
+      pkgSpec: `${singular[1]}${singular[2] ?? ""}`,
+      interfaceSub: "interface",
+    };
   }
   return null;
 }
 
 function groupForSub(entry, interfaceSub) {
-  if (interfaceSub === "interface") return { name: shortModuleName(entry.pkg.name), sub: "interface" };
+  if (interfaceSub === "interface")
+    return { name: shortModuleName(entry.pkg.name), sub: "interface" };
   const name = interfaceSub.split("/")[1];
   return { name, sub: `interfaces/${name}` };
 }
@@ -751,7 +845,11 @@ function resolveTarget(input) {
     } catch (e) {
       fail(`could not resolve host package '${pkg}': ${npmErrText(e)}`);
     }
-    return dmsTarget(entry, groupForSub(entry, dms.interfaceSub), dms.interfaceSub);
+    return dmsTarget(
+      entry,
+      groupForSub(entry, dms.interfaceSub),
+      dms.interfaceSub,
+    );
   }
 
   const { rawName, version } = splitSpec(input);
@@ -770,14 +868,19 @@ function resolveTarget(input) {
   if (OFFLINE) {
     const local = findLocalInterface(rawName);
     if (local) {
-      const pinned = version && version !== "latest" ? version.replace(/^v/, "") : null;
+      const pinned =
+        version && version !== "latest" ? version.replace(/^v/, "") : null;
       if (!pinned || local.pkg.version === pinned) return pkgTarget(local);
-      fail(`'${input}' is not available locally (offline); local copy is v${local.pkg.version}.`);
+      fail(
+        `'${input}' is not available locally (offline); local copy is v${local.pkg.version}.`,
+      );
     }
     const dmsHit = resolveDmsBare(rawName, version);
     if (dmsHit) return dmsHit;
     const known = [...discoverInterfaces().keys()].map(shortName).join(", ");
-    fail(`'${input}' is not available locally (offline). Locally present: ${known || "(none)"}.`);
+    fail(
+      `'${input}' is not available locally (offline). Locally present: ${known || "(none)"}.`,
+    );
   }
 
   // Remote interface package: public scope first, then every discovered scope.
@@ -786,7 +889,11 @@ function resolveTarget(input) {
     try {
       const version2 = resolveRemoteVersion(fullName, version);
       const dir = fetchToCache(fullName, version2);
-      return pkgTarget({ dir, pkg: readJson(join(dir, "package.json")), remote: true });
+      return pkgTarget({
+        dir,
+        pkg: readJson(join(dir, "package.json")),
+        remote: true,
+      });
     } catch (e) {
       interfaceErr ??= e;
     }
@@ -829,7 +936,12 @@ function cmdList(json) {
   if (!OFFLINE) {
     try {
       for (const r of npm(["search", PKG_PREFIX])) {
-        if (typeof r.name !== "string" || !r.name.startsWith(PKG_PREFIX) || byKey.has(r.name)) continue;
+        if (
+          typeof r.name !== "string" ||
+          !r.name.startsWith(PKG_PREFIX) ||
+          byKey.has(r.name)
+        )
+          continue;
         byKey.set(r.name, {
           name: shortName(r.name),
           package: r.name,
@@ -840,7 +952,10 @@ function cmdList(json) {
       }
     } catch (e) {
       if (!byKey.size) warn(`npm search failed (${npmErrText(e)}).`);
-      else warn(`npm search failed (${npmErrText(e)}); interface-package list may be incomplete.`);
+      else
+        warn(
+          `npm search failed (${npmErrText(e)}); interface-package list may be incomplete.`,
+        );
     }
     // Interface packages in discovered non-public scopes — best-effort and
     // quiet: `npm search` may not cover the registry a scope is served from,
@@ -849,7 +964,12 @@ function cmdList(json) {
       const prefix = `${scope}/${SHORT_PREFIX}`;
       try {
         for (const r of npm(["search", prefix])) {
-          if (typeof r.name !== "string" || !r.name.startsWith(prefix) || byKey.has(r.name)) continue;
+          if (
+            typeof r.name !== "string" ||
+            !r.name.startsWith(prefix) ||
+            byKey.has(r.name)
+          )
+            continue;
           byKey.set(r.name, {
             name: shortName(r.name),
             package: r.name,
@@ -882,7 +1002,9 @@ function cmdList(json) {
   if (json) return console.log(JSON.stringify([...rows, ...dms], null, 2));
 
   for (const r of rows) {
-    console.log(`${r.name.padEnd(26)} ${(r.version ? `v${r.version}` : "").padEnd(9)} ${r.description}`);
+    console.log(
+      `${r.name.padEnd(26)} ${(r.version ? `v${r.version}` : "").padEnd(9)} ${r.description}`,
+    );
   }
   if (dms.length) {
     console.log("\nHost-package interfaces (import path):");
@@ -892,10 +1014,16 @@ function cmdList(json) {
 
 function cmdShow(input, json) {
   const target = resolveTarget(input);
-  const subs = target.parts.map((s) => ({ ...s, symbols: exportedSymbols(s.dts) }));
+  const subs = target.parts.map((s) => ({
+    ...s,
+    symbols: exportedSymbols(s.dts),
+  }));
   let versionInfo = { versions: [], latest: null };
   try {
-    versionInfo = listVersions(target.versionsPkg, target.entry.remote ? null : target.entry);
+    versionInfo = listVersions(
+      target.versionsPkg,
+      target.entry.remote ? null : target.entry,
+    );
   } catch {
     /* version listing is best-effort */
   }
@@ -912,20 +1040,29 @@ function cmdShow(input, json) {
   };
   if (json) return console.log(JSON.stringify(data, null, 2));
 
-  console.log(`${data.name}  (${data.package} v${data.version}${data.source === "npm" ? ", npm" : ""})`);
+  console.log(
+    `${data.name}  (${data.package} v${data.version}${data.source === "npm" ? ", npm" : ""})`,
+  );
   if (data.description) console.log(data.description);
-  console.log(`${data.source === "npm" ? "cached" : "location"}: ${data.location}`);
+  console.log(
+    `${data.source === "npm" ? "cached" : "location"}: ${data.location}`,
+  );
   if (data.latest) console.log(`latest: v${data.latest}`);
   if (data.availableVersions.length) {
-    console.log(`versions: ${data.availableVersions.map((v) => `v${v}`).join(", ")}`);
+    console.log(
+      `versions: ${data.availableVersions.map((v) => `v${v}`).join(", ")}`,
+    );
   }
   console.log("\nexport surface:");
   for (const s of data.subpaths) {
     console.log(`\n  import "${s.import}"`);
-    for (const sym of s.symbols) console.log(`    ${sym.kind.padEnd(9)} ${sym.name}`);
+    for (const sym of s.symbols)
+      console.log(`    ${sym.kind.padEnd(9)} ${sym.name}`);
     if (!s.symbols.length) console.log("    (no top-level declarations found)");
   }
-  console.log(`\nFull signatures: resolve-interface.mjs contract ${input} [subpath]`);
+  console.log(
+    `\nFull signatures: resolve-interface.mjs contract ${input} [subpath]`,
+  );
 }
 
 function cmdContract(input, subpath) {
@@ -936,7 +1073,10 @@ function cmdContract(input, subpath) {
     const avail = target.parts.map((s) => s.subpath).join(", ");
     fail(`No subpath '${want}' for ${target.displayName}. Available: ${avail}`);
   }
-  if (!match.dts) fail(`No .d.ts found for subpath '${want}' (is the package built/published?)`);
+  if (!match.dts)
+    fail(
+      `No .d.ts found for subpath '${want}' (is the package built/published?)`,
+    );
   process.stdout.write(`// ${match.import}\n// ${match.dts}\n\n`);
   process.stdout.write(readFileSync(match.dts, "utf8"));
 }
@@ -953,7 +1093,9 @@ function cmdVersions(input) {
   } else {
     const { rawName } = splitSpec(input);
     localEntry = findLocalInterface(rawName);
-    fullName = localEntry ? localEntry.pkg.name : candidateFullNames(rawName)[0];
+    fullName = localEntry
+      ? localEntry.pkg.name
+      : candidateFullNames(rawName)[0];
     if (!localEntry) {
       // Could be an interface package in a discovered scope or a bare host
       // interface — resolve fully to learn the actual package name.
@@ -970,7 +1112,11 @@ function cmdVersions(input) {
   }
   if (localEntry) console.log(`installed: v${localEntry.pkg.version}`);
   if (info.latest) console.log(`latest:    v${info.latest}`);
-  console.log(info.versions.length ? info.versions.map((v) => `v${v}`).join("\n") : "(no versions found)");
+  console.log(
+    info.versions.length
+      ? info.versions.map((v) => `v${v}`).join("\n")
+      : "(no versions found)",
+  );
 }
 
 async function fetchRegistryManifest(name) {
@@ -1040,7 +1186,9 @@ const positional = argv.slice(1).filter((a) => !a.startsWith("--"));
 const json = flags.has("--json");
 const FORCE_REMOTE = flags.has("--remote");
 const OFFLINE =
-  flags.has("--offline") || flags.has("--no-remote") || !!process.env.AJS_RESOLVER_OFFLINE;
+  flags.has("--offline") ||
+  flags.has("--no-remote") ||
+  !!process.env.AJS_RESOLVER_OFFLINE;
 
 const COMMANDS = {
   list: () => cmdList(json),
@@ -1052,7 +1200,10 @@ const COMMANDS = {
 
 const handler = COMMANDS[cmd];
 if (!handler) {
-  fail(`unknown command '${cmd ?? ""}'. One of: ${Object.keys(COMMANDS).join(", ")}`);
+  fail(
+    `unknown command '${cmd ?? ""}'. One of: ${Object.keys(COMMANDS).join(", ")}`,
+  );
 }
-if (cmd !== "list" && !positional[0]) fail(`'${cmd}' requires an interface name`);
+if (cmd !== "list" && !positional[0])
+  fail(`'${cmd}' requires an interface name`);
 await handler();

@@ -6,7 +6,10 @@ import { extractApiReferences } from "../scripts/lib/identifiers.mjs";
 const fence = "```";
 
 function importsOf(text) {
-  return extractApiReferences(text).imports.map(({ specifier, names }) => [specifier, names.map((n) => n.imported)]);
+  return extractApiReferences(text).imports.map(({ specifier, names }) => [
+    specifier,
+    names.map((n) => n.imported),
+  ]);
 }
 
 function referencesOf(text) {
@@ -48,7 +51,9 @@ test("reads require destructuring, re-exports and side-effect imports", () => {
 });
 
 test("default and namespace imports bind names without checking them", () => {
-  const { imports } = extractApiReferences(`${fence}\nimport Mailer, * as Media from "x";\n${fence}`);
+  const { imports } = extractApiReferences(
+    `${fence}\nimport Mailer, * as Media from "x";\n${fence}`,
+  );
 
   assert.deepEqual(imports[0].names, []);
   assert.deepEqual(imports[0].bound, ["Mailer", "Media"]);
@@ -68,7 +73,12 @@ test("collects API-shaped references from inline code and code, minus locals, im
     fence,
   ].join("\n");
 
-  assert.deepEqual(referencesOf(answer).sort(), ["Controller", "DatabaseService", "KpiCard", "RegisterPage"]);
+  assert.deepEqual(referencesOf(answer).sort(), [
+    "Controller",
+    "DatabaseService",
+    "KpiCard",
+    "RegisterPage",
+  ]);
 });
 
 test("a diff contributes only its added lines and only its imports", () => {
@@ -85,12 +95,20 @@ test("a diff contributes only its added lines and only its imports", () => {
   const result = extractApiReferences(diff);
 
   assert.equal(result.mode, "diff");
-  assert.deepEqual(importsOf(diff), [["@antelopejs/interface-dms/base", ["KpiCard"]]]);
+  assert.deepEqual(importsOf(diff), [
+    ["@antelopejs/interface-dms/base", ["KpiCard"]],
+  ]);
   assert.deepEqual(result.references, []);
 });
 
 test("reports the line of each finding in the original text", () => {
-  const answer = ["intro", `${fence}`, 'import { A1b } from "pkg";', fence, "then `Missing` here"].join("\n");
+  const answer = [
+    "intro",
+    `${fence}`,
+    'import { A1b } from "pkg";',
+    fence,
+    "then `Missing` here",
+  ].join("\n");
 
   const result = extractApiReferences(answer);
 
