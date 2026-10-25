@@ -1,7 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { loadDataset, validateDataset, DATASET_FILE } from "../scripts/lib/dataset.mjs";
+import {
+  loadDataset,
+  validateDataset,
+  DATASET_FILE,
+} from "../scripts/lib/dataset.mjs";
 
 const VALID_CASE = {
   id: "orders-table",
@@ -22,7 +26,9 @@ test("the committed dataset is valid", () => {
 });
 
 test("the committed dataset ports every docs-assistant question in both styles", () => {
-  const ported = loadDataset(DATASET_FILE).cases.filter((c) => c.origin === "docs-assistant");
+  const ported = loadDataset(DATASET_FILE).cases.filter(
+    (c) => c.origin === "docs-assistant",
+  );
 
   assert.equal(ported.length, 24);
   assert.equal(ported.filter((c) => c.style === "casual").length, 12);
@@ -33,15 +39,22 @@ test("a well-formed case passes", () => {
 });
 
 test("rejects missing fields, unknown keys and bad enum values", () => {
-  const errors = errorsOf([{ ...VALID_CASE, style: "shouty", extra: true, prompt: "" }]);
+  const errors = errorsOf([
+    { ...VALID_CASE, style: "shouty", extra: true, prompt: "" },
+  ]);
 
-  assert.ok(errors.some((e) => e.includes("orders-table") && e.includes("style")));
+  assert.ok(
+    errors.some((e) => e.includes("orders-table") && e.includes("style")),
+  );
   assert.ok(errors.some((e) => e.includes("extra")));
   assert.ok(errors.some((e) => e.includes("prompt")));
 });
 
 test("rejects duplicate ids and an empty expected skill list", () => {
-  const errors = errorsOf([VALID_CASE, { ...VALID_CASE, expect: { skills: [] } }]);
+  const errors = errorsOf([
+    VALID_CASE,
+    { ...VALID_CASE, expect: { skills: [] } },
+  ]);
 
   assert.ok(errors.some((e) => e.includes("duplicate")));
   assert.ok(errors.some((e) => e.includes("expect.skills")));
@@ -49,7 +62,14 @@ test("rejects duplicate ids and an empty expected skill list", () => {
 
 test("rejects a skill both expected and merely acceptable, and unknown behaviours", () => {
   const errors = errorsOf([
-    { ...VALID_CASE, expect: { skills: ["dms-pages"], acceptable: ["dms-pages"], behaviour: "dances" } },
+    {
+      ...VALID_CASE,
+      expect: {
+        skills: ["dms-pages"],
+        acceptable: ["dms-pages"],
+        behaviour: "dances",
+      },
+    },
   ]);
 
   assert.ok(errors.some((e) => e.includes("acceptable")));
@@ -57,5 +77,9 @@ test("rejects a skill both expected and merely acceptable, and unknown behaviour
 });
 
 test("loadDataset throws with every problem listed", () => {
-  assert.throws(() => loadDataset(new URL("./fixtures/invalid-cases.json", import.meta.url)), /2 problems/);
+  assert.throws(
+    () =>
+      loadDataset(new URL("./fixtures/invalid-cases.json", import.meta.url)),
+    /2 problems/,
+  );
 });

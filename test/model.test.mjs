@@ -11,8 +11,16 @@ import {
 } from "../scripts/lib/model.mjs";
 
 const SKILLS = [
-  { name: "dms-pages", description: "Declares admin pages.", content: "SECRET BODY OF DMS-PAGES" },
-  { name: "dms-mailing", description: "Sends e-mail templates.", content: "SECRET BODY OF DMS-MAILING" },
+  {
+    name: "dms-pages",
+    description: "Declares admin pages.",
+    content: "SECRET BODY OF DMS-PAGES",
+  },
+  {
+    name: "dms-mailing",
+    description: "Sends e-mail templates.",
+    content: "SECRET BODY OF DMS-MAILING",
+  },
 ];
 
 function stubClient(reply) {
@@ -24,15 +32,25 @@ function stubClient(reply) {
   return { calls, client: { beta: { messages: { create } } } };
 }
 
-const textReply = (text) => ({ stop_reason: "end_turn", model: DEFAULT_MODEL, content: [{ type: "text", text }] });
+const textReply = (text) => ({
+  stop_reason: "end_turn",
+  model: DEFAULT_MODEL,
+  content: [{ type: "text", text }],
+});
 
 test("the trigger request shows only skill names and descriptions, like the harness", () => {
-  const { system, user, schema } = triggerRequest(SKILLS, "add an orders table");
+  const { system, user, schema } = triggerRequest(
+    SKILLS,
+    "add an orders table",
+  );
 
   assert.match(system, /dms-pages: Declares admin pages\./);
   assert.doesNotMatch(system, /SECRET BODY/);
   assert.equal(user, "add an orders table");
-  assert.deepEqual(schema.properties.skills.items.enum, ["dms-pages", "dms-mailing"]);
+  assert.deepEqual(schema.properties.skills.items.enum, [
+    "dms-pages",
+    "dms-mailing",
+  ]);
 });
 
 test("the answer request loads the full skill bodies", () => {
@@ -54,7 +72,11 @@ test("the Anthropic backend sends structured output, low effort and the default 
   const { calls, client } = stubClient(textReply('{"skills":[]}'));
   const backend = createAnthropicBackend({ model: DEFAULT_MODEL, client });
 
-  const text = await backend.complete({ ...triggerRequest(SKILLS, "hi"), effort: "low", maxTokens: 1024 });
+  const text = await backend.complete({
+    ...triggerRequest(SKILLS, "hi"),
+    effort: "low",
+    maxTokens: 1024,
+  });
 
   assert.equal(text, '{"skills":[]}');
   const [params] = calls;
@@ -70,7 +92,12 @@ test("models without effort or server-side fallback get neither", async () => {
   const { calls, client } = stubClient(textReply("ok"));
   const backend = createAnthropicBackend({ model: "claude-haiku-4-5", client });
 
-  await backend.complete({ system: "s", user: "u", effort: "low", maxTokens: 10 });
+  await backend.complete({
+    system: "s",
+    user: "u",
+    effort: "low",
+    maxTokens: 10,
+  });
 
   assert.equal(calls[0].fallbacks, undefined);
   assert.equal(calls[0].output_config, undefined);
@@ -86,5 +113,8 @@ test("a refusal surfaces as an error", async () => {
 
 test("the model comes from EVAL_MODEL, else the default", () => {
   assert.equal(modelFromEnv({}), DEFAULT_MODEL);
-  assert.equal(modelFromEnv({ EVAL_MODEL: "claude-sonnet-5-5" }), "claude-sonnet-5-5");
+  assert.equal(
+    modelFromEnv({ EVAL_MODEL: "claude-sonnet-5-5" }),
+    "claude-sonnet-5-5",
+  );
 });

@@ -31,15 +31,26 @@ const USAGE = `Usage: verify [file|-] [--project <dir>] [--offline] [--json]
 `;
 
 async function main() {
-  const { values, positionals } = parseArgs({ options: OPTIONS, allowPositionals: true });
+  const { values, positionals } = parseArgs({
+    options: OPTIONS,
+    allowPositionals: true,
+  });
   if (values.help || positionals.length > 1) {
     process.stdout.write(USAGE);
     return values.help ? EXIT.ok : EXIT.usage;
   }
   const file = positionals[0] ?? STDIN;
-  const text = readFileSync(file === STDIN ? process.stdin.fd : resolve(file), "utf8");
-  const report = await verifyText(text, { project: resolve(values.project ?? process.cwd()), offline: Boolean(values.offline) });
-  process.stdout.write(`${values.json ? JSON.stringify(report, null, 2) : formatReport(report)}\n`);
+  const text = readFileSync(
+    file === STDIN ? process.stdin.fd : resolve(file),
+    "utf8",
+  );
+  const report = await verifyText(text, {
+    project: resolve(values.project ?? process.cwd()),
+    offline: Boolean(values.offline),
+  });
+  process.stdout.write(
+    `${values.json ? JSON.stringify(report, null, 2) : formatReport(report)}\n`,
+  );
   return report.findings.length ? EXIT.unknown : EXIT.ok;
 }
 

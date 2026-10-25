@@ -8,7 +8,7 @@
 
 </div>
 
-Tools for coding agents building with [AntelopeJS](https://github.com/AntelopeJS) — the Node.js framework where a tight core + `ajs` CLI orchestrate modules that communicate **only** through versioned *interface* contracts — and with the AntelopeJS DMS. Every skill ships inside an npm package (the framework skills in `@antelopejs/core`, the DMS suite in `@antelopejs/dms`, one per module or interface); this plugin syncs them into your project, resolves interface contracts live, and adds a few commands.
+Tools for coding agents building with [AntelopeJS](https://github.com/AntelopeJS) — the Node.js framework where a tight core + `ajs` CLI orchestrate modules that communicate **only** through versioned _interface_ contracts — and with the AntelopeJS DMS. Every skill ships inside an npm package (the framework skills in `@antelopejs/core`, the DMS suite in `@antelopejs/dms`, one per module or interface); this plugin syncs them into your project, resolves interface contracts live, and adds a few commands.
 
 The repository is one plugin, `antelopejs`, packaged for **Claude Code** and **OpenAI Codex**, from one marketplace also named `antelopejs`.
 
@@ -65,15 +65,15 @@ npx -y github:AntelopeJS/agent-skills sync
 
 ## What you get
 
-| Kind | Name | Use |
-| --- | --- | --- |
-| Command (Claude Code) | `/antelopejs:interface <name> [subpath]` | Look up an interface contract |
-| Command (Claude Code) | `/antelopejs:new-module <path>` | Scaffold a module and wire its interfaces |
-| Command (Claude Code) | `/antelopejs:skills` | List the skills synced from the project's packages and where each comes from |
-| Command (Claude Code) | `/antelopejs:sync-skills` | Sync those skills now |
-| Hooks | `SessionStart`, `PostToolUse` (Bash) | Run the skill sync automatically (Claude Code; Codex desktop once trusted) |
-| Script | `scripts/resolve-interface.mjs` | The interface contract resolver, also run as `npx -y github:AntelopeJS/agent-skills interface …` |
-| CLI | `verify`, `evals` | Report invented API names in an answer or a diff; score which skills a prompt triggers |
+| Kind                  | Name                                     | Use                                                                                              |
+| --------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Command (Claude Code) | `/antelopejs:interface <name> [subpath]` | Look up an interface contract                                                                    |
+| Command (Claude Code) | `/antelopejs:new-module <path>`          | Scaffold a module and wire its interfaces                                                        |
+| Command (Claude Code) | `/antelopejs:skills`                     | List the skills synced from the project's packages and where each comes from                     |
+| Command (Claude Code) | `/antelopejs:sync-skills`                | Sync those skills now                                                                            |
+| Hooks                 | `SessionStart`, `PostToolUse` (Bash)     | Run the skill sync automatically (Claude Code; Codex desktop once trusted)                       |
+| Script                | `scripts/resolve-interface.mjs`          | The interface contract resolver, also run as `npx -y github:AntelopeJS/agent-skills interface …` |
+| CLI                   | `verify`, `evals`                        | Report invented API names in an answer or a diff; score which skills a prompt triggers           |
 
 The plugin carries no skill of its own. The framework skills — `antelopejs` (mental model and router), `ajs-cli`, `ajs-consume-interface` and `ajs-author-interface` — ship with `@antelopejs/core` and are synced like any package skill, as `core--<skill>`. They follow the core version the project installs.
 
@@ -162,26 +162,26 @@ To drop the synced skills from a project, delete the entries listed in `.claude/
 
 ## Troubleshooting
 
-| Symptom | Fix |
-| --- | --- |
-| The Claude Code project settings do not prompt | The folder is not trusted yet: restart Claude Code in it and accept the trust dialog. In `-p` runs the entries apply only in folders trusted interactively before. |
+| Symptom                                         | Fix                                                                                                                                                                       |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The Claude Code project settings do not prompt  | The folder is not trusted yet: restart Claude Code in it and accept the trust dialog. In `-p` runs the entries apply only in folders trusted interactively before.        |
 | No DMS skills in `/antelopejs:skills` or `list` | The packages are not installed: run `pnpm install`; modules declared in `antelope.config.ts` arrive in `.antelope/cache` on the first `ajs project dev`. Then sync again. |
-| No `core--*` skills | The installed `@antelopejs/core` predates the framework skills: upgrade it (`pnpm add @antelopejs/core@latest`), then sync again. |
-| "Not an AntelopeJS project" | Run the agent (or the sync) in the directory holding `antelope.config.*` (or the app depending on `@antelopejs/core`), not in a parent folder. |
-| A synced skill does not show up | Claude Code: run `/reload-skills`; `.claude/skills/` did not exist when the session started. Codex: restart it. |
-| An entry is reported `skipped` | A file or folder of yours already uses that name in the skills directory; rename or remove it. |
-| Hooks seem not to run | Claude Code: check `claude plugin list` shows the plugin enabled; `node` must be on `PATH`. Codex: trust the hooks in `/hooks`, or run the sync command yourself. |
+| No `core--*` skills                             | The installed `@antelopejs/core` predates the framework skills: upgrade it (`pnpm add @antelopejs/core@latest`), then sync again.                                         |
+| "Not an AntelopeJS project"                     | Run the agent (or the sync) in the directory holding `antelope.config.*` (or the app depending on `@antelopejs/core`), not in a parent folder.                            |
+| A synced skill does not show up                 | Claude Code: run `/reload-skills`; `.claude/skills/` did not exist when the session started. Codex: restart it.                                                           |
+| An entry is reported `skipped`                  | A file or folder of yours already uses that name in the skills directory; rename or remove it.                                                                            |
+| Hooks seem not to run                           | Claude Code: check `claude plugin list` shows the plugin enabled; `node` must be on `PATH`. Codex: trust the hooks in `/hooks`, or run the sync command yourself.         |
 
 ## Design: three layers of knowledge
 
 AntelopeJS's own architecture dictates how the knowledge is organized. The stable core is hand-authored; the extensive, versioned interface set is resolved on demand from its source of truth so it never goes stale; product knowledge (the DMS, its modules) ships with the packages themselves.
 
-| Layer | What | Mechanism |
-| --- | --- | --- |
-| **1. Concepts** | The mental model: core, CLI, modules, interfaces-as-versioned-contracts | `antelopejs` router skill, shipped by `@antelopejs/core` |
-| **2. Workflows** | Consume an interface, author/version a contract, drive the CLI | `ajs-consume-interface`, `ajs-author-interface`, `ajs-cli` skills, shipped by `@antelopejs/core`, + slash commands |
-| **3. Contracts** | The actual interface APIs, per name@version | `scripts/resolve-interface.mjs` — reads the `@antelopejs/interface-*` packages live |
-| **Products** | DMS, dms-* modules, interface packages | Skills shipped in each package |
+| Layer            | What                                                                    | Mechanism                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **1. Concepts**  | The mental model: core, CLI, modules, interfaces-as-versioned-contracts | `antelopejs` router skill, shipped by `@antelopejs/core`                                                           |
+| **2. Workflows** | Consume an interface, author/version a contract, drive the CLI          | `ajs-consume-interface`, `ajs-author-interface`, `ajs-cli` skills, shipped by `@antelopejs/core`, + slash commands |
+| **3. Contracts** | The actual interface APIs, per name@version                             | `scripts/resolve-interface.mjs` — reads the `@antelopejs/interface-*` packages live                                |
+| **Products**     | DMS, dms-* modules, interface packages                                  | Skills shipped in each package                                                                                     |
 
 Every skill lives in the package whose version it describes and reaches the agent through `scripts/sync-skills.mjs` (or dms-ai's own loader); the plugin keeps only what no package can carry: the sync, the resolver, and the commands.
 
@@ -292,11 +292,11 @@ Each case is a user prompt, the skills an agent should load for it (`expect.skil
 
 The skills an eval runs against, by name and description, read from their `SKILL.md`:
 
-| Option | Source |
-| --- | --- |
-| `--project <dir>` (default: the current directory) | what the sync finds there: workspace, `node_modules`, `.antelope/cache` |
-| `--skills <dir>` (repeatable) | every `SKILL.md` under the directory, e.g. a checkout under review |
-| `--packages <a,b>` / `--published` | the skills shipped by npm packages, fetched as tarballs; `--published` takes the list in `evals/packages.json` |
+| Option                                             | Source                                                                                                         |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `--project <dir>` (default: the current directory) | what the sync finds there: workspace, `node_modules`, `.antelope/cache`                                        |
+| `--skills <dir>` (repeatable)                      | every `SKILL.md` under the directory, e.g. a checkout under review                                             |
+| `--packages <a,b>` / `--published`                 | the skills shipped by npm packages, fetched as tarballs; `--published` takes the list in `evals/packages.json` |
 
 When two sources ship a skill of the same name, the first wins, in that order. An expected skill missing from the corpus is left out of the score, and a case with none left is reported `skipped`, so the evals keep working while skills move between packages.
 

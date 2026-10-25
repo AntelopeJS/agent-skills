@@ -10,7 +10,11 @@ import { execFileSync } from "node:child_process";
 import { isBuiltin } from "node:module";
 import { fileURLToPath } from "node:url";
 
-const RESOLVER_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "..", "resolve-interface.mjs");
+const RESOLVER_SCRIPT = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "resolve-interface.mjs",
+);
 const INTERFACE_PACKAGE_RE = /^@[^/]+\/interface-/;
 const RESOLVER_TIMEOUT_MS = 120_000;
 const PATTERN_SCAN_DEPTH = 6;
@@ -40,7 +44,10 @@ function readJson(path) {
 export function splitSpecifier(specifier) {
   const parts = specifier.split("/");
   const size = specifier.startsWith("@") ? 2 : 1;
-  return { name: parts.slice(0, size).join("/"), subpath: parts.slice(size).join("/") };
+  return {
+    name: parts.slice(0, size).join("/"),
+    subpath: parts.slice(size).join("/"),
+  };
 }
 
 function ancestors(dir) {
@@ -53,12 +60,20 @@ function localPackageDir(project, name) {
     join(dir, "node_modules", name),
     join(dir, ".antelope", "cache", name),
   ]);
-  return candidates.find((dir) => existsSync(join(dir, "package.json"))) ?? null;
+  return (
+    candidates.find((dir) => existsSync(join(dir, "package.json"))) ?? null
+  );
 }
 
 function resolverPackageDir(context, name) {
   if (!INTERFACE_PACKAGE_RE.test(name)) return null;
-  const args = [RESOLVER_SCRIPT, "show", name, "--json", ...(context.offline ? ["--offline"] : [])];
+  const args = [
+    RESOLVER_SCRIPT,
+    "show",
+    name,
+    "--json",
+    ...(context.offline ? ["--offline"] : []),
+  ];
   try {
     const output = execFileSync(process.execPath, args, {
       cwd: context.project,
@@ -75,14 +90,20 @@ function resolverPackageDir(context, name) {
 
 function typesTarget(target) {
   if (typeof target === "string" || target === null) return target;
-  if (Array.isArray(target)) return target.map(typesTarget).find((value) => typeof value === "string") ?? null;
+  if (Array.isArray(target))
+    return (
+      target.map(typesTarget).find((value) => typeof value === "string") ?? null
+    );
   if (typeof target !== "object") return null;
   const condition = TYPE_CONDITIONS.find((key) => target[key] !== undefined);
   return condition ? typesTarget(target[condition]) : null;
 }
 
 function exportsMap(exports) {
-  const isSubpathMap = typeof exports === "object" && !Array.isArray(exports) && Object.keys(exports).every((key) => key.startsWith("."));
+  const isSubpathMap =
+    typeof exports === "object" &&
+    !Array.isArray(exports) &&
+    Object.keys(exports).every((key) => key.startsWith("."));
   return isSubpathMap ? exports : { ".": exports };
 }
 
@@ -91,7 +112,12 @@ function matchPattern(map, key) {
     const star = pattern.indexOf("*");
     if (star < 0) continue;
     const [prefix, suffix] = [pattern.slice(0, star), pattern.slice(star + 1)];
-    if (!key.startsWith(prefix) || !key.endsWith(suffix) || key.length < pattern.length - 1) continue;
+    if (
+      !key.startsWith(prefix) ||
+      !key.endsWith(suffix) ||
+      key.length < pattern.length - 1
+    )
+      continue;
     const captured = key.slice(prefix.length, key.length - suffix.length);
     const types = typesTarget(target);
     return typeof types === "string" ? types.replaceAll("*", captured) : null;
@@ -102,7 +128,12 @@ function matchPattern(map, key) {
 function dtsCandidates(path) {
   if (DTS_RE.test(path)) return [path];
   const base = path.replace(/\.[mc]?[jt]s$/, "");
-  return [`${base}.d.ts`, `${base}.d.mts`, `${base}.d.cts`, join(base, "index.d.ts")];
+  return [
+    `${base}.d.ts`,
+    `${base}.d.mts`,
+    `${base}.d.cts`,
+    join(base, "index.d.ts"),
+  ];
 }
 
 function firstExisting(paths) {
@@ -112,7 +143,10 @@ function firstExisting(paths) {
 function legacyEntry(dir, pkg, subpath) {
   if (subpath) {
     const mapped = typesTarget(pkg.typesVersions?.["*"]?.[subpath]);
-    return firstExisting([...(mapped ? dtsCandidates(join(dir, mapped)) : []), ...dtsCandidates(join(dir, subpath))]);
+    return firstExisting([
+      ...(mapped ? dtsCandidates(join(dir, mapped)) : []),
+      ...dtsCandidates(join(dir, subpath)),
+    ]);
   }
   const declared = pkg.types ?? pkg.typings ?? pkg.main ?? "index.js";
   return firstExisting(dtsCandidates(join(dir, declared)));
@@ -122,7 +156,11 @@ function filesUnder(dir, depth = PATTERN_SCAN_DEPTH) {
   if (depth === 0 || !existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true })
     .filter((entry) => entry.name !== "node_modules")
-    .flatMap((entry) => (entry.isDirectory() ? filesUnder(join(dir, entry.name), depth - 1) : [join(dir, entry.name)]));
+    .flatMap((entry) =>
+      entry.isDirectory()
+        ? filesUnder(join(dir, entry.name), depth - 1)
+        : [join(dir, entry.name)],
+    );
 }
 
 function withDotSlash(path) {
@@ -136,8 +174,13 @@ function expandPattern(dir, key, target) {
   const root = join(dir, targetPrefix);
   return filesUnder(targetPrefix.endsWith("/") ? root : dirname(root))
     .map((file) => withDotSlash(relative(dir, file)))
-    .filter((file) => file.startsWith(targetPrefix) && file.endsWith(targetSuffix))
-    .map((file) => `${keyPrefix}${file.slice(targetPrefix.length, file.length - targetSuffix.length)}${keySuffix}`);
+    .filter(
+      (file) => file.startsWith(targetPrefix) && file.endsWith(targetSuffix),
+    )
+    .map(
+      (file) =>
+        `${keyPrefix}${file.slice(targetPrefix.length, file.length - targetSuffix.length)}${keySuffix}`,
+    );
 }
 
 /** `{ dts }` for the subpath, `{ dts: null }` when untyped, `{ missing: true }` when not exported. */
@@ -145,7 +188,9 @@ export function entryDts(dir, pkg, subpath) {
   if (pkg.exports === undefined) return { dts: legacyEntry(dir, pkg, subpath) };
   const map = exportsMap(pkg.exports);
   const key = subpath ? `./${subpath}` : ".";
-  const target = Object.hasOwn(map, key) ? typesTarget(map[key]) : matchPattern(map, key);
+  const target = Object.hasOwn(map, key)
+    ? typesTarget(map[key])
+    : matchPattern(map, key);
   if (target === undefined || target === null) return { missing: true };
   return { dts: firstExisting(dtsCandidates(join(dir, target))) };
 }
@@ -156,7 +201,12 @@ function exportedNames(text) {
       .split(",")
       .map((token) => token.trim().replace(/^type\s+/, ""))
       .filter(Boolean)
-      .map((token) => token.split(/\s+as\s+/).pop().trim()),
+      .map((token) =>
+        token
+          .split(/\s+as\s+/)
+          .pop()
+          .trim(),
+      ),
   );
   return [
     ...[...text.matchAll(DECLARATION_RE)].map((match) => match[1]),
@@ -188,19 +238,39 @@ export class ModuleResolver {
     if (!this.#packages.has(name)) {
       const local = localPackageDir(this.project, name);
       const dir = local ?? resolverPackageDir(this.#context, name);
-      this.#packages.set(name, dir ? { dir, pkg: readJson(join(dir, "package.json")), source: local ? "local" : "resolver" } : null);
+      this.#packages.set(
+        name,
+        dir
+          ? {
+              dir,
+              pkg: readJson(join(dir, "package.json")),
+              source: local ? "local" : "resolver",
+            }
+          : null,
+      );
     }
     return this.#packages.get(name);
   }
 
   async #starNames(specifier, fromFile) {
-    if (!specifier.startsWith(".")) return (await this.resolveModule(specifier)).names ?? { names: new Set(), permissive: true };
-    const target = firstExisting(dtsCandidates(resolve(dirname(fromFile), specifier)));
-    return target && !this.#visiting.has(target) ? this.#fileNames(target) : EMPTY;
+    if (!specifier.startsWith("."))
+      return (
+        (await this.resolveModule(specifier)).names ?? {
+          names: new Set(),
+          permissive: true,
+        }
+      );
+    const target = firstExisting(
+      dtsCandidates(resolve(dirname(fromFile), specifier)),
+    );
+    return target && !this.#visiting.has(target)
+      ? this.#fileNames(target)
+      : EMPTY;
   }
 
   #fileNames(file) {
-    if (!this.#files.has(file)) this.#files.set(file, this.#readFileNames(file));
+    if (!this.#files.has(file))
+      this.#files.set(file, this.#readFileNames(file));
     return this.#files.get(file);
   }
 
@@ -220,7 +290,12 @@ export class ModuleResolver {
 
   async #builtinModule(specifier) {
     const runtime = await import(specifier);
-    return { specifier, status: STATUS.builtin, source: "node", names: { names: new Set(Object.keys(runtime)), permissive: false } };
+    return {
+      specifier,
+      status: STATUS.builtin,
+      source: "node",
+      names: { names: new Set(Object.keys(runtime)), permissive: false },
+    };
   }
 
   async #packageModule(specifier) {
@@ -228,15 +303,27 @@ export class ModuleResolver {
     const entry = this.#packageEntry(name);
     if (!entry) return { specifier, status: STATUS.missingPackage };
     const { dts, missing } = entryDts(entry.dir, entry.pkg, subpath);
-    if (missing) return { specifier, status: STATUS.missingSubpath, source: entry.source };
-    if (!dts) return { specifier, status: STATUS.untyped, source: entry.source };
-    return { specifier, status: STATUS.ok, source: entry.source, names: await this.#fileNames(dts) };
+    if (missing)
+      return { specifier, status: STATUS.missingSubpath, source: entry.source };
+    if (!dts)
+      return { specifier, status: STATUS.untyped, source: entry.source };
+    return {
+      specifier,
+      status: STATUS.ok,
+      source: entry.source,
+      names: await this.#fileNames(dts),
+    };
   }
 
   /** `{ specifier, status, source?, names?: { names: Set, permissive } }` */
   resolveModule(specifier) {
     if (!this.#modules.has(specifier)) {
-      this.#modules.set(specifier, isBuiltin(specifier) ? this.#builtinModule(specifier) : this.#packageModule(specifier));
+      this.#modules.set(
+        specifier,
+        isBuiltin(specifier)
+          ? this.#builtinModule(specifier)
+          : this.#packageModule(specifier),
+      );
     }
     return this.#modules.get(specifier);
   }
@@ -248,7 +335,11 @@ export class ModuleResolver {
     if (entry.pkg.exports === undefined) return [name];
     return Object.entries(exportsMap(entry.pkg.exports))
       .filter(([key]) => key !== "./package.json")
-      .flatMap(([key, target]) => (key.includes("*") ? expandPattern(entry.dir, key, typesTarget(target)) : [key]))
+      .flatMap(([key, target]) =>
+        key.includes("*")
+          ? expandPattern(entry.dir, key, typesTarget(target))
+          : [key],
+      )
       .map((key) => (key === "." ? name : `${name}/${key.slice(2)}`));
   }
 }

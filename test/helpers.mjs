@@ -1,10 +1,20 @@
-import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  symlinkSync,
+  rmSync,
+} from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const SCRIPTS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "scripts");
+const SCRIPTS_DIR = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "scripts",
+);
 
 export function makeTempDir() {
   return mkdtempSync(join(tmpdir(), "ajs-plugin-test-"));
@@ -30,9 +40,16 @@ export function link(target, path) {
 
 /** Writes a package declaring `antelopeJs.skills` with one SKILL.md per skill name. */
 export function writeSkillPackage(dir, name, skills, version = "1.0.0") {
-  writeJson(join(dir, "package.json"), { name, version, antelopeJs: { skills: ["./skills"] } });
+  writeJson(join(dir, "package.json"), {
+    name,
+    version,
+    antelopeJs: { skills: ["./skills"] },
+  });
   for (const skill of skills) {
-    writeFile(join(dir, "skills", skill, "SKILL.md"), `---\nname: ${skill}\ndescription: test\n---\n`);
+    writeFile(
+      join(dir, "skills", skill, "SKILL.md"),
+      `---\nname: ${skill}\ndescription: test\n---\n`,
+    );
   }
 }
 
@@ -41,11 +58,15 @@ export function writeAntelopeConfig(dir) {
 }
 
 export function runScript(script, cwd, args = []) {
-  const stdout = execFileSync(process.execPath, [join(SCRIPTS_DIR, script), ...args], {
-    cwd,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const stdout = execFileSync(
+    process.execPath,
+    [join(SCRIPTS_DIR, script), ...args],
+    {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
   return stdout;
 }
 

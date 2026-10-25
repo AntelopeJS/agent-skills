@@ -45,14 +45,18 @@ export function tokenize(text) {
 function weightedTerms(skill) {
   const terms = new Map();
   for (const term of tokenize(skill.description)) terms.set(term, 1);
-  for (const term of tokenize(skill.name.replace(/-/g, " "))) terms.set(term, NAME_WEIGHT);
+  for (const term of tokenize(skill.name.replace(/-/g, " ")))
+    terms.set(term, NAME_WEIGHT);
   return terms;
 }
 
 function inverseDocumentFrequency(documents) {
   const counts = new Map();
-  for (const terms of documents) for (const term of terms.keys()) counts.set(term, (counts.get(term) ?? 0) + 1);
-  return (term) => Math.log(1 + documents.length / (counts.get(term) ?? documents.length));
+  for (const terms of documents)
+    for (const term of terms.keys())
+      counts.set(term, (counts.get(term) ?? 0) + 1);
+  return (term) =>
+    Math.log(1 + documents.length / (counts.get(term) ?? documents.length));
 }
 
 /** Returns `(prompt) => skillNames`, best match first. */
@@ -64,9 +68,15 @@ export function createBaselinePicker(skills) {
     const scored = skills
       .map((skill, index) => ({
         name: skill.name,
-        score: terms.reduce((sum, term) => sum + (documents[index].get(term) ?? 0) * idf(term), 0),
+        score: terms.reduce(
+          (sum, term) => sum + (documents[index].get(term) ?? 0) * idf(term),
+          0,
+        ),
       }))
-      .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name));
+      .sort(
+        (left, right) =>
+          right.score - left.score || left.name.localeCompare(right.name),
+      );
     const best = scored[0]?.score ?? 0;
     if (best < MIN_SCORE) return [];
     return scored

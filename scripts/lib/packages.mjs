@@ -11,7 +11,10 @@ const NPM_TIMEOUT_MS = 90_000;
 const MAX_BUFFER_BYTES = 16 * 1024 * 1024;
 
 export function packageCacheRoot() {
-  return process.env.AJS_EVALS_CACHE || join(homedir(), ".cache", "ajs-agent-skills-evals");
+  return (
+    process.env.AJS_EVALS_CACHE ||
+    join(homedir(), ".cache", "ajs-agent-skills-evals")
+  );
 }
 
 function npmJson(args) {
@@ -38,13 +41,23 @@ function packageName(spec) {
 export function fetchPackage(spec, cacheRoot = packageCacheRoot()) {
   const name = packageName(spec);
   const version = resolveVersion(spec);
-  const dest = join(cacheRoot, name.replace(/^@/, "").replace(/\//g, "__"), version);
+  const dest = join(
+    cacheRoot,
+    name.replace(/^@/, "").replace(/\//g, "__"),
+    version,
+  );
   const dir = join(dest, "package");
   if (existsSync(join(dir, "package.json"))) return dir;
   mkdirSync(dest, { recursive: true });
-  const packed = npmJson(["pack", `${name}@${version}`, "--pack-destination", dest]);
+  const packed = npmJson([
+    "pack",
+    `${name}@${version}`,
+    "--pack-destination",
+    dest,
+  ]);
   const filename = (Array.isArray(packed) ? packed[0] : packed)?.filename;
-  if (!filename) throw new Error(`npm pack gave no file for ${name}@${version}`);
+  if (!filename)
+    throw new Error(`npm pack gave no file for ${name}@${version}`);
   const archive = join(dest, filename);
   execFileSync("tar", ["-xzf", archive, "-C", dest], { stdio: "ignore" });
   rmSync(archive, { force: true });

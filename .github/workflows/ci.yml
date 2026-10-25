@@ -10,22 +10,13 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test
-      - name: Trigger eval, deterministic baseline
-        run: pnpm evals:baseline
+  checks:
+    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1
+    with:
+      extra-commands: pnpm evals:baseline
 
   model-eval:
-    needs: test
+    needs: checks
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
     env:
@@ -53,7 +44,7 @@ jobs:
       - if: steps.gate.outputs.run == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
       - if: steps.gate.outputs.run == 'true'
         run: pnpm install --frozen-lockfile

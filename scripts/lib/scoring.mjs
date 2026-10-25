@@ -14,9 +14,16 @@ function ratio(part, whole, empty) {
  */
 export function scoreCase(evalCase, predicted, corpusNames) {
   const picked = [...new Set(predicted)];
-  const expected = evalCase.expect.skills.filter((name) => corpusNames.has(name));
-  const absent = evalCase.expect.skills.filter((name) => !corpusNames.has(name));
-  const allowed = new Set([...evalCase.expect.skills, ...(evalCase.expect.acceptable ?? [])]);
+  const expected = evalCase.expect.skills.filter((name) =>
+    corpusNames.has(name),
+  );
+  const absent = evalCase.expect.skills.filter(
+    (name) => !corpusNames.has(name),
+  );
+  const allowed = new Set([
+    ...evalCase.expect.skills,
+    ...(evalCase.expect.acceptable ?? []),
+  ]);
   const hits = expected.filter((name) => picked.includes(name));
   const extra = picked.filter((name) => !allowed.has(name));
   return {
@@ -60,9 +67,17 @@ export function summarize(scores, { minRecall = 0, minPrecision = 0 } = {}) {
     skipped: scores.length - scored.length,
     recall: overall.recall,
     precision: overall.precision,
-    byStyle: Object.fromEntries(styles.map((style) => [style, averages(scored.filter((s) => s.style === style))])),
+    byStyle: Object.fromEntries(
+      styles.map((style) => [
+        style,
+        averages(scored.filter((s) => s.style === style)),
+      ]),
+    ),
     thresholds: { minRecall, minPrecision },
-    passed: scored.length > 0 && overall.recall >= minRecall && overall.precision >= minPrecision,
+    passed:
+      scored.length > 0 &&
+      overall.recall >= minRecall &&
+      overall.precision >= minPrecision,
   };
 }
 
@@ -71,17 +86,39 @@ function percent(value) {
 }
 
 function caseRow(score) {
-  if (score.skipped) return [score.id, NOT_APPLICABLE, NOT_APPLICABLE, "skipped", `absent: ${score.absent.join(", ")}`];
+  if (score.skipped)
+    return [
+      score.id,
+      NOT_APPLICABLE,
+      NOT_APPLICABLE,
+      "skipped",
+      `absent: ${score.absent.join(", ")}`,
+    ];
   const notes = [
     score.missed.length ? `missed: ${score.missed.join(", ")}` : "",
     score.extra.length ? `extra: ${score.extra.join(", ")}` : "",
   ].filter(Boolean);
-  return [score.id, percent(score.recall), percent(score.precision), score.predicted.join(", ") || "(none)", notes.join("; ")];
+  return [
+    score.id,
+    percent(score.recall),
+    percent(score.precision),
+    score.predicted.join(", ") || "(none)",
+    notes.join("; "),
+  ];
 }
 
 function render(rows) {
-  const widths = rows[0].map((_, column) => Math.max(...rows.map((row) => row[column].length)));
-  return rows.map((row) => row.map((cell, column) => cell.padEnd(widths[column])).join("  ").trimEnd()).join("\n");
+  const widths = rows[0].map((_, column) =>
+    Math.max(...rows.map((row) => row[column].length)),
+  );
+  return rows
+    .map((row) =>
+      row
+        .map((cell, column) => cell.padEnd(widths[column]))
+        .join("  ")
+        .trimEnd(),
+    )
+    .join("\n");
 }
 
 export function formatTable(scores, summary) {
@@ -93,6 +130,12 @@ export function formatTable(scores, summary) {
     "",
     "",
   ]);
-  const overall = [`overall (${summary.scored} scored, ${summary.skipped} skipped)`, percent(summary.recall), percent(summary.precision), "", ""];
+  const overall = [
+    `overall (${summary.scored} scored, ${summary.skipped} skipped)`,
+    percent(summary.recall),
+    percent(summary.precision),
+    "",
+    "",
+  ];
   return `${render([header, ...scores.map(caseRow)])}\n\n${render([["STYLE", "RECALL", "PRECISION", "", ""], ...styleRows, overall])}`;
 }
