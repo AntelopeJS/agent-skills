@@ -15,7 +15,13 @@ const CODEX_HOOKS_PATH = "./hooks/codex-hooks.json";
 const COMMANDS_DIR = "commands";
 const SKILLS_DIR = "skills";
 const SKILL_FILE = "SKILL.md";
-const PLUGIN_SKILLS = ["interface", "new-module", "skills", "sync-skills"];
+const PLUGIN_SKILLS = [
+  "eval-skills",
+  "interface",
+  "new-module",
+  "skills",
+  "sync-skills",
+];
 const HOOKS = {
   claude: {
     file: "hooks/hooks.json",

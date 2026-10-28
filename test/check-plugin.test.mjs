@@ -61,7 +61,13 @@ beforeEach(() => {
     description: "Codex only",
     ...hooks("${PLUGIN_ROOT}", "--target codex"),
   });
-  for (const name of ["interface", "new-module", "skills", "sync-skills"]) {
+  for (const name of [
+    "eval-skills",
+    "interface",
+    "new-module",
+    "skills",
+    "sync-skills",
+  ]) {
     writeSkill(
       name,
       "Run `node <skill-dir>/../../scripts/sync-skills.mjs --list`.",

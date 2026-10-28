@@ -1,6 +1,6 @@
 {
   "rules": {
-    "antelopejs/no-comments": 267,
+    "antelopejs/no-comments": 257,
     "antelopejs/no-fs-read-in-tests": 1,
     "anti-slop/no-conditional-empty-object-spread": 4,
     "anti-slop/no-runtime-typeof": 27,

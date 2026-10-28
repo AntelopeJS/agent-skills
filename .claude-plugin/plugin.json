@@ -1,6 +1,6 @@
 {
   "name": "antelopejs",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Tools for building with AntelopeJS: the sync of the agent skills shipped by the project's packages (the framework skills from @antelopejs/core and the DMS suite included), a live resolver for versioned interface contracts, and skills that drive the ajs CLI.",
   "author": {
     "name": "AntelopeJS",

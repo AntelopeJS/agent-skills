@@ -1,6 +1,6 @@
 {
   "name": "agent-skills",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "AntelopeJS agent tools for Claude Code and OpenAI Codex: the sync of the skills shipped by AntelopeJS packages and the interface contract resolver.",
   "repository": {
@@ -14,8 +14,7 @@
   "scripts": {
     "test": "node --test \"test/*.test.mjs\"",
     "evals:baseline": "node scripts/evals.mjs --published --min-recall 0.5 --min-precision 0.5",
-    "evals:model": "node scripts/evals.mjs --backend anthropic --published --min-recall 0.7 --min-precision 0.6",
-    "evals:answers": "node scripts/evals.mjs answers --published --max-invented 0.1",
+    "evals:check": "node scripts/evals.mjs check",
     "prepare": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && command -v lefthook >/dev/null 2>&1; then lefthook install; fi",
     "checks": "antelopejs-checks",
     "size": "antelopejs-check-size",

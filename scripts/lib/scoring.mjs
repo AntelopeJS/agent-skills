@@ -24,6 +24,9 @@ export function scoreCase(evalCase, predicted, corpusNames) {
     ...evalCase.expect.skills,
     ...(evalCase.expect.acceptable ?? []),
   ]);
+  const avoided = (evalCase.expect.avoid ?? []).filter((name) =>
+    picked.includes(name),
+  );
   const hits = expected.filter((name) => picked.includes(name));
   const extra = picked.filter((name) => !allowed.has(name));
   return {
@@ -35,6 +38,7 @@ export function scoreCase(evalCase, predicted, corpusNames) {
     absent,
     missed: expected.filter((name) => !picked.includes(name)),
     extra,
+    avoided,
     skipped: expected.length === 0,
     recall: ratio(hits.length, expected.length, 0),
     precision: ratio(picked.length - extra.length, picked.length, 1),
@@ -97,6 +101,9 @@ function caseRow(score) {
   const notes = [
     score.missed.length ? `missed: ${score.missed.join(", ")}` : "",
     score.extra.length ? `extra: ${score.extra.join(", ")}` : "",
+    score.avoided.length
+      ? `avoided but picked: ${score.avoided.join(", ")}`
+      : "",
   ].filter(Boolean);
   return [
     score.id,

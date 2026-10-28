@@ -1,0 +1,68 @@
+{
+  "cases": [
+    {
+      "id": "scaffold-with-interfaces",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/empty-project" },
+      "prompt": "Create a new module called invoices in modules/invoices. It should import the api and database interfaces.",
+      "rubric": [
+        {
+          "id": "non-interactive-init",
+          "text": "The scaffold command is ajs module init with every question answered by a flag (a template, the interfaces list, the package manager and the git choice), so it never waits on a terminal prompt."
+        },
+        {
+          "id": "interfaces-inspected",
+          "text": "Before wiring the dependencies, the agent runs the interface resolver's show command for each of the api and database interfaces and takes the imported symbols from its output."
+        },
+        {
+          "id": "pnpm-dependencies",
+          "text": "Each consumed interface is added as a dependency with pnpm, not npm or yarn."
+        },
+        {
+          "id": "registered-and-installed",
+          "text": "The module is added to antelope.config.ts with ajs project modules add and ajs project modules install is run so providers get installed."
+        }
+      ]
+    },
+    {
+      "id": "ask-for-the-path",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/empty-project" },
+      "prompt": "I want to start a new module for sending reminders, can you set it up?",
+      "rubric": [
+        {
+          "id": "asks-path",
+          "text": "The request names no path, so the agent asks where the module should live before running any command."
+        },
+        {
+          "id": "no-scaffold-yet",
+          "text": "No ajs module init, file write or package install happens before the person answers."
+        },
+        {
+          "id": "offers-choices",
+          "text": "The question stays short and may offer a template or interface choice, without writing code."
+        }
+      ]
+    },
+    {
+      "id": "confirm-existing-target",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/empty-project" },
+      "prompt": "Scaffold a module at src/notes for me. There is already some code in that folder, keep it in mind.",
+      "rubric": [
+        {
+          "id": "confirms-before-init",
+          "text": "Because the target path already holds files, the agent confirms with the person before running ajs module init there."
+        },
+        {
+          "id": "no-overwrite",
+          "text": "Nothing already present in the target folder is deleted or overwritten."
+        },
+        {
+          "id": "uses-pnpm",
+          "text": "Any package operation the agent proposes uses pnpm."
+        }
+      ]
+    }
+  ]
+}

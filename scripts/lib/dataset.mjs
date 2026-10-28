@@ -24,6 +24,7 @@ const EXPECT_KEYS = [
   "mustMention",
   "mustNotMention",
   "behaviour",
+  "avoid",
 ];
 
 const isNonEmptyString = (value) =>
@@ -54,6 +55,7 @@ const EXPECT_FIELDS = {
   acceptable: [optional(isSkillList), "a list of skill names"],
   mustMention: [optional(isStringList), "a list of strings"],
   mustNotMention: [optional(isStringList), "a list of strings"],
+  avoid: [optional(isSkillList), "a list of skill names"],
   behaviour: [optional(oneOf(BEHAVIOURS)), `one of ${BEHAVIOURS.join(", ")}`],
 };
 
@@ -72,14 +74,21 @@ function unknownKeys(value, allowed, prefix) {
 function expectErrors(expect) {
   if (!expect || typeof expect !== "object")
     return ["expect must be an object"];
+  const allowed = [...(expect.skills ?? []), ...(expect.acceptable ?? [])];
   const overlap = (expect.acceptable ?? []).filter((name) =>
     expect.skills?.includes(name),
+  );
+  const contradiction = (expect.avoid ?? []).filter((name) =>
+    allowed.includes(name),
   );
   return [
     ...checkFields(expect, EXPECT_FIELDS, "expect."),
     ...unknownKeys(expect, EXPECT_KEYS, "expect."),
     ...overlap.map(
       (name) => `expect.acceptable repeats the expected skill ${name}`,
+    ),
+    ...contradiction.map(
+      (name) => `expect.avoid lists ${name}, which the case also allows`,
     ),
   ];
 }

@@ -1,10 +1,10 @@
-The AntelopeJS agent plugin for Claude Code and OpenAI Codex: the sync of the skills that AntelopeJS packages ship, the interface contract resolver, four skills of its own, and the skill evals. It is plain JavaScript (`.mjs`) that runs on Node.js alone.
+The AntelopeJS agent plugin for Claude Code and OpenAI Codex: the sync of the skills that AntelopeJS packages ship, the interface contract resolver, five skills of its own, and the skill evals. It is plain JavaScript (`.mjs`) that runs on Node.js alone.
 
 ## Layout
 
 - `bin/agent-skills.mjs` is the CLI behind `npx -y github:AntelopeJS/agent-skills` (`sync`, `list`, `interface`, `verify`, `evals`). It dispatches to the scripts in `scripts/`.
 - `scripts/sync-skills.mjs` and `scripts/resolve-interface.mjs` also run straight from the plugin checkout: the hooks in `hooks/hooks.json` (Claude Code) and `hooks/codex-hooks.json` (Codex) and the skills in `skills/` call them with `node`, and nothing installs dependencies there. They import only `node:` built-ins and `scripts/lib/`. `@anthropic-ai/sdk` is the one runtime dependency, loaded lazily by `scripts/lib/model.mjs` for the model-backed evals.
-- `evals/cases.json` is the eval dataset and `evals/packages.json` the packages whose skills the evals read.
+- `evals/cases.json` holds the cross-package routing cases, `evals/commands/<skill>/cases.json` the rubric cases of the plugin's workflow skills and `evals/packages.json` the packages whose skills the evals read. A package's own cases live in its `skills/<name>/cases.json`; the corpus loader collects them.
 - `skills/` holds the plugin's own skills, loaded by both tools: `/antelopejs:<name>` in Claude Code, `$antelopejs:<name>` in Codex. A skill body takes its arguments from the request and reaches the scripts relative to its own directory (`<skill-dir>/../../scripts/…`): Codex expands neither `$ARGUMENTS` nor `${CLAUDE_PLUGIN_ROOT}` in skills, and has no plugin commands.
 - The plugin is described twice: `.claude-plugin/plugin.json` (Claude Code) and `.codex-plugin/plugin.json` (Codex), with their marketplaces in `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`. There is no root `plugin.json`: Codex would read it first, and with the agent-plugins.org `$schema` it loads no hooks. Installed copies update only when `version` changes, so a release bumps `version` in both plugin manifests and in `package.json` together.
 - `scripts/check-plugin.mjs` (`pnpm check:plugin`, run in CI) checks those rules: the manifests, the versions, no `commands/`, the skill bodies, and that the two hook files differ only in the root variable and `--target`.
@@ -12,7 +12,7 @@ The AntelopeJS agent plugin for Claude Code and OpenAI Codex: the sync of the sk
 ## Checks and tests
 
 - There is no type check: the code is untyped JavaScript, so the `typecheck` script only prints that. `pnpm test` runs the `node:test` suites in `test/`.
-- `pnpm run checks` does not run the evals. CI runs `pnpm evals:baseline` (deterministic, no key) after the checks. On pull requests that touch `evals/` or the eval scoring code, the `model-eval` job runs `pnpm evals:model` and `pnpm evals:answers`; both need `ANTHROPIC_API_KEY`, and `evals:answers` also needs `--project` pointing at a project with the interface packages installed (see `ci.yml`).
+- `pnpm run checks` does not run the evals. CI runs `pnpm evals:check` and `pnpm evals:baseline` (deterministic, no key, no model) after the checks. The model-backed evals run through `evals prepare`, `exec` (the local `claude` and `codex` CLIs) or an Amp Thread, and `score`; the `eval-skills` skill describes both executors. A change to `scripts/lib/` that touches scoring, the pass bar or the executors needs its test.
 
 <!-- antelopejs-guardrails:start -->
 <!-- Managed by @antelopejs/tooling-configs. `antelopejs-sync` rewrites everything between these markers; write repository-specific guidance outside them. -->
