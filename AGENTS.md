@@ -1,11 +1,13 @@
-The AntelopeJS agent plugin for Claude Code and OpenAI Codex: the sync of the skills that AntelopeJS packages ship, the interface contract resolver, a few commands, and the skill evals. It is plain JavaScript (`.mjs`) that runs on Node.js alone.
+The AntelopeJS agent plugin for Claude Code and OpenAI Codex: the sync of the skills that AntelopeJS packages ship, the interface contract resolver, four skills of its own, and the skill evals. It is plain JavaScript (`.mjs`) that runs on Node.js alone.
 
 ## Layout
 
 - `bin/agent-skills.mjs` is the CLI behind `npx -y github:AntelopeJS/agent-skills` (`sync`, `list`, `interface`, `verify`, `evals`). It dispatches to the scripts in `scripts/`.
-- `scripts/sync-skills.mjs` and `scripts/resolve-interface.mjs` also run straight from the plugin checkout: the hooks in `hooks/hooks.json` (Claude Code) and `hooks/codex-hooks.json` (Codex) and the commands in `commands/` call them with `node`, and nothing installs dependencies there. They import only `node:` built-ins and `scripts/lib/`. `@anthropic-ai/sdk` is the one runtime dependency, loaded lazily by `scripts/lib/model.mjs` for the model-backed evals.
+- `scripts/sync-skills.mjs` and `scripts/resolve-interface.mjs` also run straight from the plugin checkout: the hooks in `hooks/hooks.json` (Claude Code) and `hooks/codex-hooks.json` (Codex) and the skills in `skills/` call them with `node`, and nothing installs dependencies there. They import only `node:` built-ins and `scripts/lib/`. `@anthropic-ai/sdk` is the one runtime dependency, loaded lazily by `scripts/lib/model.mjs` for the model-backed evals.
 - `evals/cases.json` is the eval dataset and `evals/packages.json` the packages whose skills the evals read.
-- The plugin is described twice: `.claude-plugin/plugin.json` (Claude Code) and `plugin.json` (Codex), with their marketplaces in `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`. Installed copies update only when `version` changes, so a release bumps `version` in both plugin manifests and in `package.json` together.
+- `skills/` holds the plugin's own skills, loaded by both tools: `/antelopejs:<name>` in Claude Code, `$antelopejs:<name>` in Codex. A skill body takes its arguments from the request and reaches the scripts relative to its own directory (`<skill-dir>/../../scripts/…`): Codex expands neither `$ARGUMENTS` nor `${CLAUDE_PLUGIN_ROOT}` in skills, and has no plugin commands.
+- The plugin is described twice: `.claude-plugin/plugin.json` (Claude Code) and `.codex-plugin/plugin.json` (Codex), with their marketplaces in `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`. There is no root `plugin.json`: Codex would read it first, and with the agent-plugins.org `$schema` it loads no hooks. Installed copies update only when `version` changes, so a release bumps `version` in both plugin manifests and in `package.json` together.
+- `scripts/check-plugin.mjs` (`pnpm check:plugin`, run in CI) checks those rules: the manifests, the versions, no `commands/`, the skill bodies, and that the two hook files differ only in the root variable and `--target`.
 
 ## Checks and tests
 
