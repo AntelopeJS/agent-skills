@@ -114,6 +114,20 @@ test("lift is with minus without per skill and model, and a skill that helps now
   );
   assert.match(
     formatLift(rows),
-    /\| dms-pages \| 1 \| 100% \/ 0% \/ \+100 \| 100% \/ 100% \/ 0 \| \+50 \|/,
+    /\| dms-pages \| 1: 100% \/ 0% \/ \+100 \| 1: 100% \/ 100% \/ 0 \| \+50 \|/,
   );
+});
+
+test("a case with no answer in either run is left out of the lift, and a model with none reads not run", () => {
+  const withSkills = run(OPUS, [true, true]);
+  const without = run(OPUS, [false, false], { withSkills: false });
+  without.models[0].answers[0].runs[0].missing = true;
+
+  const rows = computeLift(withSkills, without);
+
+  assert.deepEqual(
+    rows.map((row) => [row.skill, row.meanLift]),
+    [["dms-mailing", 1]],
+  );
+  assert.match(formatLift(rows, [OPUS.id, SONNET.id]), /\| not run \|/);
 });
