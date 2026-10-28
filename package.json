@@ -1,6 +1,6 @@
 {
   "name": "agent-skills",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "AntelopeJS agent tools for Claude Code and OpenAI Codex: the sync of the skills shipped by AntelopeJS packages and the interface contract resolver.",
   "repository": {
@@ -27,7 +27,8 @@
     "lint": "oxlint",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "knip": "knip"
+    "knip": "knip",
+    "check:plugin": "node scripts/check-plugin.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0"

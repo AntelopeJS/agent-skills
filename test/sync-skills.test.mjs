@@ -323,8 +323,3 @@ test("links the framework skills @antelopejs/core ships into an embedded-runtime
   );
   assert.equal(byName(result)["core--antelopejs"].skill, "antelopejs");
 });
-
-test("the plugin bundles no skill that would shadow a package-shipped one", () => {
-  const pluginRoot = join(import.meta.dirname, "..");
-  assert.equal(existsSync(join(pluginRoot, "skills")), false);
-});

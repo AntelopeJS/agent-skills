@@ -13,7 +13,9 @@ jobs:
   checks:
     uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1
     with:
-      extra-commands: pnpm evals:baseline
+      extra-commands: |
+        pnpm check:plugin
+        pnpm evals:baseline
 
   model-eval:
     needs: checks
