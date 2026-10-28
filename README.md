@@ -325,9 +325,9 @@ npx -y github:AntelopeJS/agent-skills evals score run --report
 
 `score` reads the answers, runs the checks and applies the pass bar. `--against <dir>` takes a second run made from `main`'s skills; `--touched a,b` limits the per-skill floors; `--new-cases` names the cases that must pass everywhere; `--report` prints the Markdown Eval report. It exits 1 when the bar fails.
 
-- **No regression**: no case that passed on `main` fails now, per model. A trigger case passes when every expected skill is picked and no `avoid` skill is; an answers case passes when its answer invents no API name, mentions every `mustMention` name, none of the `mustNotMention` ones, and shows its `behaviour`.
+- **No regression**: no case that passed on `main` fails now, per model. A trigger case passes when every expected skill is picked and no `avoid` skill is; an answers case passes when its answer invents no API name (as defined below), mentions every `mustMention` name, none of the `mustNotMention` ones, and shows its `behaviour`.
 - **New cases** pass on every model.
-- **Floors** for each touched skill: trigger recall at least 0.8 and precision at least 0.7 (0.1 less on Sonnet), no invented API name in its answers cases, and the full-corpus recall and precision drop at most 2 points.
+- **Floors** for each touched skill: trigger recall at least 0.8 and precision at least 0.7 (0.1 less on Sonnet), no invented API name in its answers cases (an import that `verify` cannot resolve: a missing package, subpath or export; API-shaped names an answer uses without importing them are listed as unverified, because they also catch the user's own identifiers and tool names), and the full-corpus recall and precision drop at most 2 points.
 - **Noise**: a trigger case runs once; an answers case runs twice and both runs must pass.
 
 `prepare --no-skills --modes answers` prepares the same answers cases with no skill loaded; `evals lift <with-dir> <without-dir>` then prints each skill's pass rate with and without it, per model, and the lift.

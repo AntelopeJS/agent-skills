@@ -211,10 +211,15 @@ test("prepare writes requests, exec fills them, score reports and exits 1 on a f
       'if echo "$@" | grep -q json-schema; then',
       '  echo \'{"result":"{\\"skills\\":[\\"dms-pages\\"]}","modelUsage":{"claude-opus-5-5":{}}}\'',
       "else",
-      '  echo \'{"result":"Use `KpiCard` and `KpiCards`.","modelUsage":{"claude-opus-5-5":{}}}\'',
+      '  cat "$0.answers"',
       "fi",
     ].join("\n"),
   );
+  writeJson(`${stub}.answers`, {
+    result:
+      'Use `KpiCard`:\n```ts\nimport { KpiCard, KpiRow } from "@antelopejs/interface-dms";\n```',
+    modelUsage: { "claude-opus-5-5": {} },
+  });
   chmodSync(stub, 0o755);
 
   const exec = run(["evals", "exec", rubricDir(), "--claude-bin", stub]);
@@ -233,7 +238,7 @@ test("prepare writes requests, exec fills them, score reports and exits 1 on a f
   assert.equal(exec.status, 0, exec.stderr);
   assert.equal(score.status, 1);
   assert.match(score.stdout, /Verdict: FAIL/);
-  assert.match(score.stdout, /unknown names: KpiCards/);
+  assert.match(score.stdout, /unknown names: KpiRow/);
 });
 
 test("check passes the committed case files and fails a skill below the minimum", () => {

@@ -131,3 +131,24 @@ test("an extra pick that the case does not avoid costs precision, not the case",
   assert.equal(result.trigger[0].pass, true);
   assert.equal(result.trigger[0].precision, 0.5);
 });
+
+test("an API-shaped name used without an import is unverified and does not fail the run", async () => {
+  const manifest = prepared([
+    caseOf("pages", ["dms-pages"], { expect: { mustMention: ["Table"] } }),
+  ]);
+  for (const task of listTasks(manifest))
+    writeAnswer(dir, task, '{"skills":[]} Table');
+  const verify = async () => ({
+    checked: 3,
+    findings: [
+      { name: "Warn", kind: "reference" },
+      { name: "Ghost", kind: "import" },
+    ],
+  });
+
+  const [result] = (await scoreRun(dir, manifest, verify)).models;
+
+  assert.deepEqual(result.answers[0].runs[0].unknown, ["Ghost"]);
+  assert.deepEqual(result.answers[0].runs[0].unverified, ["Warn"]);
+  assert.equal(result.answers[0].runs[0].invented, 1);
+});

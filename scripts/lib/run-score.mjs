@@ -42,15 +42,22 @@ async function answerRun(evalCase, text, verify) {
   if (text === undefined) return { missing: true, pass: false };
   const report = await verify(text);
   const checks = checkAnswer(evalCase, text);
+  const invented = report.findings.filter(
+    (finding) => finding.kind !== "reference",
+  );
+  const unverified = report.findings.filter(
+    (finding) => finding.kind === "reference",
+  );
   return {
     missing: false,
     answer: text,
     checked: report.checked,
-    invented: report.findings.length,
-    unknown: report.findings.map((finding) => finding.name),
+    invented: invented.length,
+    unknown: invented.map((finding) => finding.name),
+    unverified: unverified.map((finding) => finding.name),
     ...checks,
     pass:
-      report.findings.length === 0 &&
+      invented.length === 0 &&
       !checks.missingMentions.length &&
       !checks.forbiddenMentions.length &&
       checks.behaviourOk,
@@ -92,7 +99,12 @@ async function modelResult(dir, manifest, model, verify) {
 }
 
 /**
- * Scores every answer file of a prepared run. `verify(answer)` returns a
+ * Scores every answer file of a prepared run. An invented name is an import
+ * `verify` resolves and does not find: a missing package, subpath or export.
+ * The API-shaped names an answer uses without importing them (`reference`
+ * findings) also flag the user's own identifiers and tool names, so they are
+ * reported as unverified and never fail a run.
+ `verify(answer)` returns a
  * verify report. A task with no answer file fails its case. An answers case
  * passes only when every one of its runs passes (decision 23).
  */

@@ -28,6 +28,9 @@ function modelRow(result) {
   const checked = answered
     .flatMap((item) => item.runs)
     .reduce((sum, run) => sum + (run.checked ?? 0), 0);
+  const unverified = answered
+    .flatMap((item) => item.runs)
+    .reduce((sum, run) => sum + (run.unverified?.length ?? 0), 0);
   return [
     result.model.id,
     pct(mean(scored.map((item) => item.recall))),
@@ -35,6 +38,7 @@ function modelRow(result) {
     `${scored.filter((item) => item.pass).length}/${scored.length}`,
     `${answered.filter((item) => item.pass).length}/${answered.length}`,
     `${invented}/${checked}`,
+    String(unverified),
   ];
 }
 
@@ -169,6 +173,7 @@ export function formatEvalReport({ scored, bar, records = {}, notes = {} }) {
           "Trigger cases passed",
           "Answers cases passed",
           "Invented / checked names",
+          "Unverified names",
         ],
         scored.models.map(modelRow),
       ),
