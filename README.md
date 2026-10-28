@@ -67,6 +67,7 @@ npx -y github:AntelopeJS/agent-skills sync
 
 | Kind   | Name                                    | Use                                                                                              |
 | ------ | --------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Skill  | `antelopejs:eval-skills`                | Run the skill evals on a pull request or a directory and produce an Eval report                  |
 | Skill  | `antelopejs:interface <name> [subpath]` | Look up an interface contract                                                                    |
 | Skill  | `antelopejs:new-module <path>`          | Scaffold a module and wire its interfaces                                                        |
 | Skill  | `antelopejs:skills`                     | List the skills synced from the project's packages and where each comes from                     |
@@ -77,7 +78,7 @@ npx -y github:AntelopeJS/agent-skills sync
 
 Invoke the plugin's skills as `/antelopejs:<name>` in Claude Code and `$antelopejs:<name>` in Codex; both tools also pick them on their own when a request matches. They take their arguments from the request and reach the plugin's scripts relative to their own directory, so the same files serve both tools.
 
-Beyond those four, the plugin carries no skill. The framework skills — `antelopejs` (mental model and router), `ajs-cli`, `ajs-consume-interface` and `ajs-author-interface` — ship with `@antelopejs/core` and are synced like any package skill, as `core--<skill>`. They follow the core version the project installs.
+Beyond those five, the plugin carries no skill. The framework skills — `antelopejs` (mental model and router), `ajs-cli`, `ajs-consume-interface` and `ajs-author-interface` — ship with `@antelopejs/core` and are synced like any package skill, as `core--<skill>`. They follow the core version the project installs.
 
 > **Release dependency.** `@antelopejs/core` ships these skills from its first release after 1.15.2. With an older core, a project has no framework skills until it upgrades `@antelopejs/core`; plugin versions before 0.3.0 still bundled them.
 
@@ -201,6 +202,7 @@ agent-skills/
   .agents/plugins/
     marketplace.json       # Codex marketplace (this repo)
   skills/                  # the plugin's skills, shared by Claude Code and Codex
+    eval-skills/SKILL.md   # antelopejs:eval-skills
     interface/SKILL.md     # antelopejs:interface <name> [subpath]
     new-module/SKILL.md    # antelopejs:new-module <path>
     skills/SKILL.md        # antelopejs:skills
@@ -216,9 +218,10 @@ agent-skills/
     check-plugin.mjs       # checks the plugin loads the same way in Claude Code and Codex
     verify.mjs             # API names of an answer or diff vs the installed .d.ts
     evals.mjs              # trigger and answer-quality evals
-    lib/                   # corpus loader, dataset schema, baseline, scoring, model backend
+    lib/                   # corpus loader, dataset schema, baseline, scoring, backends, prepare/exec/score
   evals/
-    cases.json             # the eval dataset
+    cases.json             # cross-package routing cases (the skills' own cases live beside them)
+    commands/<skill>/      # rubric cases of the plugin's workflow skills
     packages.json          # published packages of the CI corpus (--published)
   test/                    # node:test suites
 ```
@@ -286,11 +289,17 @@ check what it picks up.
 
 ## Evaluating the skills
 
-A skill only helps when the agent loads it, and a loaded skill only helps when the answer it produces uses real APIs. Two evals and one checker measure both, over the dataset in [`evals/cases.json`](evals/cases.json).
+A skill only helps when the agent loads it, and a loaded skill only helps when the answer it produces uses real APIs. Two evals and one checker measure both. No eval needs an API key: the model-backed runs go through the logged-in `claude` and `codex` CLIs, or through an Amp Thread (see the `antelopejs:eval-skills` skill).
 
-### The dataset
+### The cases
 
-Each case is a user prompt, the skills an agent should load for it (`expect.skills`), the ones it may load without penalty (`expect.acceptable`), and optionally API names the answer must or must not mention and an expected behaviour (`asks-first`: ask the user before writing code, as `dms-best-practices` requires before leaving DMS blocks). Cases cover the framework (each question in a well-formed and a casual variant), DMS page building, permissions, dev servers, the frontend CLI and deployment, the `dms-*` modules, dms-ai, and installing the skills. `scripts/lib/dataset.mjs` is the schema; `pnpm test` rejects an invalid dataset.
+A case is a user prompt, the skills an agent should load for it (`expect.skills`), the ones it may load without penalty (`expect.acceptable`), the ones it must not load (`expect.avoid`, for a prompt that belongs to a neighbour), and optionally API names the answer must or must not mention and an expected behaviour (`asks-first`: ask the user before writing code, as `dms-best-practices` requires before leaving DMS blocks). `style` is `clean` (well formed) or `casual` (as typed).
+
+Cases live beside their skill, in `skills/<name>/cases.json` of the package that ships it (`{ "version": 1, "cases": [...] }`); [`evals/cases.json`](evals/cases.json) keeps the cross-package routing cases. The corpus loader collects both, and a skill's own case replaces a central case with the same id. `scripts/lib/dataset.mjs` is the schema; `pnpm test` rejects an invalid file.
+
+Every skill needs the minimum, enforced by `evals check`: a clean and a casual should-trigger case, one should-not-trigger case (`avoid`) aimed at its nearest neighbour, and one answers case with `mustMention` or a `behaviour`. Write prompts the way users ask, from the package's docs and issues.
+
+The plugin's own workflow skills (`new-module`, `interface`) have rubric cases under [`evals/commands/<skill>/cases.json`](evals/commands): an organic prompt, a fixture and 3 to 6 criteria a judge scores from the transcript. `evals check` validates them; they run in the eval Thread, not in the deterministic harness.
 
 ### The corpus
 
@@ -304,18 +313,38 @@ The skills an eval runs against, by name and description, read from their `SKILL
 
 When two sources ship a skill of the same name, the first wins, in that order. An expected skill missing from the corpus is left out of the score, and a case with none left is reported `skipped`, so the evals keep working while skills move between packages.
 
+### Prepare, execute, score
+
+```bash
+npx -y github:AntelopeJS/agent-skills evals prepare --out run --skills skills --published
+npx -y github:AntelopeJS/agent-skills evals exec run
+npx -y github:AntelopeJS/agent-skills evals score run --report
+```
+
+`prepare` writes `run/<model>/<trigger|answers>/<case>.<n>.request.json` (system, user, schema) for each model of the matrix (`claude-opus-5-5-low`, `claude-sonnet-5-5-low`, `codex-gpt`; `--models` picks others), one trigger run per case and two answers runs per answers case (a case with `mustMention`, `mustNotMention` or a `behaviour`). Any executor can write `<case>.<n>.answer.txt` beside each request; `exec` is the local one. It calls `claude -p` and `codex exec` in empty temporary directories with no user settings, CLAUDE.md, skills, tools, MCP servers, AGENTS.md or memories (the Claude run uses `--setting-sources ""`, `--disable-slash-commands`, `--tools ""`; the Codex run a temporary `CODEX_HOME` holding only the auth link, `--ignore-user-config`, `--ignore-rules`, `--ephemeral`), and records the models it saw in `run/<model>/executor.json`. The Codex run keeps the CLI's own default model and effort.
+
+`score` reads the answers, runs the checks and applies the pass bar. `--against <dir>` takes a second run made from `main`'s skills; `--touched a,b` limits the per-skill floors; `--new-cases` names the cases that must pass everywhere; `--report` prints the Markdown Eval report. It exits 1 when the bar fails.
+
+- **No regression**: no case that passed on `main` fails now, per model. A trigger case passes when every expected skill is picked and no `avoid` skill is; an answers case passes when its answer invents no API name (as defined below), mentions every `mustMention` name, none of the `mustNotMention` ones, and shows its `behaviour`.
+- **New cases** pass on every model.
+- **Floors** for each touched skill: trigger recall at least 0.8 and precision at least 0.7 (0.1 less on Sonnet), no invented API name in its answers cases (an import that `verify` cannot resolve: a missing package, subpath or export; API-shaped names an answer uses without importing them are listed as unverified, because they also catch the user's own identifiers and tool names), and the full-corpus recall and precision drop at most 2 points.
+- **Noise**: a trigger case runs once; an answers case runs twice and both runs must pass.
+
+`prepare --no-skills --modes answers` prepares the same answers cases with no skill loaded; `evals lift <with-dir> <without-dir>` then prints each skill's pass rate with and without it, per model, and the lift.
+
 ### Trigger eval
 
 ```bash
 npx -y github:AntelopeJS/agent-skills evals --project .                       # deterministic baseline
-npx -y github:AntelopeJS/agent-skills evals --project . --backend anthropic   # ask a model
-npx -y github:AntelopeJS/agent-skills evals --backend anthropic --dry-run     # print the prompt, call nothing
+npx -y github:AntelopeJS/agent-skills evals --project . --backend anthropic   # ask a model through the API
+npx -y github:AntelopeJS/agent-skills evals --backend openai --dry-run        # print the prompt, call nothing
 ```
 
 For each case it asks which skills would be loaded, then prints recall (expected skills picked) and precision (picks that were expected or acceptable) per case, per question style and overall. `--min-recall` and `--min-precision` make it exit 1 under a threshold.
 
 - **`--backend baseline`** (default) needs no key: it scores each skill by the overlap between the prompt's terms and the skill's name and description. It cannot read intent; it goes red when a description stops carrying the terms users type, which is what CI watches.
 - **`--backend anthropic`** sends the model only the skills' names and descriptions, as a coding agent sees them before loading one, and reads its picks as structured output. It uses `ANTHROPIC_API_KEY` and `$EVAL_MODEL` (default `claude-opus-5-5`, or `--model`); without a key it prints a notice and exits 0.
+- **`--backend openai`** does the same through the OpenAI Responses API with `OPENAI_API_KEY` and `$EVAL_OPENAI_MODEL` (default `gpt-6.1-sol`).
 - **`--backend <module.mjs>`** plugs any other model: the module exports `complete({ system, user, schema, effort, maxTokens })` returning the reply text.
 
 ### Answer-quality eval
@@ -324,7 +353,7 @@ For each case it asks which skills would be loaded, then prints recall (expected
 npx -y github:AntelopeJS/agent-skills evals answers --project . --out answers/
 ```
 
-The model answers each prompt with the case's expected skills loaded in full; `verify` then counts the API names it invented. The report adds the expected names the answer left out, the forbidden ones it used, and whether it asked first when it had to. `--max-invented` sets the failing rate. It needs a key and is skipped without one.
+The model answers each prompt with the case's expected skills loaded in full; `verify` then counts the API names it invented. The report adds the expected names the answer left out, the forbidden ones it used, and whether it asked first when it had to. `--max-invented` sets the failing rate. It needs a key (`--backend anthropic` or `openai`) and is skipped without one.
 
 ### `verify`
 
@@ -337,7 +366,7 @@ It extracts the API names a Markdown answer relies on (imports, code fences, inl
 
 ### In CI
 
-`.github/workflows/ci.yml` runs the tests, the plugin layout check (`pnpm check:plugin`) and the baseline trigger eval (`pnpm evals:baseline`, against the skills of the `--published` packages) on every push and pull request. The model-backed trigger and answer evals run on manual dispatch and on pull requests that touch the evals, only when the `ANTHROPIC_API_KEY` secret exists.
+`.github/workflows/ci.yml` runs the tests, the plugin layout check (`pnpm check:plugin`), the case-file check (`pnpm evals:check`) and the baseline trigger eval (`pnpm evals:baseline`, against the skills of the `--published` packages) on every push and pull request. CI holds no secret and calls no model. Packages get the same two checks from the reusable Node CI workflow of `AntelopeJS/.github` (`skill-eval-offline`) when `skills/**` changes, with the pull request's package as a workspace override of the published corpus. The model-backed run is the `antelopejs:eval-skills` skill, started by the maintainer's Bots or by an explicit ask.
 
 ### Background
 
@@ -348,6 +377,7 @@ The evals and `verify` come from [AntelopeJS/docs-assistant](https://github.com/
 ```bash
 pnpm test                         # node:test suites (no install needed)
 pnpm evals:baseline               # trigger eval against the published skills, as CI runs it
+pnpm evals:check                  # case files valid, rubric suites well formed
 pnpm check:plugin                 # the plugin loads the same way in Claude Code and Codex
 claude plugin validate .          # Claude Code manifests, skills, hooks
 claude --plugin-dir .             # load this checkout in a Claude Code session

@@ -36,7 +36,7 @@ const COMMANDS = {
   evals: {
     script: "evals.mjs",
     args: [],
-    help: "score which skills a prompt triggers (trigger) or the answers they produce (answers)",
+    help: "score which skills a prompt triggers and the answers they produce (trigger, answers, prepare, exec, score, lift, check)",
   },
 };
 

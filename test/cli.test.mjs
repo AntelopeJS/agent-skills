@@ -1,6 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { join, dirname } from "node:path";
+import { chmodSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -186,4 +187,93 @@ test("the answers eval verifies each answer and fails over the invented threshol
 
 test("evals refuses an unknown mode", () => {
   assert.equal(run(["evals", "nonsense", ...CORPUS]).status, 2);
+});
+
+function rubricDir() {
+  return join(root, "prepared");
+}
+
+test("prepare writes requests, exec fills them, score reports and exits 1 on a failed bar", () => {
+  const prepared = run([
+    "evals",
+    "prepare",
+    ...CORPUS,
+    "--out",
+    rubricDir(),
+    "--models",
+    "claude-opus-5-5-low",
+  ]);
+  const stub = join(root, "claude-stub.sh");
+  writeFile(
+    stub,
+    [
+      "#!/bin/sh",
+      'if echo "$@" | grep -q json-schema; then',
+      '  echo \'{"result":"{\\"skills\\":[\\"dms-pages\\"]}","modelUsage":{"claude-opus-5-5":{}}}\'',
+      "else",
+      '  cat "$0.answers"',
+      "fi",
+    ].join("\n"),
+  );
+  writeJson(`${stub}.answers`, {
+    result:
+      'Use `KpiCard`:\n```ts\nimport { KpiCard, KpiRow } from "@antelopejs/interface-dms";\n```',
+    modelUsage: { "claude-opus-5-5": {} },
+  });
+  chmodSync(stub, 0o755);
+
+  const exec = run(["evals", "exec", rubricDir(), "--claude-bin", stub]);
+  const score = run([
+    "evals",
+    "score",
+    rubricDir(),
+    "--offline",
+    "--project",
+    root,
+    "--report",
+  ]);
+
+  assert.equal(prepared.status, 0);
+  assert.equal(prepared.stdout, "");
+  assert.equal(exec.status, 0, exec.stderr);
+  assert.equal(score.status, 1);
+  assert.match(score.stdout, /Verdict: FAIL/);
+  assert.match(score.stdout, /unknown names: KpiRow/);
+});
+
+test("check passes the committed case files and fails a skill below the minimum", () => {
+  const schemaOnly = run(["evals", "check", "--cases", "cases.json"]);
+  const minimum = run([
+    "evals",
+    "check",
+    "--cases",
+    "cases.json",
+    "--skills",
+    "skills",
+  ]);
+
+  assert.equal(schemaOnly.status, 0, schemaOnly.stderr);
+  assert.equal(minimum.status, 1);
+  assert.match(minimum.stderr, /dms-pages lacks a casual should-trigger case/);
+});
+
+test("score --only limits the report to the named cases", () => {
+  const score = run([
+    "evals",
+    "score",
+    rubricDir(),
+    "--offline",
+    "--project",
+    root,
+    "--only",
+    "kpi",
+    "--json",
+  ]);
+
+  const { scored } = JSON.parse(score.stdout);
+
+  assert.deepEqual(
+    scored.manifest.cases.map((item) => item.id),
+    ["kpi"],
+  );
 });

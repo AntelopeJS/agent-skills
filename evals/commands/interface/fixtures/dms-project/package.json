@@ -1,0 +1,8 @@
+{
+  "name": "shop-backend",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@antelopejs/core": "^1.17.0"
+  }
+}

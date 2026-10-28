@@ -1,0 +1,64 @@
+{
+  "cases": [
+    {
+      "id": "show-surface",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/dms-project" },
+      "prompt": "What does the database interface export and which version should I use?",
+      "rubric": [
+        {
+          "id": "runs-resolver",
+          "text": "The answer comes from the resolver's show command for the database interface, run during the session, not from memory."
+        },
+        {
+          "id": "names-symbols",
+          "text": "The reply names the key exported symbols and the import lines a consumer would write."
+        },
+        {
+          "id": "states-versions",
+          "text": "The reply gives the current version and the available versions the resolver printed."
+        }
+      ]
+    },
+    {
+      "id": "contract-of-subpath",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/dms-project" },
+      "prompt": "Show me the full contract of the api interface's server subpath, with the doc comments.",
+      "rubric": [
+        {
+          "id": "contract-command",
+          "text": "The agent runs the resolver's contract command with the api interface and the server subpath."
+        },
+        {
+          "id": "tsdoc-used",
+          "text": "The summary reflects the TSDoc of the printed contract: what the interface is for and its key symbols."
+        },
+        {
+          "id": "no-invented-symbols",
+          "text": "Every symbol named in the reply appears in the resolver's output."
+        }
+      ]
+    },
+    {
+      "id": "unknown-interface",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/dms-project" },
+      "prompt": "What does the telepathy interface export?",
+      "rubric": [
+        {
+          "id": "tries-resolver",
+          "text": "The agent asks the resolver about the telepathy interface instead of answering from memory."
+        },
+        {
+          "id": "lists-available",
+          "text": "When the name is unknown the agent runs the list command and shows the person the interfaces that exist."
+        },
+        {
+          "id": "no-fabrication",
+          "text": "The reply invents no exports or versions for an interface that does not exist."
+        }
+      ]
+    }
+  ]
+}

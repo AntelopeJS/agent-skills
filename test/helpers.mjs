@@ -73,3 +73,28 @@ export function runScript(script, cwd, args = []) {
 export function runJson(script, cwd, args = []) {
   return JSON.parse(runScript(script, cwd, [...args, "--json"]));
 }
+
+/** A corpus skill as `loadCorpus` returns it. */
+export function skillOf(name, extra = {}) {
+  return {
+    name,
+    description: `${name} description`,
+    content: `Body of ${name}.`,
+    dir: "/nowhere",
+    source: "test",
+    ...extra,
+  };
+}
+
+/** A trigger case expecting `skills`. */
+export function caseOf(id, skills, extra = {}) {
+  const { expect = {}, ...rest } = extra;
+  return {
+    id,
+    area: "dms",
+    style: "clean",
+    prompt: `prompt of ${id}`,
+    expect: { skills, ...expect },
+    ...rest,
+  };
+}
