@@ -102,6 +102,7 @@ score: reads the answer files, checks them and applies the pass bar
   --against <dir>        the run of main's skills, for the regression and corpus-drop checks
   --touched <a,b>        skills the floors apply to (default: every skill with cases)
   --new-cases <id,id>    cases that must pass on every model
+  --only <id,id>         score these cases of the run only
   --project <dir>        where verify resolves packages (default: cwd)
   --offline              verify without fetching interface packages from npm
   --report               print the Markdown Eval report

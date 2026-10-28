@@ -117,7 +117,11 @@ export async function score(values, positionals) {
     offline: Boolean(values.offline),
   };
   const verify = (answer) => verifyText(answer, verifyOptions);
-  const manifest = readManifest(dir);
+  const only = new Set(listOption(values.only));
+  const whole = readManifest(dir);
+  const manifest = only.size
+    ? { ...whole, cases: whole.cases.filter((item) => only.has(item.id)) }
+    : whole;
   const scored = await scoreRun(dir, manifest, verify);
   const againstDir = values.against ? resolve(values.against) : undefined;
   const against = againstDir

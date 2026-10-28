@@ -251,3 +251,24 @@ test("check passes the committed case files and fails a skill below the minimum"
   assert.equal(minimum.status, 1);
   assert.match(minimum.stderr, /dms-pages lacks a casual should-trigger case/);
 });
+
+test("score --only limits the report to the named cases", () => {
+  const score = run([
+    "evals",
+    "score",
+    rubricDir(),
+    "--offline",
+    "--project",
+    root,
+    "--only",
+    "kpi",
+    "--json",
+  ]);
+
+  const { scored } = JSON.parse(score.stdout);
+
+  assert.deepEqual(
+    scored.manifest.cases.map((item) => item.id),
+    ["kpi"],
+  );
+});
