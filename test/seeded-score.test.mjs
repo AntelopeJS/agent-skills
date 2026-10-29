@@ -113,6 +113,27 @@ test("the gates fail on one missed break, one missed door or a false alarm", () 
   );
 });
 
+test("a false alarm on the unpatched head fails the run even when every break and door is caught", () => {
+  const falseAlarm = resultsOf([
+    ["break", "break-a", true],
+    ["door", "door-data", true],
+    ["control", "control", false],
+  ]);
+  const gated = summarizeSeeded(falseAlarm, { minCatch: 1, minDoorCatch: 1 });
+
+  assert.equal(gated.breaks.rate, 1);
+  assert.equal(gated.doors.rate, 1);
+  assert.equal(gated.passed, false);
+  assert.deepEqual(gated.failures, [
+    "the unpatched head returned FAIL or no verdict",
+  ]);
+  assert.equal(summarizeSeeded(falseAlarm).passed, false);
+  assert.equal(
+    summarizeSeeded(resultsOf([["control", "control", false]])).passed,
+    false,
+  );
+});
+
 test("a touched head gates only under --min-clean", () => {
   const results = resultsOf([
     ["touched", "touched-a", true],
