@@ -22,6 +22,7 @@ import {
   pickSkill,
   selectSeeded,
 } from "./seeded-cases.mjs";
+import { trapInterrupt } from "./seeded-interrupt.mjs";
 import { runSeeded } from "./seeded-run.mjs";
 import { formatSeeded, summarizeSeeded, totals } from "./seeded-score.mjs";
 import { DEFAULT_SETUP } from "./seeded-scratch.mjs";
@@ -64,7 +65,11 @@ function optionsOf(values) {
  * a scratch checkout and has a headless verifier follow the repo's verification
  * skill, which must return FAIL naming the feature; for each seeded door, the
  * One-way doors section must name its kind; the unpatched head must not FAIL.
- * Exits 1 under `--min-catch` or `--min-door-catch`, or on a false alarm.
+ * Exits 1 under `--min-catch` or `--min-door-catch`, or on a false alarm. On
+ * SIGINT or SIGTERM it stops every live case (agent, harness run, scratch
+ * folders), writes the partial summary with the interrupted cases marked and
+ * exits 128 plus the signal number; a second signal kills the stop commands
+ * and exits at once.
  */
 export async function seeded(values) {
   if (!values.repo) fail("seeded needs --repo <checkout>");
@@ -88,7 +93,23 @@ export async function seeded(values) {
     ? resolve(values.out)
     : mkdtempSync(join(tmpdir(), "seeded-eval-out-"));
   mkdirSync(out, { recursive: true });
-  const results = await runSeeded({ checkout, skill, cases, out, options });
+  const trap = trapInterrupt();
+  let results;
+  try {
+    results = await runSeeded({
+      checkout,
+      skill,
+      cases,
+      out,
+      options: {
+        ...options,
+        signal: trap.signal,
+        forceSignal: trap.forceSignal,
+      },
+    });
+  } finally {
+    trap.release();
+  }
   const summary = summarizeSeeded(results, {
     minCatch: parseRatio(values["min-catch"], "min-catch"),
     minDoorCatch: parseRatio(values["min-door-catch"], "min-door-catch"),
@@ -111,5 +132,5 @@ export async function seeded(values) {
       ? `${JSON.stringify({ mode: "seeded", skill, summary, totals: totals(results), results }, null, 2)}\n`
       : `${report}\n\nResults: ${out}\n`,
   );
-  return summary.passed ? EXIT.ok : EXIT.failed;
+  return trap.exitCode ?? (summary.passed ? EXIT.ok : EXIT.failed);
 }

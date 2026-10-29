@@ -211,10 +211,17 @@ export function parseAgentOutput(stdout) {
   };
 }
 
+function agentError(error, partial, timeoutSeconds) {
+  if (error.interrupted) return "interrupted";
+  if (error.timedOut) return `timed out after ${timeoutSeconds} s`;
+  return partial.error ?? error.message;
+}
+
 /**
  * Runs the headless verifier on a scratch checkout. Resolves with the parsed
- * output, or `{ error, timedOut }` when the run died, hit its wall-time cap or
- * its budget; it never rejects on the agent's own failure.
+ * output, or `{ error, timedOut, interrupted }` when the run died, hit its
+ * wall-time cap or its budget, or `signal` aborted and killed its process
+ * group; it never rejects on the agent's own failure.
  */
 export async function runAgent({
   scratch,
@@ -228,6 +235,7 @@ export async function runAgent({
   passEnv = [],
   cacheHome,
   run = spawnRun,
+  signal,
 }) {
   const prompt = buildPrompt({ skill, baseSha: scratch.baseSha });
   const { args, input } = agentInvocation({ prompt, model, effort, maxBudget });
@@ -241,6 +249,7 @@ export async function runAgent({
       cwd: scratch.dir,
       timeoutMs: timeoutSeconds * MILLISECONDS,
       group: true,
+      signal,
     });
     return {
       prompt,
@@ -255,9 +264,8 @@ export async function runAgent({
       ...partial,
       verdict: undefined,
       timedOut: Boolean(error.timedOut),
-      error: error.timedOut
-        ? `timed out after ${timeoutSeconds} s`
-        : (partial.error ?? error.message),
+      interrupted: Boolean(error.interrupted),
+      error: agentError(error, partial, timeoutSeconds),
     };
   }
 }

@@ -17,10 +17,13 @@ const ofFeature = (entry, feature) =>
  * when the verdict is FAIL, names the feature and the feature's journeys ran
  * (a FAIL for journeys that could not start proves nothing); a door is caught when the
  * One-way doors section names its kind; the unpatched head passes when the
- * verdict is not FAIL. A case with no verdict is an error and counts as missed.
+ * verdict is not FAIL. A case with no verdict is an error and counts as missed;
+ * an interrupted case is neither caught nor missed.
  */
 export function judgeCase(item, outcome) {
   const { verdict } = outcome;
+  if (outcome.interrupted)
+    return { passed: false, status: "interrupted", why: outcome.error };
   if (!verdict) return { passed: false, status: "error", why: outcome.error };
   const named = (names, wanted) =>
     names.some((name) => name.toLowerCase() === wanted.toLowerCase());
@@ -54,7 +57,9 @@ export function judgeCase(item, outcome) {
 }
 
 function rate(results, kind) {
-  const of = results.filter((result) => result.kind === kind);
+  const of = results.filter(
+    (result) => result.kind === kind && result.status !== "interrupted",
+  );
   return {
     total: of.length,
     caught: of.filter((result) => result.passed).length,
@@ -65,7 +70,8 @@ function rate(results, kind) {
   };
 }
 
-function separation(results) {
+function separation(all) {
+  const results = all.filter((result) => result.status !== "interrupted");
   const twins = new Map(
     results
       .filter((result) => result.kind === "touched")
@@ -120,6 +126,13 @@ export function summarizeSeeded(
     failures.push(
       `clean rate with a feature touched ${format(touched.rate)} is under ${format(minClean)}: ${touched.missed.join(", ") || "no touched case ran"}`,
     );
+  const interrupted = results.filter(
+    (result) => result.status === "interrupted",
+  );
+  if (interrupted.length)
+    failures.push(
+      `interrupted: ${interrupted.length} case(s) did not finish, rates cover the others: ${interrupted.map((result) => result.id).join(", ")}`,
+    );
   const leaking = results.filter((result) => result.leaked?.length);
   if (leaking.length)
     failures.push(
@@ -131,6 +144,7 @@ export function summarizeSeeded(
     control,
     touched,
     separated: separation(results),
+    interrupted: interrupted.map((result) => result.id),
     failures,
     passed: !failures.length,
   };
@@ -167,6 +181,7 @@ export function formatSeeded({ repo, skill, model, results, summary }) {
   const sum = totals(results);
   const mean = (value) => (results.length ? value / results.length : 0);
   const outcome = (result) => {
+    if (result.status === "interrupted") return "INTERRUPTED";
     if (result.status === "error") return "ERROR";
     if (!result.passed) return "MISSED";
     return OK_LABELS[result.kind];

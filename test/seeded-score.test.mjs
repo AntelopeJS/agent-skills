@@ -180,3 +180,29 @@ test("a gate on a run that held no break fails instead of passing on zero cases"
     false,
   );
 });
+
+test("an interrupted case is listed, fails the run and does not count as a miss in the rates", () => {
+  const caught = {
+    id: "break-alpha",
+    kind: "break",
+    subject: "alpha",
+    ...judgeCase(BREAK, verdict("FAIL", ["alpha"])),
+  };
+  const stopped = {
+    id: "break-beta",
+    kind: "break",
+    subject: "beta",
+    ...judgeCase(
+      { kind: "break", subject: "beta" },
+      { interrupted: true, error: "interrupted" },
+    ),
+  };
+
+  const summary = summarizeSeeded([caught, stopped], { minCatch: 1 });
+
+  assert.equal(stopped.status, "interrupted");
+  assert.equal(summary.breaks.rate, 1);
+  assert.deepEqual(summary.interrupted, ["break-beta"]);
+  assert.equal(summary.passed, false);
+  assert.match(summary.failures.join("\n"), /interrupted: 1 case\(s\)/);
+});

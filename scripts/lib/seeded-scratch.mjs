@@ -46,7 +46,7 @@ function git(cwd, args) {
   }).trim();
 }
 
-/** Environment of the setup command: the caller's, without credentials. */
+/** Environment of the setup command: the caller's, with `CI` set. The caller strips the credentials (`withoutCredentials`, applied in seeded-command.mjs). */
 function setupEnv(env) {
   return { ...env, CI: "1" };
 }
