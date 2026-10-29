@@ -1,12 +1,6 @@
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import {
-  existsSync,
-  lstatSync,
-  readlinkSync,
-  readFileSync,
-  rmSync,
-} from "node:fs";
+import { existsSync, lstatSync, readlinkSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 
@@ -21,6 +15,7 @@ import {
   runJson,
   runScript,
 } from "./helpers.mjs";
+import { readText } from "./helpers/read.mjs";
 
 const SCRIPT = "sync-skills.mjs";
 let root;
@@ -173,7 +168,7 @@ test("prunes skills whose package disappeared and never touches user entries", (
   assert.deepEqual(forTarget(result).removed, ["mod-a--alpha"]);
   assert.equal(existsSync(join(skillsDir(root), "mod-a--alpha")), false);
   assert.equal(
-    readFileSync(join(skillsDir(root), "mod-b--beta", "SKILL.md"), "utf8"),
+    readText(join(skillsDir(root), "mod-b--beta", "SKILL.md")),
     "user-owned\n",
   );
   assert.equal(byName(result)["mod-b--beta"].status.claude, "skipped");
@@ -189,9 +184,8 @@ test("keeps managed entries out of git and stays idempotent", () => {
   for (const target of Object.keys(TARGET_DIRS)) {
     assert.deepEqual(forTarget(second, target).added, []);
     assert.deepEqual(forTarget(second, target).kept, ["mod-a--alpha"]);
-    const gitignore = readFileSync(
+    const gitignore = readText(
       join(skillsDir(root, target), ".gitignore"),
-      "utf8",
     ).split("\n");
     assert.ok(gitignore.includes("mod-a--alpha"));
     assert.ok(gitignore.includes(".ajs-managed.json"));
