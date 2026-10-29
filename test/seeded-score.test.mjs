@@ -239,7 +239,7 @@ test("a break whose only unrun journey never passes on the unpatched head is cau
       "control",
       "control",
       "head",
-      full("PASS+NOTES", [], [], ["smoke/create"]),
+      full("PASS+NOTES", [], ["smoke/sandbox"], ["smoke/create"]),
     ),
   ];
 
@@ -308,11 +308,91 @@ test("the touched twin is the unpatched run of a feature the control does not co
       "touched",
       "touched-alpha",
       "alpha",
-      full("PASS+NOTES", [], [], ["alpha/create"]),
+      full("PASS+NOTES", [], ["alpha/sandbox"], ["alpha/create"]),
     ),
   ];
 
   assert.equal(excuseControlGaps(results)[0].passed, true);
+});
+
+const smokeBreak = (notRun) =>
+  caseOf("break", "break-smoke", "smoke", full("FAIL", ["smoke"], notRun, []));
+const smokeControl = (notRun, passed) =>
+  caseOf("control", "control", "head", full("PASS+NOTES", [], notRun, passed));
+
+test("a journey the unpatched head does not list as unrun is not excused", () => {
+  const scored = excuseControlGaps([
+    smokeBreak(["smoke/sandbox"]),
+    smokeControl([], ["smoke/create"]),
+  ]);
+
+  assert.equal(scored[0].passed, false);
+});
+
+test("a bare feature entry is never excused", () => {
+  const scored = excuseControlGaps([
+    smokeBreak(["smoke"]),
+    smokeControl(["smoke"], ["smoke/create"]),
+  ]);
+
+  assert.equal(scored[0].passed, false);
+});
+
+test("a touched twin that FAILs is no baseline", () => {
+  const scored = excuseControlGaps([
+    caseOf(
+      "break",
+      "break-alpha",
+      "alpha",
+      full("FAIL", ["alpha"], ["alpha/sandbox"], []),
+    ),
+    smokeControl([], ["smoke/create"]),
+    caseOf(
+      "touched",
+      "touched-alpha",
+      "alpha",
+      full("FAIL", ["alpha"], ["alpha/sandbox"], ["alpha/create"]),
+    ),
+  ]);
+
+  assert.equal(scored[0].passed, false);
+});
+
+test("a control written before `passed` existed gives no baseline and does not throw", () => {
+  const legacy = {
+    kind: "control",
+    id: "control",
+    subject: "head",
+    passed: true,
+    status: "ok",
+    verdict: {
+      result: "PASS+NOTES",
+      failedFeatures: [],
+      notRun: ["smoke/sandbox"],
+      doors: [],
+      summary: "",
+    },
+  };
+
+  const scored = excuseControlGaps([smokeBreak(["smoke/sandbox"]), legacy]);
+  assert.equal(scored[0].passed, false);
+});
+
+test("journey names match case-insensitively and another feature's prefix never matches", () => {
+  assert.equal(
+    excuseControlGaps([
+      smokeBreak(["Smoke/Sandbox"]),
+      smokeControl(["smoke/sandbox"], ["smoke/create"]),
+    ])[0].passed,
+    true,
+  );
+  assert.equal(
+    excuseControlGaps([
+      smokeBreak(["smoke/sandbox"]),
+      smokeControl(["smoke-x/sandbox"], ["smoke-x/create"]),
+    ])[0].passed,
+    false,
+  );
 });
 
 test("a break whose FAIL does not name its feature is never excused", () => {

@@ -57,54 +57,63 @@ export function judgeCase(item, outcome) {
 }
 
 /**
- * Counts a break as caught when its FAIL names the feature and the only
- * journeys of that feature that did not run are journeys that do not pass on
- * the unpatched head either: a journey that is never verified there (a SaaS
- * sandbox without keys) cannot be required to run for the catch. The
- * unpatched head is the control when its verdict covers the feature, else the
- * feature's touched twin; with neither, the break keeps its strict judgement.
+ * Counts a break as caught when its FAIL names the feature and every journey
+ * of that feature it left unrun is listed as not run on the unpatched head
+ * too: a journey that never runs there (a SaaS sandbox without keys) cannot be
+ * required to run for the catch. The unpatched head is the control when its
+ * verdict lists a journey of the feature, else the feature's touched twin when
+ * it did not FAIL; with neither, an unnamed journey (a bare feature entry) or a
+ * verdict written before `passed` existed, the break keeps its strict
+ * judgement.
  */
 export function excuseControlGaps(results) {
+  const lower = (entries) =>
+    (entries ?? []).map((entry) => entry.toLowerCase());
+  const journeyOf = (entry, feature) =>
+    entry.toLowerCase().startsWith(`${feature.toLowerCase()}/`);
+  const covers = (verdict, feature) =>
+    Array.isArray(verdict?.passed) &&
+    [...verdict.passed, ...(verdict.notRun ?? [])].some((entry) =>
+      journeyOf(entry, feature),
+    );
   const control = results.find((result) => result.kind === "control");
   const baselineOf = (feature) => {
-    const covers = (verdict) =>
-      verdict &&
-      [...verdict.passed, ...verdict.notRun].some((entry) =>
-        ofFeature(entry, feature),
-      );
-    if (covers(control?.verdict)) return control.verdict;
+    if (covers(control?.verdict, feature)) return control.verdict;
     const twin = results.find(
       (result) => result.kind === "touched" && result.subject === feature,
     );
-    return covers(twin?.verdict) ? twin.verdict : undefined;
+    return twin?.verdict?.result !== "FAIL" && covers(twin?.verdict, feature)
+      ? twin.verdict
+      : undefined;
   };
   return results.map((result) => {
     const verdict = result.verdict;
     if (result.kind !== "break" || result.passed || !verdict) return result;
-    const names = verdict.failedFeatures.map((name) => name.toLowerCase());
     if (
       verdict.result !== "FAIL" ||
-      !names.includes(result.subject.toLowerCase())
+      !lower(verdict.failedFeatures).includes(result.subject.toLowerCase())
     )
       return result;
-    const skipped = verdict.notRun.filter((entry) =>
+    const skipped = (verdict.notRun ?? []).filter((entry) =>
       ofFeature(entry, result.subject),
     );
     const baseline = baselineOf(result.subject);
-    const passing = new Set(
-      (baseline?.passed ?? []).map((entry) => entry.toLowerCase()),
-    );
+    const unrunThere = new Set(lower(baseline?.notRun));
     if (
       !baseline ||
       !skipped.length ||
-      skipped.some((entry) => passing.has(entry.toLowerCase()))
+      !skipped.every(
+        (entry) =>
+          journeyOf(entry, result.subject) &&
+          unrunThere.has(entry.toLowerCase()),
+      )
     )
       return result;
     return {
       ...result,
       passed: true,
       status: "ok",
-      why: `caught; ${skipped.join(", ")} do not pass on the unpatched head either`,
+      why: `caught; ${skipped.join(", ")} did not run on the unpatched head either`,
     };
   });
 }
