@@ -28,13 +28,15 @@
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "knip": "knip",
-    "check:plugin": "node scripts/check-plugin.mjs"
+    "check:plugin": "node scripts/check-plugin.mjs",
+    "suppressions": "antelopejs-suppressions",
+    "suppressions:update": "antelopejs-suppressions --update"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0"
   },
   "devDependencies": {
-    "@antelopejs/tooling-configs": "^0.2.0",
+    "@antelopejs/tooling-configs": "^0.2.12",
     "knip": "^6.43.0",
     "lefthook": "^2.2.2",
     "oxfmt": "^0.66.0",

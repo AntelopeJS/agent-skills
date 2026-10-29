@@ -10,8 +10,6 @@
     "typescript/restrict-template-expressions": 2
   },
   "oversizeFiles": {
-    ".github/assets/logo.png": 21412,
-    "evals/cases.json": 22101,
     "scripts/resolve-interface.mjs": 40728
   }
 }
