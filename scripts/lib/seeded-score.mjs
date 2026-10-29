@@ -56,6 +56,59 @@ export function judgeCase(item, outcome) {
   return { passed: !why, status: why ? "wrong" : "ok", why };
 }
 
+/**
+ * Counts a break as caught when its FAIL names the feature and the only
+ * journeys of that feature that did not run are journeys that do not pass on
+ * the unpatched head either: a journey that is never verified there (a SaaS
+ * sandbox without keys) cannot be required to run for the catch. The
+ * unpatched head is the control when its verdict covers the feature, else the
+ * feature's touched twin; with neither, the break keeps its strict judgement.
+ */
+export function excuseControlGaps(results) {
+  const control = results.find((result) => result.kind === "control");
+  const baselineOf = (feature) => {
+    const covers = (verdict) =>
+      verdict &&
+      [...verdict.passed, ...verdict.notRun].some((entry) =>
+        ofFeature(entry, feature),
+      );
+    if (covers(control?.verdict)) return control.verdict;
+    const twin = results.find(
+      (result) => result.kind === "touched" && result.subject === feature,
+    );
+    return covers(twin?.verdict) ? twin.verdict : undefined;
+  };
+  return results.map((result) => {
+    const verdict = result.verdict;
+    if (result.kind !== "break" || result.passed || !verdict) return result;
+    const names = verdict.failedFeatures.map((name) => name.toLowerCase());
+    if (
+      verdict.result !== "FAIL" ||
+      !names.includes(result.subject.toLowerCase())
+    )
+      return result;
+    const skipped = verdict.notRun.filter((entry) =>
+      ofFeature(entry, result.subject),
+    );
+    const baseline = baselineOf(result.subject);
+    const passing = new Set(
+      (baseline?.passed ?? []).map((entry) => entry.toLowerCase()),
+    );
+    if (
+      !baseline ||
+      !skipped.length ||
+      skipped.some((entry) => passing.has(entry.toLowerCase()))
+    )
+      return result;
+    return {
+      ...result,
+      passed: true,
+      status: "ok",
+      why: `caught; ${skipped.join(", ")} do not pass on the unpatched head either`,
+    };
+  });
+}
+
 function rate(results, kind) {
   const of = results.filter(
     (result) => result.kind === kind && result.status !== "interrupted",
