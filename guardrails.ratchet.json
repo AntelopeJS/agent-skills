@@ -1,10 +1,6 @@
 {
   "rules": {
-    "anti-slop/no-runtime-typeof": 4,
-    "eslint/complexity": 1,
-    "eslint/max-depth": 1
+    "anti-slop/no-runtime-typeof": 4
   },
-  "oversizeFiles": {
-    "scripts/resolve-interface.mjs": 38196
-  }
+  "oversizeFiles": {}
 }
