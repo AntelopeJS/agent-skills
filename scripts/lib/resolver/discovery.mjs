@@ -23,6 +23,7 @@ function normalizeScope(raw) {
   return s ? `@${s}` : null;
 }
 
+let scopeCache = null;
 /**
  * npm scopes that bare interface names resolve against. The framework's public
  * scope is always first; the rest are discovered from the current project's
@@ -30,7 +31,6 @@ function normalizeScope(raw) {
  * `@acme` through its .npmrc), plus AJS_INTERFACE_SCOPES (comma-separated,
  * with or without the leading @).
  */
-let scopeCache = null;
 export function candidateScopes() {
   if (scopeCache) return scopeCache;
   const scopes = [PUBLIC_SCOPE];

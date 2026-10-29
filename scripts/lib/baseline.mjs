@@ -1,10 +1,3 @@
-/**
- * Deterministic baseline picker: no model, no key. Scores each skill by the
- * IDF-weighted overlap between the prompt's terms and the skill's name and
- * description, and keeps the skills close to the best score. It cannot read
- * intent, but it goes red when a description stops carrying its key terms.
- */
-
 const STOP_WORDS = new Set(
   (
     "a an and any are as at be by can do does for from has have how i if in into is it its me my of on " +
@@ -61,7 +54,13 @@ function inverseDocumentFrequency(documents) {
     Math.log(1 + documents.length / (counts.get(term) ?? documents.length));
 }
 
-/** Returns `(prompt) => skillNames`, best match first. */
+/**
+ * Deterministic baseline picker: no model, no key. Scores each skill by the
+ * IDF-weighted overlap between the prompt's terms and the skill's name and
+ * description, and keeps the skills close to the best score. It cannot read
+ * intent, but it goes red when a description stops carrying its key terms.
+ *
+ */
 export function createBaselinePicker(skills) {
   const documents = skills.map(weightedTerms);
   const idf = inverseDocumentFrequency(documents);

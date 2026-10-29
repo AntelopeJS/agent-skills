@@ -150,7 +150,6 @@ export function dmsGroupParts(entry, groupSub) {
   );
 }
 
-/** Lightweight symbol extraction from a .d.ts (no TS dependency). */
 const DECL_RE =
   /^export\s+(?:declare\s+)?(?:default\s+)?(?:abstract\s+)?(class|interface|type|enum|const|function|namespace|let|var)\s+([A-Za-z0-9_]+)/;
 const DEFAULT_RE = /^export\s+default\s+([A-Za-z0-9_]+)\s*;/;
@@ -169,6 +168,7 @@ function reexportName(token) {
   return token.replace(/^type\s+/, "").trim();
 }
 
+/** Lightweight symbol extraction from a .d.ts (no TS dependency). */
 export function exportedSymbols(dtsPath) {
   if (!dtsPath || !existsSync(dtsPath)) return [];
   const out = [];

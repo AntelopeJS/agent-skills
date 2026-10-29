@@ -1,10 +1,3 @@
-/**
- * Extracts the API surface an answer or a diff relies on: the names it imports
- * from each module specifier, and (for answers) the API-shaped names it uses
- * without importing them. Names declared in the text itself, JavaScript
- * globals and TypeScript utility types are left out.
- */
-
 const FENCE_RE = /^\s*(```|~~~)/;
 const DIFF_RE = /^(diff --git |@@ -\d|\+\+\+ |--- a\/)/m;
 const INLINE_CODE_RE = /`([^`\n]+)`/g;
@@ -225,6 +218,11 @@ function uniqueReferences(candidates, excluded) {
 }
 
 /**
+ * Extracts the API surface an answer or a diff relies on: the names it imports
+ * from each module specifier, and (for answers) the API-shaped names it uses
+ * without importing them. Names declared in the text itself, JavaScript
+ * globals and TypeScript utility types are left out.
+ *
  * `mode` is `diff` when the text is a unified diff (added lines only, imports
  * only) and `markdown` otherwise (code fences, inline code and imports).
  */
