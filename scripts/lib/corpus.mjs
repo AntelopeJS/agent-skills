@@ -1,5 +1,7 @@
-// The skill corpus an eval runs against: every SKILL.md of a project (found
-// the way the sync finds them), of explicit directories, or of npm packages.
+/**
+ * The skill corpus an eval runs against: every SKILL.md of a project (found
+ * the way the sync finds them), of explicit directories, or of npm packages.
+ */
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";

@@ -1,5 +1,7 @@
-// Precision and recall of the skills an agent (or the baseline) picks for each
-// case, the overall summary against thresholds, and the printed table.
+/**
+ * Precision and recall of the skills an agent (or the baseline) picks for each
+ * case, the overall summary against thresholds, and the printed table.
+ */
 
 const PERCENT = 100;
 const NOT_APPLICABLE = "-";

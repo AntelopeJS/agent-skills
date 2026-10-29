@@ -1,5 +1,7 @@
-// Minimal YAML frontmatter reader for SKILL.md files: scalar keys, quoted
-// strings, inline lists and block scalars (`>`, `|`). No dependency.
+/**
+ * Minimal YAML frontmatter reader for SKILL.md files: scalar keys, quoted
+ * strings, inline lists and block scalars (`>`, `|`). No dependency.
+ */
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 const KEY_RE = /^([A-Za-z0-9_-]+):\s*(.*)$/;

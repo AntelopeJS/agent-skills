@@ -1,62 +1,64 @@
 #!/usr/bin/env node
-// Layer 3 resolver for the AntelopeJS knowledge plugin.
-//
-// Interface contracts are *data*, not prose: they live in the versioned packages
-// that ship them. This script reads that source of truth on demand so the skills
-// never hand-maintain (and never stale) per-interface docs.
-//
-// Two shapes of interface are supported:
-//   1. Dedicated interface packages — `@<scope>/interface-<name>`, e.g.
-//      `@antelopejs/interface-database` in the public scope, or
-//      `@acme/interface-payments` in any other scope. The whole package is one
-//      interface; its `exports` subpaths are its parts.
-//   2. Host-package interfaces — exposed as SUBPATHS of a host package, e.g.
-//      `@acme/dms-host/interfaces/<group>` or a module's singular
-//      `@acme/broker/interface`. One host package hosts many interface
-//      "groups" under `<baseUrl>/interfaces/<group>/`.
-//
-// Nothing beyond the framework's public `@antelopejs` scope is hardcoded.
-// Additional scopes are DISCOVERED from the project the script runs in: every
-// dependency (or optionalDependency) in the cwd's package.json matching
-// `@<scope>/interface-*` contributes its scope, and `AJS_INTERFACE_SCOPES`
-// (comma-separated) adds more. Host packages are discovered too: a package is a
-// host when its package.json sets `antelopeJs.dms` or exports `./interfaces/*`
-// subpaths — candidates come from the project's dependencies (looked up in
-// node_modules and the CLI's `.antelope/cache`), a scan of `.antelope/cache`
-// itself, a directory walk of AJS_DMS_DIR / the cwd, and `AJS_DMS_PACKAGES`.
-//
-// Source of truth is the registry (npm) — no local checkout required. Published
-// tarballs ship the built `.d.ts`, so the script fetches `<pkg>@<version>` on
-// demand, caches the extracted tarball, and reads it. `npm` honours the user's
-// `.npmrc`, so scopes served from private registries resolve too — the script
-// never needs to know which registry a scope lives on. A locally present copy
-// is used as an offline fast-path when available, never required.
-//
-// Naming the interface:
-//   database | interface-database | @antelopejs/interface-database  (kind 1)
-//   payments                    (kind 1, tried across discovered scopes)
-//   @acme/interface-payments    (kind 1, explicit scope)
-//   @acme/dms-host/interfaces/dms-base         (kind 2, full)
-//   @acme/dms-host/interfaces/dms-base/form    (kind 2, a part)
-//   @acme/broker/interface                     (kind 2, singular)
-//   dms-host:dms-base    (kind 2 shorthand — <host-short-name>:<group>)
-//   dms-base             (bare — resolved against discovered host packages)
-// Any of the above may carry `@<version>` on the package (default: dist-tag latest).
-//
-// Flags: --remote (force a fresh npm fetch), --offline (local only, no network),
-//        --json (machine output for list/show).
-// Env: AJS_INTERFACE_SCOPES (extra npm scopes to try for bare names, comma-sep),
-//      AJS_INTERFACES_DIR (extra local interface-package roots, colon-sep),
-//      AJS_DMS_PACKAGES (extra host package names, comma-sep),
-//      AJS_DMS_DIR (local host source roots to scan, colon-sep),
-//      AJS_RESOLVER_CACHE (tarball cache dir), AJS_RESOLVER_OFFLINE=1 (= --offline).
-//
-// Usage:
-//   resolve-interface.mjs list                       Interfaces on npm + any local (incl. hosts)
-//   resolve-interface.mjs show <name>[@version]      Metadata + export subpaths + exported symbols
-//   resolve-interface.mjs contract <name>[@version] [subpath]   Print the raw .d.ts for a part ('.' default)
-//   resolve-interface.mjs versions <name>            Published versions + dist-tag latest
-//   resolve-interface.mjs implementations <name>     Known implementations (registry manifest; n/a for host interfaces)
+/**
+ * Layer 3 resolver for the AntelopeJS knowledge plugin.
+ *
+ * Interface contracts are *data*, not prose: they live in the versioned packages
+ * that ship them. This script reads that source of truth on demand so the skills
+ * never hand-maintain (and never stale) per-interface docs.
+ *
+ * Two shapes of interface are supported:
+ *   1. Dedicated interface packages — `@<scope>/interface-<name>`, e.g.
+ *      `@antelopejs/interface-database` in the public scope, or
+ *      `@acme/interface-payments` in any other scope. The whole package is one
+ *      interface; its `exports` subpaths are its parts.
+ *   2. Host-package interfaces — exposed as SUBPATHS of a host package, e.g.
+ *      `@acme/dms-host/interfaces/<group>` or a module's singular
+ *      `@acme/broker/interface`. One host package hosts many interface
+ *      "groups" under `<baseUrl>/interfaces/<group>/`.
+ *
+ * Nothing beyond the framework's public `@antelopejs` scope is hardcoded.
+ * Additional scopes are DISCOVERED from the project the script runs in: every
+ * dependency (or optionalDependency) in the cwd's package.json matching
+ * `@<scope>/interface-*` contributes its scope, and `AJS_INTERFACE_SCOPES`
+ * (comma-separated) adds more. Host packages are discovered too: a package is a
+ * host when its package.json sets `antelopeJs.dms` or exports `./interfaces/*`
+ * subpaths — candidates come from the project's dependencies (looked up in
+ * node_modules and the CLI's `.antelope/cache`), a scan of `.antelope/cache`
+ * itself, a directory walk of AJS_DMS_DIR / the cwd, and `AJS_DMS_PACKAGES`.
+ *
+ * Source of truth is the registry (npm) — no local checkout required. Published
+ * tarballs ship the built `.d.ts`, so the script fetches `<pkg>@<version>` on
+ * demand, caches the extracted tarball, and reads it. `npm` honours the user's
+ * `.npmrc`, so scopes served from private registries resolve too — the script
+ * never needs to know which registry a scope lives on. A locally present copy
+ * is used as an offline fast-path when available, never required.
+ *
+ * Naming the interface:
+ *   database | interface-database | @antelopejs/interface-database  (kind 1)
+ *   payments                    (kind 1, tried across discovered scopes)
+ *   @acme/interface-payments    (kind 1, explicit scope)
+ *   @acme/dms-host/interfaces/dms-base         (kind 2, full)
+ *   @acme/dms-host/interfaces/dms-base/form    (kind 2, a part)
+ *   @acme/broker/interface                     (kind 2, singular)
+ *   dms-host:dms-base    (kind 2 shorthand — <host-short-name>:<group>)
+ *   dms-base             (bare — resolved against discovered host packages)
+ * Any of the above may carry `@<version>` on the package (default: dist-tag latest).
+ *
+ * Flags: --remote (force a fresh npm fetch), --offline (local only, no network),
+ *        --json (machine output for list/show).
+ * Env: AJS_INTERFACE_SCOPES (extra npm scopes to try for bare names, comma-sep),
+ *      AJS_INTERFACES_DIR (extra local interface-package roots, colon-sep),
+ *      AJS_DMS_PACKAGES (extra host package names, comma-sep),
+ *      AJS_DMS_DIR (local host source roots to scan, colon-sep),
+ *      AJS_RESOLVER_CACHE (tarball cache dir), AJS_RESOLVER_OFFLINE=1 (= --offline).
+ *
+ * Usage:
+ *   resolve-interface.mjs list                       Interfaces on npm + any local (incl. hosts)
+ *   resolve-interface.mjs show <name>[@version]      Metadata + export subpaths + exported symbols
+ *   resolve-interface.mjs contract <name>[@version] [subpath]   Print the raw .d.ts for a part ('.' default)
+ *   resolve-interface.mjs versions <name>            Published versions + dist-tag latest
+ *   resolve-interface.mjs implementations <name>     Known implementations (registry manifest; n/a for host interfaces)
+ */
 
 import {
   readFileSync,
@@ -78,22 +80,28 @@ const CACHE_ROOT =
   process.env.AJS_RESOLVER_CACHE ||
   join(homedir(), ".cache", "ajs-interface-resolver");
 
-// Host packages named explicitly via env — package names whose interface
-// subpaths should resolve even when the host is not discoverable from the
-// current project.
+/**
+ * Host packages named explicitly via env — package names whose interface
+ * subpaths should resolve even when the host is not discoverable from the
+ * current project.
+ */
 const DMS_EXTRA_HOSTS = (process.env.AJS_DMS_PACKAGES || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
-// Local host source roots to scan for host packages: $AJS_DMS_DIR (colon-separated) plus the
-// current directory. Defaults to just the cwd — point AJS_DMS_DIR at a host checkout to scan it.
+/**
+ * Local host source roots to scan for host packages: $AJS_DMS_DIR (colon-separated) plus the
+ * current directory. Defaults to just the cwd — point AJS_DMS_DIR at a host checkout to scan it.
+ */
 const DMS_DIRS = (process.env.AJS_DMS_DIR || "")
   .split(":")
   .filter(Boolean)
   .concat(process.cwd());
 
-// statSync follows symlinks and throws on a dangling one — guard every probe so
-// a single broken entry (common in pnpm node_modules) can't crash discovery.
+/**
+ * statSync follows symlinks and throws on a dangling one — guard every probe so
+ * a single broken entry (common in pnpm node_modules) can't crash discovery.
+ */
 function isDirectorySafe(path) {
   try {
     return statSync(path).isDirectory();
@@ -123,9 +131,11 @@ function warn(msg) {
   process.stderr.write(`warning: ${msg}\n`);
 }
 
-// Split a `name@version` spec. The leading `@` of a scope is at index 0, so a
-// version suffix is only present when `@` appears later (e.g. `core@0.0.4`,
-// `@antelopejs/interface-core@0.0.4`).
+/**
+ * Split a `name@version` spec. The leading `@` of a scope is at index 0, so a
+ * version suffix is only present when `@` appears later (e.g. `core@0.0.4`,
+ * `@antelopejs/interface-core@0.0.4`).
+ */
 function splitSpec(input) {
   const at = input.lastIndexOf("@");
   if (at > 0)
@@ -145,9 +155,7 @@ function baseUrlOf(pkg) {
   return pkg.antelopeJs?.baseUrl || "dist";
 }
 
-// ---- scope discovery ----
-
-// The project's own dependencies + optionalDependencies (empty outside a project).
+/** The project's own dependencies + optionalDependencies (empty outside a project). */
 function projectDependencyNames() {
   const pkg = readJsonSafe(join(process.cwd(), "package.json"));
   if (!pkg) return [];
@@ -159,11 +167,13 @@ function normalizeScope(raw) {
   return s ? `@${s}` : null;
 }
 
-// npm scopes that bare interface names resolve against. The framework's public
-// scope is always first; the rest are discovered from the current project's
-// dependencies (a project depending on `@acme/interface-x` evidently resolves
-// `@acme` through its .npmrc), plus AJS_INTERFACE_SCOPES (comma-separated,
-// with or without the leading @).
+/**
+ * npm scopes that bare interface names resolve against. The framework's public
+ * scope is always first; the rest are discovered from the current project's
+ * dependencies (a project depending on `@acme/interface-x` evidently resolves
+ * `@acme` through its .npmrc), plus AJS_INTERFACE_SCOPES (comma-separated,
+ * with or without the leading @).
+ */
 let scopeCache = null;
 function candidateScopes() {
   if (scopeCache) return scopeCache;
@@ -181,10 +191,10 @@ function candidateScopes() {
   return scopes;
 }
 
-// ---- local discovery (interface packages) ----
-
-// Scope directories under the CLI's module cache (`.antelope/cache/@scope/pkg`),
-// plus the cache root itself for non-scoped entries (`.antelope/cache/pkg`).
+/**
+ * Scope directories under the CLI's module cache (`.antelope/cache/@scope/pkg`),
+ * plus the cache root itself for non-scoped entries (`.antelope/cache/pkg`).
+ */
 function cacheScopeRoots() {
   const cache = join(process.cwd(), ".antelope", "cache");
   if (!isDirectorySafe(cache)) return [];
@@ -201,7 +211,6 @@ function discoveryRoots() {
   if (process.env.AJS_INTERFACES_DIR) {
     roots.push(...process.env.AJS_INTERFACES_DIR.split(":").filter(Boolean));
   }
-  // Point AJS_INTERFACES_DIR at a local interfaces checkout for an offline fast-path.
   for (const scope of candidateScopes()) {
     roots.push(join(process.cwd(), "node_modules", scope));
   }
@@ -230,9 +239,11 @@ function discoverInterfaces() {
   return found;
 }
 
-// Full package names a raw name may refer to. A fully-scoped input is taken as
-// is; a bare/short name is tried as `interface-<name>` in the public scope
-// first, then in every discovered scope.
+/**
+ * Full package names a raw name may refer to. A fully-scoped input is taken as
+ * is; a bare/short name is tried as `interface-<name>` in the public scope
+ * first, then in every discovered scope.
+ */
 function candidateFullNames(rawName) {
   if (rawName.startsWith("@")) return [rawName];
   const short = rawName.startsWith(SHORT_PREFIX)
@@ -249,11 +260,11 @@ function findLocalInterface(rawName) {
   return null;
 }
 
-// ---- local discovery (host packages) ----
-
-// A host package exposes interfaces as export subpaths instead of being one
-// interface itself. It marks itself with a truthy `antelopeJs.dms`, exports
-// `./interfaces/<group>` entry points, or a module's singular `./interface`.
+/**
+ * A host package exposes interfaces as export subpaths instead of being one
+ * interface itself. It marks itself with a truthy `antelopeJs.dms`, exports
+ * `./interfaces/<group>` entry points, or a module's singular `./interface`.
+ */
 function isDmsHost(pkg) {
   if (!pkg) return false;
   if (pkg.antelopeJs?.dms) return true;
@@ -262,8 +273,10 @@ function isDmsHost(pkg) {
   );
 }
 
-// A package by name as installed in the current project: node_modules first,
-// then the CLI's `.antelope/cache` (modules from antelope.config live there).
+/**
+ * A package by name as installed in the current project: node_modules first,
+ * then the CLI's `.antelope/cache` (modules from antelope.config live there).
+ */
 function installedPackageEntry(pkgName) {
   const parts = pkgName.split("/");
   const bases = [
@@ -293,12 +306,9 @@ function discoverDmsHosts() {
     }
   };
 
-  // Hosts among the project's own dependencies (installed copies).
   for (const dep of projectDependencyNames())
     consider(installedPackageEntry(dep));
 
-  // Hosts among the modules the CLI cached for antelope.config — those are not
-  // necessarily package.json dependencies.
   for (const root of cacheScopeRoots()) {
     for (const entry of readdirSync(root)) {
       const dir = join(root, entry);
@@ -308,7 +318,6 @@ function discoverDmsHosts() {
     }
   }
 
-  // Hosts in source checkouts: walk AJS_DMS_DIR roots plus the cwd.
   const skip = new Set(["node_modules", "dist", ".git"]);
   const walk = (dir, depth) => {
     if (depth < 0 || !isDirectorySafe(dir)) return;
@@ -316,13 +325,11 @@ function discoverDmsHosts() {
     if (existsSync(pkgPath)) {
       const pkg = readJsonSafe(pkgPath);
       consider({ dir, pkg });
-      // A host package root doesn't nest other hosts, but a non-host package
-      // (e.g. a monorepo root) may — keep descending in that case.
       if (isDmsHost(pkg)) return;
     }
     let entries;
     try {
-      entries = readdirSync(dir); // unreadable dir (EACCES on a system path, etc.) — skip it
+      entries = readdirSync(dir);
     } catch {
       return;
     }
@@ -342,10 +349,10 @@ function findLocalPackage(pkgName) {
   );
 }
 
-// ---- npm registry layer ----
-
-// Run npm and parse its --json output. Throws on non-zero exit. npm honours the
-// user's .npmrc (registry, scope, auth, proxy), so private registries work.
+/**
+ * Run npm and parse its --json output. Throws on non-zero exit. npm honours the
+ * user's .npmrc (registry, scope, auth, proxy), so private registries work.
+ */
 function npm(args) {
   const out = execFileSync("npm", [...args, "--json"], {
     encoding: "utf8",
@@ -356,9 +363,11 @@ function npm(args) {
   return JSON.parse(out || "null");
 }
 
+/**
+ * The cause of an npm failure: its first real `npm error` line, not the
+ * trailing "complete log" pointer.
+ */
 function npmErrText(e) {
-  // npm ends stderr with a "complete log" pointer — surface the actual cause
-  // (the first real `npm error` line) instead.
   const lines = ((e && (e.stderr || e.message)) || "")
     .toString()
     .trim()
@@ -404,8 +413,10 @@ function resolveRemoteVersion(fullName, wanted) {
   return vs[vs.length - 1];
 }
 
-// Download `<pkg>@<version>` and extract it under the cache. Returns the extracted
-// `package/` dir (a drop-in for a local package dir). Cached across runs.
+/**
+ * Download `<pkg>@<version>` and extract it under the cache. Returns the extracted
+ * `package/` dir (a drop-in for a local package dir). Cached across runs.
+ */
 function fetchToCache(fullName, version) {
   const safe = fullName.replace(/^@/, "").replace(/\//g, "__");
   const dest = join(CACHE_ROOT, safe, version);
@@ -430,9 +441,7 @@ function fetchToCache(fullName, version) {
   });
   try {
     rmSync(join(dest, filename));
-  } catch {
-    /* keep the tarball if it can't be removed — harmless */
-  }
+  } catch {}
   if (!existsSync(join(pkgDir, "package.json"))) {
     throw new Error(
       `extracted tarball has no package/package.json at ${pkgDir}`,
@@ -441,8 +450,10 @@ function fetchToCache(fullName, version) {
   return pkgDir;
 }
 
-// Resolve any package (interface or host) by full name to a { dir, pkg } entry:
-// local copy when present and no version pinned / --remote off, else npm. Throws.
+/**
+ * Resolve any package (interface or host) by full name to a { dir, pkg } entry:
+ * local copy when present and no version pinned / --remote off, else npm. Throws.
+ */
 function resolvePackageEntry(fullName, wanted, localLookup) {
   if (!FORCE_REMOTE && !wanted) {
     const hit = localLookup(fullName);
@@ -451,7 +462,6 @@ function resolvePackageEntry(fullName, wanted, localLookup) {
   if (OFFLINE) {
     const hit = localLookup(fullName);
     if (hit) {
-      // A pinned version must not silently resolve to a different local copy.
       if (
         wanted &&
         wanted !== "latest" &&
@@ -483,8 +493,10 @@ function resolvePackageEntry(fullName, wanted, localLookup) {
   }
 }
 
-// Published versions (newest-first) + dist-tag latest. Falls back to a local
-// clone's git tags when offline or the registry is unreachable.
+/**
+ * Published versions (newest-first) + dist-tag latest. Falls back to a local
+ * clone's git tags when offline or the registry is unreachable.
+ */
 function listVersions(fullName, localEntry) {
   if (!OFFLINE) {
     try {
@@ -505,10 +517,10 @@ function listVersions(fullName, localEntry) {
   return { versions: tags, latest: null };
 }
 
-// ---- .d.ts surface extraction ----
-
-// Resolve a `.d.ts` from an exports target (object/string) or a typesVersions
-// value (array of paths).
+/**
+ * Resolve a `.d.ts` from an exports target (object/string) or a typesVersions
+ * value (array of paths).
+ */
 function dtsForTarget(dir, target) {
   let rel = null;
   if (Array.isArray(target)) rel = target[0];
@@ -519,12 +531,14 @@ function dtsForTarget(dir, target) {
   return existsSync(resolved) ? resolved : null;
 }
 
-// All importable subpaths of an interface PACKAGE (kind 1), each mapped to the
-// .d.ts it resolves to. Merges explicit `exports`, `typesVersions`, and — when a
-// `./*` wildcard is present — the actual .d.ts files in its target directory.
+/**
+ * All importable subpaths of an interface PACKAGE (kind 1), each mapped to the
+ * .d.ts it resolves to. Merges explicit `exports`, `typesVersions`, and — when a
+ * `./*` wildcard is present — the actual .d.ts files in its target directory.
+ */
 function subpaths(entry) {
   const dir = entry.dir;
-  const found = new Map(); // subpath -> dts
+  const found = new Map();
   const add = (sub, dts) => {
     const key = sub === "." ? "." : sub.replace(/^\.\//, "");
     if (dts && !found.has(key)) found.set(key, dts);
@@ -578,9 +592,11 @@ function subpaths(entry) {
     );
 }
 
-// The interface "groups" a host package exposes: a directory under
-// `<baseUrl>/interfaces/<group>` (or the singular `<baseUrl>/interface`). Returns
-// [{ name, sub }] where `sub` is the import subpath of the group's entry point.
+/**
+ * The interface "groups" a host package exposes: a directory under
+ * `<baseUrl>/interfaces/<group>` (or the singular `<baseUrl>/interface`). Returns
+ * [{ name, sub }] where `sub` is the import subpath of the group's entry point.
+ */
 function dmsGroups(entry) {
   const groups = new Map();
   for (const key of Object.keys(entry.pkg.exports ?? {})) {
@@ -593,7 +609,6 @@ function dmsGroups(entry) {
     const m = sub.match(/^interfaces\/([^/*]+)/);
     if (m && !groups.has(m[1])) groups.set(m[1], `interfaces/${m[1]}`);
   }
-  // A `./interfaces/*` wildcard means undeclared groups exist as dist subdirs.
   if (
     Object.keys(entry.pkg.exports ?? {}).some(
       (k) => k.startsWith("./interfaces/") && k.includes("*"),
@@ -610,8 +625,10 @@ function dmsGroups(entry) {
   return [...groups].map(([name, sub]) => ({ name, sub }));
 }
 
-// The importable parts of one host interface group: every .d.ts under its dir
-// (depth-limited), as { subpath, import, dts } with the index folded to '.'.
+/**
+ * The importable parts of one host interface group: every .d.ts under its dir
+ * (depth-limited), as { subpath, import, dts } with the index folded to '.'.
+ */
 function dmsGroupParts(entry, groupSub) {
   const base = baseUrlOf(entry.pkg);
   const root = join(entry.dir, base, groupSub);
@@ -648,14 +665,16 @@ function dmsGroupParts(entry, groupSub) {
   );
 }
 
-// Lightweight symbol extraction from a .d.ts (no TS dependency).
+/** Lightweight symbol extraction from a .d.ts (no TS dependency). */
 const DECL_RE =
   /^export\s+(?:declare\s+)?(?:default\s+)?(?:abstract\s+)?(class|interface|type|enum|const|function|namespace|let|var)\s+([A-Za-z0-9_]+)/;
 const DEFAULT_RE = /^export\s+default\s+([A-Za-z0-9_]+)\s*;/;
 const REEXPORT_RE = /^export\s*\{([^}]*)\}\s*(?:from\b|;)/;
-// `export * from "./form"` / `export * as NS from "./x"` — barrel index files
-// (e.g. a group's index) aggregate their parts this way; surface the source so
-// the index isn't reported as empty.
+/**
+ * `export * from "./form"` / `export * as NS from "./x"` — barrel index files
+ * (e.g. a group's index) aggregate their parts this way; surface the source so
+ * the index isn't reported as empty.
+ */
 const REEXPORT_STAR_RE =
   /^export\s+\*\s+(?:as\s+([A-Za-z0-9_]+)\s+)?from\s*["']([^"']+)["']/;
 
@@ -705,9 +724,11 @@ function exportedSymbols(dtsPath) {
   return out;
 }
 
+/**
+ * The tags of a checkout's own repository; none for a copy under node_modules,
+ * where `git tag` would walk up to the enclosing project's repo.
+ */
 function gitTags(dir) {
-  // Only a checkout's own tags are meaningful — from a node_modules copy, `git tag`
-  // would silently walk up to the enclosing project's repo and report its tags.
   if (!existsSync(join(dir, ".git"))) return [];
   try {
     return execFileSync("git", ["tag", "--sort=-v:refname"], {
@@ -722,11 +743,11 @@ function gitTags(dir) {
   }
 }
 
-// ---- target resolution (interface package OR host subpath) ----
-
-// A resolved target: { entry, displayName, versionsPkg, parts, defaultSubpath }.
-// `parts` is the uniform [{subpath, import, dts}] list both show/contract consume.
-
+/**
+ * A resolved target: `{ entry, displayName, versionsPkg, parts, defaultSubpath }`,
+ * where `parts` is the uniform `[{subpath, import, dts}]` list both show and
+ * contract consume.
+ */
 function pkgTarget(entry) {
   return {
     entry,
@@ -752,9 +773,11 @@ function dmsTarget(entry, group, focusSub) {
   };
 }
 
-// The full name of a discovered (or env-named) host whose short module name
-// (the part after the last /) equals `alias` — e.g. alias `dms-host` matches
-// `@acme/dms-host`.
+/**
+ * The full name of a discovered (or env-named) host whose short module name
+ * (the part after the last /) equals `alias` — e.g. alias `dms-host` matches
+ * `@acme/dms-host`.
+ */
 function hostForAlias(alias) {
   for (const name of discoverDmsHosts().keys()) {
     if (shortModuleName(name) === alias) return name;
@@ -765,9 +788,11 @@ function hostForAlias(alias) {
   return null;
 }
 
-// Parse a host-style spec into { pkgSpec, interfaceSub } or null. Handles the
-// `<alias>:<group>` shorthand (alias = a host's short module name), full
-// `…/interfaces/<group>[/part]` specifiers, and the singular `…/interface`.
+/**
+ * Parse a host-style spec into { pkgSpec, interfaceSub } or null. Handles the
+ * `<alias>:<group>` shorthand (alias = a host's short module name), full
+ * `…/interfaces/<group>[/part]` specifiers, and the singular `…/interface`.
+ */
 function parseDmsSpec(input) {
   let spec = input;
   const aliased = spec.match(/^([^/@:]+):(.+)$/);
@@ -780,14 +805,11 @@ function parseDmsSpec(input) {
           `that depends on the host, or name it via AJS_DMS_PACKAGES (comma-separated).`,
       );
     }
-    // The shorthand carries any `@version` on the group token (<alias>:<group>@1.2.3);
-    // move it onto the host package, where the version actually belongs.
     const { rawName: group, version } = splitSpec(aliased[2]);
     spec = `${host}${version ? `@${version}` : ""}/interfaces/${group}`;
   }
   const at = spec.indexOf("/interfaces/");
   if (at > 0) {
-    // A `@version` pinned on the group/part token belongs to the host package.
     const { rawName: sub, version } = splitSpec(spec.slice(at + 1));
     return {
       pkgSpec: `${spec.slice(0, at)}${version ? `@${version}` : ""}`,
@@ -811,10 +833,11 @@ function groupForSub(entry, interfaceSub) {
   return { name, sub: `interfaces/${name}` };
 }
 
-// A host interface by bare group name, resolved against discovered host
-// packages (plus any named via AJS_DMS_PACKAGES). No host name is guessed.
+/**
+ * A host interface by bare group name, resolved against discovered host
+ * packages (plus any named via AJS_DMS_PACKAGES). No host name is guessed.
+ */
 function resolveDmsBare(name, version) {
-  // A locally-discovered host is one fixed version — only usable when nothing is pinned.
   if (!version) {
     for (const [, entry] of discoverDmsHosts()) {
       const g = dmsGroups(entry).find((g) => g.name === name);
@@ -827,15 +850,12 @@ function resolveDmsBare(name, version) {
       const entry = resolvePackageEntry(host, version, findLocalPackage);
       const g = dmsGroups(entry).find((g) => g.name === name);
       if (g) return dmsTarget(entry, g);
-    } catch {
-      /* host not resolvable / no such group — try the next */
-    }
+    } catch {}
   }
   return null;
 }
 
 function resolveTarget(input) {
-  // Explicit host specifier (full path or <alias>: shorthand).
   const dms = parseDmsSpec(input);
   if (dms) {
     const { rawName: pkg, version } = splitSpec(dms.pkgSpec);
@@ -854,11 +874,9 @@ function resolveTarget(input) {
 
   const { rawName, version } = splitSpec(input);
 
-  // Local interface package (no network).
   if (!FORCE_REMOTE && !version) {
     const local = findLocalInterface(rawName);
     if (local) return pkgTarget(local);
-    // Local host with a matching group (no network) before reaching out.
     for (const [, entry] of discoverDmsHosts()) {
       const g = dmsGroups(entry).find((g) => g.name === rawName);
       if (g) return dmsTarget(entry, g);
@@ -883,7 +901,6 @@ function resolveTarget(input) {
     );
   }
 
-  // Remote interface package: public scope first, then every discovered scope.
   let interfaceErr;
   for (const fullName of candidateFullNames(rawName)) {
     try {
@@ -898,13 +915,10 @@ function resolveTarget(input) {
       interfaceErr ??= e;
     }
   }
-  // Not a published interface package — try host resolution by bare group name.
   const dmsHit = resolveDmsBare(rawName, version);
   if (dmsHit) return dmsHit;
   fail(`could not resolve '${input}': ${npmErrText(interfaceErr)}`);
 }
-
-// ---- commands ----
 
 function dmsHostsForListing() {
   const hosts = new Map(discoverDmsHosts());
@@ -957,9 +971,6 @@ function cmdList(json) {
           `npm search failed (${npmErrText(e)}); interface-package list may be incomplete.`,
         );
     }
-    // Interface packages in discovered non-public scopes — best-effort and
-    // quiet: `npm search` may not cover the registry a scope is served from,
-    // in which case local discovery is the only source.
     for (const scope of candidateScopes().slice(1)) {
       const prefix = `${scope}/${SHORT_PREFIX}`;
       try {
@@ -978,9 +989,7 @@ function cmdList(json) {
             source: "npm",
           });
         }
-      } catch {
-        /* registry without search support — rely on local discovery */
-      }
+      } catch {}
     }
   }
 
@@ -1024,9 +1033,7 @@ function cmdShow(input, json) {
       target.versionsPkg,
       target.entry.remote ? null : target.entry,
     );
-  } catch {
-    /* version listing is best-effort */
-  }
+  } catch {}
   const data = {
     name: target.displayName,
     package: target.entry.pkg.name,
@@ -1082,8 +1089,6 @@ function cmdContract(input, subpath) {
 }
 
 function cmdVersions(input) {
-  // Resolve to a target only to learn the package the versions belong to, but
-  // avoid fetching a tarball when we can derive the package name cheaply.
   const dms = parseDmsSpec(input);
   let fullName;
   let localEntry;
@@ -1097,8 +1102,6 @@ function cmdVersions(input) {
       ? localEntry.pkg.name
       : candidateFullNames(rawName)[0];
     if (!localEntry) {
-      // Could be an interface package in a discovered scope or a bare host
-      // interface — resolve fully to learn the actual package name.
       const t = resolveTarget(input);
       fullName = t.versionsPkg;
       localEntry = t.entry.remote ? null : t.entry;
@@ -1125,9 +1128,7 @@ async function fetchRegistryManifest(name) {
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
       if (res.ok) return await res.json();
-    } catch {
-      /* try next branch */
-    }
+    } catch {}
   }
   return null;
 }
@@ -1143,8 +1144,6 @@ async function cmdImplementations(input) {
   }
   const { rawName } = splitSpec(input);
   const local = findLocalInterface(rawName);
-  // A bare name may be a host-interface group (e.g. `dms-base`) — same n/a case
-  // as an explicit host spec, and better than a misleading registry miss.
   if (!local) {
     for (const [, entry] of discoverDmsHosts()) {
       if (dmsGroups(entry).some((g) => g.name === rawName)) {
@@ -1176,8 +1175,6 @@ async function cmdImplementations(input) {
       `Resolve unresolved imports (and pick a provider) with: ajs project modules install`,
   );
 }
-
-// ---- entry ----
 
 const argv = process.argv.slice(2);
 const cmd = argv[0];

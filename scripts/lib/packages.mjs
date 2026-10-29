@@ -1,6 +1,8 @@
-// Fetches a published package (tarball only, no dependencies) into a local
-// cache, the way the interface resolver does, so an eval can read the skills
-// it ships without installing it.
+/**
+ * Fetches a published package (tarball only, no dependencies) into a local
+ * cache, the way the interface resolver does, so an eval can read the skills
+ * it ships without installing it.
+ */
 
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";

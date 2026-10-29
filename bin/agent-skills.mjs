@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// Entry point for running the scripts without a plugin, e.g.
-// `npx -y github:AntelopeJS/agent-skills sync`.
+/**
+ * Entry point for running the scripts without a plugin, e.g.
+ * `npx -y github:AntelopeJS/agent-skills sync`.
+ */
 
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";

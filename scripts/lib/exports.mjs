@@ -1,8 +1,10 @@
-// Resolves what a module specifier really exports, from the `.d.ts` files of
-// the installed package: `exports` map (conditions and `*` patterns), or the
-// legacy `types` field, following `export *` chains across files and packages.
-// Interface packages that are not installed are fetched through the contract
-// resolver (scripts/resolve-interface.mjs), which reads them from npm.
+/**
+ * Resolves what a module specifier really exports, from the `.d.ts` files of
+ * the installed package: `exports` map (conditions and `*` patterns), or the
+ * legacy `types` field, following `export *` chains across files and packages.
+ * Interface packages that are not installed are fetched through the contract
+ * resolver (scripts/resolve-interface.mjs), which reads them from npm.
+ */
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";

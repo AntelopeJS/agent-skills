@@ -1,5 +1,7 @@
-// Checks the API names an answer or a diff relies on against what the
-// installed packages really export, and reports the unknown ones.
+/**
+ * Checks the API names an answer or a diff relies on against what the
+ * installed packages really export, and reports the unknown ones.
+ */
 
 import { existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";

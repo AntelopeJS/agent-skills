@@ -1,7 +1,9 @@
-// Model-backed side of the evals. A backend is any object with
-// `complete({ system, user, schema?, effort?, maxTokens? }) => Promise<string>`;
-// the built-in one calls the Anthropic Messages API through the official SDK,
-// loaded only when a model-backed eval actually runs.
+/**
+ * Model-backed side of the evals. A backend is any object with
+ * `complete({ system, user, schema?, effort?, maxTokens? }) => Promise<string>`;
+ * the built-in one calls the Anthropic Messages API through the official SDK,
+ * loaded only when a model-backed eval actually runs.
+ */
 
 export const DEFAULT_MODEL = "claude-opus-5-5";
 const DEFAULT_MAX_TOKENS = 16000;

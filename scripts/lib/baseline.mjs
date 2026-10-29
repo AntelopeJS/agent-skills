@@ -1,7 +1,9 @@
-// Deterministic baseline picker: no model, no key. Scores each skill by the
-// IDF-weighted overlap between the prompt's terms and the skill's name and
-// description, and keeps the skills close to the best score. It cannot read
-// intent, but it goes red when a description stops carrying its key terms.
+/**
+ * Deterministic baseline picker: no model, no key. Scores each skill by the
+ * IDF-weighted overlap between the prompt's terms and the skill's name and
+ * description, and keeps the skills close to the best score. It cannot read
+ * intent, but it goes red when a description stops carrying its key terms.
+ */
 
 const STOP_WORDS = new Set(
   (

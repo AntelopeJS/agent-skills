@@ -1,7 +1,9 @@
-// Extracts the API surface an answer or a diff relies on: the names it imports
-// from each module specifier, and (for answers) the API-shaped names it uses
-// without importing them. Names declared in the text itself, JavaScript
-// globals and TypeScript utility types are left out.
+/**
+ * Extracts the API surface an answer or a diff relies on: the names it imports
+ * from each module specifier, and (for answers) the API-shaped names it uses
+ * without importing them. Names declared in the text itself, JavaScript
+ * globals and TypeScript utility types are left out.
+ */
 
 const FENCE_RE = /^\s*(```|~~~)/;
 const DIFF_RE = /^(diff --git |@@ -\d|\+\+\+ |--- a\/)/m;

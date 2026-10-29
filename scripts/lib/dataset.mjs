@@ -1,6 +1,8 @@
-// The eval dataset (`evals/cases.json`) and its schema check. Each case is a
-// user prompt and the skills an agent should load for it; optional fields feed
-// the answer-quality eval (API names to mention or avoid, expected behaviour).
+/**
+ * The eval dataset (`evals/cases.json`) and its schema check. Each case is a
+ * user prompt and the skills an agent should load for it; optional fields feed
+ * the answer-quality eval (API names to mention or avoid, expected behaviour).
+ */
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
