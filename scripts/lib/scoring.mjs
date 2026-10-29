@@ -1,6 +1,3 @@
-// Precision and recall of the skills an agent (or the baseline) picks for each
-// case, the overall summary against thresholds, and the printed table.
-
 const PERCENT = 100;
 const NOT_APPLICABLE = "-";
 
@@ -9,6 +6,9 @@ function ratio(part, whole, empty) {
 }
 
 /**
+ * Precision and recall of the skills an agent (or the baseline) picks for each
+ * case, the overall summary against thresholds, and the printed table.
+ *
  * Scores one case. Expected skills missing from the corpus are reported as
  * `absent` and left out of recall; when none is left the case is `skipped`.
  */

@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { parseFrontmatter } from "../scripts/lib/frontmatter.mjs";
 import { loadCorpus } from "../scripts/lib/corpus.mjs";
+import { compareText } from "../scripts/lib/values.mjs";
 import {
   makeTempDir,
   removeDir,
@@ -68,7 +69,7 @@ test("loads every SKILL.md under explicit directories, a skill dir or a parent o
     dirs: [join(root, "pack"), join(root, "single")],
   });
 
-  assert.deepEqual(corpus.skills.map((s) => s.name).sort(), [
+  assert.deepEqual(corpus.skills.map((s) => s.name).sort(compareText), [
     "dms-auth",
     "dms-pages",
     "lone",
@@ -118,7 +119,7 @@ test("discovers package-shipped skills of a project like the sync does", () => {
 
   const corpus = loadCorpus({ project: root });
 
-  assert.deepEqual(corpus.skills.map((s) => s.name).sort(), [
+  assert.deepEqual(corpus.skills.map((s) => s.name).sort(compareText), [
     "dms",
     "dms-mailing",
     "dms-pages",

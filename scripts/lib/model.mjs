@@ -1,7 +1,11 @@
-// Model-backed side of the evals. A backend is any object with
-// `complete({ system, user, schema?, effort?, maxTokens? }) => Promise<string>`;
-// the built-in one calls the Anthropic Messages API through the official SDK,
-// loaded only when a model-backed eval actually runs.
+/**
+ * Model-backed side of the evals. A backend is any object with
+ * `complete({ system, user, schema?, effort?, maxTokens? }) => Promise<string>`;
+ * the built-in one calls the Anthropic Messages API through the official SDK,
+ * loaded only when a model-backed eval actually runs.
+ */
+
+import { isText } from "./values.mjs";
 
 export const DEFAULT_MODEL = "claude-opus-5-5";
 const DEFAULT_MAX_TOKENS = 16000;
@@ -89,9 +93,7 @@ export function createModelPicker(backend, skills) {
   return async (prompt) => {
     const text = await backend.complete(triggerRequest(skills, prompt));
     const parsed = JSON.parse(text);
-    return Array.isArray(parsed.skills)
-      ? parsed.skills.filter((name) => typeof name === "string")
-      : [];
+    return Array.isArray(parsed.skills) ? parsed.skills.filter(isText) : [];
   };
 }
 
@@ -104,22 +106,21 @@ function requestParams(
   model,
   { system, user, schema, effort, maxTokens = DEFAULT_MAX_TOKENS },
 ) {
-  const outputConfig = {
-    ...(schema ? { format: { type: "json_schema", schema } } : {}),
-    ...(effort && EFFORT_MODELS.has(model) ? { effort } : {}),
-  };
-  return {
+  const outputConfig = {};
+  if (schema) outputConfig.format = { type: "json_schema", schema };
+  if (effort && EFFORT_MODELS.has(model)) outputConfig.effort = effort;
+  const params = {
     model,
     max_tokens: maxTokens,
     system,
     messages: [{ role: "user", content: user }],
-    ...(Object.keys(outputConfig).length
-      ? { output_config: outputConfig }
-      : {}),
-    ...(DEFAULT_FALLBACK_MODELS.has(model)
-      ? { betas: [FALLBACK_BETA], fallbacks: "default" }
-      : {}),
   };
+  if (Object.keys(outputConfig).length) params.output_config = outputConfig;
+  if (DEFAULT_FALLBACK_MODELS.has(model)) {
+    params.betas = [FALLBACK_BETA];
+    params.fallbacks = "default";
+  }
+  return params;
 }
 
 export function createAnthropicBackend({

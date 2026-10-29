@@ -1,12 +1,14 @@
 #!/usr/bin/env node
-// Checks the API names an answer or a diff uses against what the installed
-// packages export, and reports the unknown ones (invented APIs).
-//
-//   verify [file|-] [--project <dir>] [--offline] [--json]
-//
-// Reads stdin when the file is `-` or omitted. Exits 1 when an unknown name is
-// found. Answers (Markdown) are checked on their imports, code and inline
-// code; unified diffs on the imports of their added lines.
+/**
+ * Checks the API names an answer or a diff uses against what the installed
+ * packages export, and reports the unknown ones (invented APIs).
+ *
+ *   verify [file|-] [--project <dir>] [--offline] [--json]
+ *
+ * Reads stdin when the file is `-` or omitted. Exits 1 when an unknown name is
+ * found. Answers (Markdown) are checked on their imports, code and inline
+ * code; unified diffs on the imports of their added lines.
+ */
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

@@ -1,14 +1,18 @@
-// Resolves what a module specifier really exports, from the `.d.ts` files of
-// the installed package: `exports` map (conditions and `*` patterns), or the
-// legacy `types` field, following `export *` chains across files and packages.
-// Interface packages that are not installed are fetched through the contract
-// resolver (scripts/resolve-interface.mjs), which reads them from npm.
+/**
+ * Resolves what a module specifier really exports, from the `.d.ts` files of
+ * the installed package: `exports` map (conditions and `*` patterns), or the
+ * legacy `types` field, following `export *` chains across files and packages.
+ * Interface packages that are not installed are fetched through the contract
+ * resolver (scripts/resolve-interface.mjs), which reads them from npm.
+ */
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { isBuiltin } from "node:module";
 import { fileURLToPath } from "node:url";
+
+import { isRecord, isText } from "./values.mjs";
 
 const RESOLVER_SCRIPT = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -89,19 +93,17 @@ function resolverPackageDir(context, name) {
 }
 
 function typesTarget(target) {
-  if (typeof target === "string" || target === null) return target;
+  if (isText(target) || target === null) return target;
   if (Array.isArray(target))
-    return (
-      target.map(typesTarget).find((value) => typeof value === "string") ?? null
-    );
-  if (typeof target !== "object") return null;
+    return target.map(typesTarget).find(isText) ?? null;
+  if (!isRecord(target)) return null;
   const condition = TYPE_CONDITIONS.find((key) => target[key] !== undefined);
   return condition ? typesTarget(target[condition]) : null;
 }
 
 function exportsMap(exports) {
   const isSubpathMap =
-    typeof exports === "object" &&
+    (exports === null || isRecord(exports)) &&
     !Array.isArray(exports) &&
     Object.keys(exports).every((key) => key.startsWith("."));
   return isSubpathMap ? exports : { ".": exports };
@@ -120,7 +122,7 @@ function matchPattern(map, key) {
       continue;
     const captured = key.slice(prefix.length, key.length - suffix.length);
     const types = typesTarget(target);
-    return typeof types === "string" ? types.replaceAll("*", captured) : null;
+    return isText(types) ? types.replaceAll("*", captured) : null;
   }
   return undefined;
 }
@@ -168,7 +170,7 @@ function withDotSlash(path) {
 }
 
 function expandPattern(dir, key, target) {
-  if (typeof target !== "string" || !target.includes("*")) return [];
+  if (!isText(target) || !target.includes("*")) return [];
   const [targetPrefix, targetSuffix] = withDotSlash(target).split("*");
   const [keyPrefix, keySuffix] = key.split("*");
   const root = join(dir, targetPrefix);

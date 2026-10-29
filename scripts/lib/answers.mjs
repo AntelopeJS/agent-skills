@@ -1,5 +1,7 @@
-// Answer-quality eval: the model answers each case with the case's expected
-// skills loaded, and `verify` counts the API names it invented.
+/**
+ * Answer-quality eval: the model answers each case with the case's expected
+ * skills loaded, and `verify` counts the API names it invented.
+ */
 
 import { answerRequest } from "./model.mjs";
 

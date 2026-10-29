@@ -1,40 +1,42 @@
 #!/usr/bin/env node
-// Sync package-shipped agent skills into the current project.
-//
-// A package ships skills by declaring `antelopeJs.skills` in its package.json:
-// an array of directories (relative to the package root) whose subdirectories
-// each contain a SKILL.md. Every declared skill is linked, as a RELATIVE
-// symlink named `<module-short-name>--<skill-dir-name>`, into each target:
-//   claude — `.claude/skills/` (Claude Code)
-//   codex  — `.agents/skills/` (OpenAI Codex)
-//
-// Packages are discovered, first hit per package name wins, in:
-//   1. workspace  — the cwd, its ancestors up to the repository/workspace root,
-//                   and the packages listed by that root's pnpm-workspace.yaml
-//                   or package.json `workspaces` (source checkouts, playgrounds).
-//   2. node_modules — `node_modules` of the cwd and of that root (direct and
-//                   hoisted dependencies). pnpm symlinks into `.pnpm` are
-//                   followed; the link keeps the `node_modules/<pkg>` path so
-//                   it survives version bumps.
-//   3. antelope-cache — `.antelope/cache`, where `ajs` installs project modules.
-//
-// A directory is an AntelopeJS project when it holds `antelope.config.*`, or
-// when its package.json depends on `@antelopejs/core` (embedded runtime, e.g.
-// the AdonisJS template). Anywhere else the script exits 0 and does nothing.
-//
-// Only entries the script created are ever touched: each target directory
-// tracks them in its own `.ajs-managed.json`, and a generated `.gitignore` there
-// keeps them out of git. Managed entries whose package or skill disappeared are
-// pruned.
-//
-// Flags:
-//   --target claude|codex|all
-//              Which skills directories to sync (default: all).
-//   --quiet    No output, warnings included (hook mode).
-//   --json     Machine-readable summary on stdout.
-//   --dry-run  Report what would change without touching the filesystem.
-//   --list     Show every package-shipped skill, its source and its status;
-//              changes nothing.
+/**
+ * Sync package-shipped agent skills into the current project.
+ *
+ * A package ships skills by declaring `antelopeJs.skills` in its package.json:
+ * an array of directories (relative to the package root) whose subdirectories
+ * each contain a SKILL.md. Every declared skill is linked, as a RELATIVE
+ * symlink named `<module-short-name>--<skill-dir-name>`, into each target:
+ *   claude — `.claude/skills/` (Claude Code)
+ *   codex  — `.agents/skills/` (OpenAI Codex)
+ *
+ * Packages are discovered, first hit per package name wins, in:
+ *   1. workspace  — the cwd, its ancestors up to the repository/workspace root,
+ *                   and the packages listed by that root's pnpm-workspace.yaml
+ *                   or package.json `workspaces` (source checkouts, playgrounds).
+ *   2. node_modules — `node_modules` of the cwd and of that root (direct and
+ *                   hoisted dependencies). pnpm symlinks into `.pnpm` are
+ *                   followed; the link keeps the `node_modules/<pkg>` path so
+ *                   it survives version bumps.
+ *   3. antelope-cache — `.antelope/cache`, where `ajs` installs project modules.
+ *
+ * A directory is an AntelopeJS project when it holds `antelope.config.*`, or
+ * when its package.json depends on `@antelopejs/core` (embedded runtime, e.g.
+ * the AdonisJS template). Anywhere else the script exits 0 and does nothing.
+ *
+ * Only entries the script created are ever touched: each target directory
+ * tracks them in its own `.ajs-managed.json`, and a generated `.gitignore` there
+ * keeps them out of git. Managed entries whose package or skill disappeared are
+ * pruned.
+ *
+ * Flags:
+ *   --target claude|codex|all
+ *              Which skills directories to sync (default: all).
+ *   --quiet    No output, warnings included (hook mode).
+ *   --json     Machine-readable summary on stdout.
+ *   --dry-run  Report what would change without touching the filesystem.
+ *   --list     Show every package-shipped skill, its source and its status;
+ *              changes nothing.
+ */
 
 import {
   readFileSync,
@@ -49,6 +51,8 @@ import {
   readlinkSync,
 } from "node:fs";
 import { join, relative, resolve, dirname, isAbsolute } from "node:path";
+
+import { compareText, isText } from "./lib/values.mjs";
 
 const args = process.argv.slice(2);
 const argv = new Set(args);
@@ -145,8 +149,6 @@ function readdirSafe(path) {
   }
 }
 
-// ---- targets ----
-
 function targetFlagValue() {
   const inline = args.find((arg) => arg.startsWith(`${TARGET_FLAG}=`));
   if (inline) return inline.slice(TARGET_FLAG.length + 1);
@@ -164,8 +166,6 @@ function selectedTargets() {
   process.exit(USAGE_EXIT_CODE);
 }
 
-// ---- project detection ----
-
 function dependsOnCore(pkg) {
   return DEPENDENCY_FIELDS.some((field) => pkg?.[field]?.[CORE_PACKAGE]);
 }
@@ -174,8 +174,6 @@ function isAntelopeProject(dir) {
   if (CONFIG_VARIANTS.some((f) => existsSync(join(dir, f)))) return true;
   return dependsOnCore(readJsonSafe(join(dir, "package.json")));
 }
-
-// ---- workspace discovery ----
 
 function declaresWorkspaces(dir) {
   if (existsSync(join(dir, WORKSPACE_FILE))) return true;
@@ -186,8 +184,10 @@ function isBoundary(dir) {
   return existsSync(join(dir, ".git")) || declaresWorkspaces(dir);
 }
 
-// The cwd and its ancestors up to the nearest repository or workspace root;
-// only the cwd when no such root exists.
+/**
+ * The cwd and its ancestors up to the nearest repository or workspace root;
+ * only the cwd when no such root exists.
+ */
 function ancestorDirs() {
   const dirs = [];
   for (let dir = cwd; ; dir = dirname(dir)) {
@@ -213,7 +213,7 @@ function pnpmWorkspaceGlobs(root) {
 function packageJsonWorkspaceGlobs(root) {
   const workspaces = readJsonSafe(join(root, "package.json"))?.workspaces;
   const globs = Array.isArray(workspaces) ? workspaces : workspaces?.packages;
-  return Array.isArray(globs) ? globs.filter((g) => typeof g === "string") : [];
+  return Array.isArray(globs) ? globs.filter(isText) : [];
 }
 
 function childDirs(dir) {
@@ -231,7 +231,7 @@ function descendantDirs(dir, depth) {
   ]);
 }
 
-// Supports the glob forms workspaces use in practice: `dir`, `dir/*`, `dir/**`.
+/** Supports the glob forms workspaces use in practice: `dir`, `dir/*`, `dir/**`. */
 function expandWorkspaceGlob(root, glob) {
   if (glob.startsWith("!")) return [];
   const clean = glob.replace(/^\.\//, "").replace(/\/$/, "");
@@ -249,9 +249,7 @@ function workspacePackageDirs(root) {
   return globs.flatMap((glob) => expandWorkspaceGlob(root, glob));
 }
 
-// ---- package discovery ----
-
-// Direct children of a package root: <root>/<pkg> and <root>/@scope/<pkg>.
+/** Direct children of a package root: <root>/<pkg> and <root>/@scope/<pkg>. */
 function packagesIn(base) {
   const dirs = [];
   for (const entry of readdirSafe(base)) {
@@ -285,14 +283,16 @@ function candidatePackages() {
   ];
 }
 
-// Every skill declared by the discovered packages.
-// Returns Map<entryName, { target, package, version, origin, skill }>.
+/**
+ * Every skill declared by the discovered packages.
+ * Returns Map<entryName, { target, package, version, origin, skill }>.
+ */
 function discoverSkills(warnings) {
   const skills = new Map();
   const seenPackages = new Set();
   for (const { dir, origin } of candidatePackages()) {
     const pkg = readJsonSafe(join(dir, "package.json"));
-    if (typeof pkg?.name !== "string" || seenPackages.has(pkg.name)) continue;
+    if (!isText(pkg?.name) || seenPackages.has(pkg.name)) continue;
     const declared = pkg.antelopeJs?.skills;
     if (!Array.isArray(declared) || !declared.length) continue;
     seenPackages.add(pkg.name);
@@ -317,7 +317,7 @@ function skillName(skillDir, fallback) {
 function collectPackageSkills(source, declaredDirs, skills, warnings) {
   const { pkg, dir: pkgDir, origin } = source;
   const moduleShort = pkg.name.slice(pkg.name.lastIndexOf("/") + 1);
-  for (const rel of declaredDirs.filter((d) => typeof d === "string")) {
+  for (const rel of declaredDirs.filter(isText)) {
     const dir = resolve(pkgDir, rel);
     if (escapesPackage(pkgDir, dir)) {
       warnings.push(
@@ -349,19 +349,15 @@ function collectPackageSkills(source, declaredDirs, skills, warnings) {
   }
 }
 
-// ---- manifest ----
-
 function loadManifest(target) {
   const data = readJsonSafe(join(target.dir, MANIFEST_FILE));
-  return Array.isArray(data?.entries)
-    ? data.entries.filter((e) => typeof e === "string")
-    : [];
+  return Array.isArray(data?.entries) ? data.entries.filter(isText) : [];
 }
 
 function saveManifest(target, entries) {
   writeFileSync(
     join(target.dir, MANIFEST_FILE),
-    `${JSON.stringify({ entries: [...entries].sort() }, null, 2)}\n`,
+    `${JSON.stringify({ entries: [...entries].sort(compareText) }, null, 2)}\n`,
   );
 }
 
@@ -371,14 +367,12 @@ function writeGitignore(target, entries) {
     "# Managed by the antelopejs agent skills sync — do not edit.",
     GITIGNORE_FILE,
     MANIFEST_FILE,
-    ...[...entries].sort(),
+    ...[...entries].sort(compareText),
   ];
   const content = `${lines.join("\n")}\n`;
   if (readTextSafe(path) === content) return;
   writeFileSync(path, content);
 }
-
-// ---- sync ----
 
 function symlinkPointsTo(linkPath, target) {
   const st = lstatSafe(linkPath);
@@ -392,8 +386,10 @@ function symlinkPointsTo(linkPath, target) {
   }
 }
 
-// Drops managed entries that are no longer desired. A managed entry the user
-// replaced with a real file or directory becomes theirs and leaves the manifest.
+/**
+ * Drops managed entries that are no longer desired. A managed entry the user
+ * replaced with a real file or directory becomes theirs and leaves the manifest.
+ */
 function pruneManaged(state) {
   const { target, desired, managed, removed, warnings } = state;
   for (const name of managed) {
@@ -495,8 +491,6 @@ function sync(targets) {
   };
 }
 
-// ---- output ----
-
 function listStatus(status) {
   return DRY_RUN && status === STATUS.added ? "not synced yet" : status;
 }
@@ -577,8 +571,6 @@ function printJson(result) {
     JSON.stringify({ project: true, dryRun: DRY_RUN, ...result, skills }),
   );
 }
-
-// ---- entry ----
 
 const targets = selectedTargets();
 if (!isAntelopeProject(cwd)) {

@@ -1,17 +1,6 @@
 {
   "rules": {
-    "antelopejs/no-comments": 257,
-    "antelopejs/no-fs-read-in-tests": 1,
-    "anti-slop/no-conditional-empty-object-spread": 4,
-    "anti-slop/no-runtime-typeof": 27,
-    "eslint/complexity": 1,
-    "eslint/max-depth": 1,
-    "typescript/require-array-sort-compare": 6,
-    "typescript/restrict-template-expressions": 2
+    "anti-slop/no-runtime-typeof": 3
   },
-  "oversizeFiles": {
-    ".github/assets/logo.png": 21412,
-    "evals/cases.json": 22101,
-    "scripts/resolve-interface.mjs": 40728
-  }
+  "oversizeFiles": {}
 }

@@ -27,7 +27,7 @@ function stubClient(reply) {
   const calls = [];
   const create = async (params) => {
     calls.push(params);
-    return typeof reply === "function" ? reply(params) : reply;
+    return reply;
   };
   return { calls, client: { beta: { messages: { create } } } };
 }
