@@ -1,7 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { judgeCase, summarizeSeeded } from "../scripts/lib/seeded-score.mjs";
+import {
+  excuseControlGaps,
+  judgeCase,
+  summarizeSeeded,
+} from "../scripts/lib/seeded-score.mjs";
 
 const BREAK = { kind: "break", subject: "alpha" };
 const DOOR = { kind: "door", subject: "data" };
@@ -205,4 +209,207 @@ test("an interrupted case is listed, fails the run and does not count as a miss 
   assert.deepEqual(summary.interrupted, ["break-beta"]);
   assert.equal(summary.passed, false);
   assert.match(summary.failures.join("\n"), /interrupted: 1 case\(s\)/);
+});
+
+const caseOf = (kind, id, subject, value) => ({
+  kind,
+  id,
+  subject,
+  ...judgeCase({ kind, subject }, { verdict: value }),
+  verdict: value,
+});
+const full = (result, failedFeatures, notRun, passed) => ({
+  result,
+  failedFeatures,
+  notRun,
+  passed,
+  doors: [],
+  summary: "",
+});
+
+test("a break whose only unrun journey never passes on the unpatched head is caught", () => {
+  const results = [
+    caseOf(
+      "break",
+      "break-smoke",
+      "smoke",
+      full("FAIL", ["smoke"], ["smoke/sandbox"], ["smoke/create"]),
+    ),
+    caseOf(
+      "control",
+      "control",
+      "head",
+      full("PASS+NOTES", [], ["smoke/sandbox"], ["smoke/create"]),
+    ),
+  ];
+
+  assert.equal(results[0].passed, false);
+  const scored = excuseControlGaps(results);
+  assert.equal(scored[0].passed, true);
+  assert.match(scored[0].why, /smoke\/sandbox/);
+  assert.equal(summarizeSeeded(scored, { minCatch: 1 }).passed, true);
+});
+
+test("a break whose unrun journey passes on the unpatched head stays missed", () => {
+  const results = [
+    caseOf(
+      "break",
+      "break-smoke",
+      "smoke",
+      full("FAIL", ["smoke"], ["smoke/sandbox"], ["smoke/create"]),
+    ),
+    caseOf(
+      "control",
+      "control",
+      "head",
+      full("PASS", [], [], ["smoke/create", "smoke/sandbox"]),
+    ),
+  ];
+
+  const scored = excuseControlGaps(results);
+  assert.equal(scored[0].passed, false);
+  assert.equal(summarizeSeeded(scored, { minCatch: 1 }).passed, false);
+});
+
+test("a break with no unpatched run of its feature keeps the strict judgement", () => {
+  const results = [
+    caseOf(
+      "break",
+      "break-alpha",
+      "alpha",
+      full("FAIL", ["alpha"], ["alpha/slow"], []),
+    ),
+    caseOf(
+      "control",
+      "control",
+      "head",
+      full("PASS+NOTES", [], [], ["smoke/create"]),
+    ),
+  ];
+
+  assert.equal(excuseControlGaps(results)[0].passed, false);
+});
+
+test("the touched twin is the unpatched run of a feature the control does not cover", () => {
+  const results = [
+    caseOf(
+      "break",
+      "break-alpha",
+      "alpha",
+      full("FAIL", ["alpha"], ["alpha/sandbox"], ["alpha/create"]),
+    ),
+    caseOf(
+      "control",
+      "control",
+      "head",
+      full("PASS+NOTES", [], [], ["smoke/create"]),
+    ),
+    caseOf(
+      "touched",
+      "touched-alpha",
+      "alpha",
+      full("PASS+NOTES", [], ["alpha/sandbox"], ["alpha/create"]),
+    ),
+  ];
+
+  assert.equal(excuseControlGaps(results)[0].passed, true);
+});
+
+const smokeBreak = (notRun) =>
+  caseOf("break", "break-smoke", "smoke", full("FAIL", ["smoke"], notRun, []));
+const smokeControl = (notRun, passed) =>
+  caseOf("control", "control", "head", full("PASS+NOTES", [], notRun, passed));
+
+test("a journey the unpatched head does not list as unrun is not excused", () => {
+  const scored = excuseControlGaps([
+    smokeBreak(["smoke/sandbox"]),
+    smokeControl([], ["smoke/create"]),
+  ]);
+
+  assert.equal(scored[0].passed, false);
+});
+
+test("a bare feature entry is never excused", () => {
+  const scored = excuseControlGaps([
+    smokeBreak(["smoke"]),
+    smokeControl(["smoke"], ["smoke/create"]),
+  ]);
+
+  assert.equal(scored[0].passed, false);
+});
+
+test("a touched twin that FAILs is no baseline", () => {
+  const scored = excuseControlGaps([
+    caseOf(
+      "break",
+      "break-alpha",
+      "alpha",
+      full("FAIL", ["alpha"], ["alpha/sandbox"], []),
+    ),
+    smokeControl([], ["smoke/create"]),
+    caseOf(
+      "touched",
+      "touched-alpha",
+      "alpha",
+      full("FAIL", ["alpha"], ["alpha/sandbox"], ["alpha/create"]),
+    ),
+  ]);
+
+  assert.equal(scored[0].passed, false);
+});
+
+test("a control written before `passed` existed gives no baseline and does not throw", () => {
+  const legacy = {
+    kind: "control",
+    id: "control",
+    subject: "head",
+    passed: true,
+    status: "ok",
+    verdict: {
+      result: "PASS+NOTES",
+      failedFeatures: [],
+      notRun: ["smoke/sandbox"],
+      doors: [],
+      summary: "",
+    },
+  };
+
+  const scored = excuseControlGaps([smokeBreak(["smoke/sandbox"]), legacy]);
+  assert.equal(scored[0].passed, false);
+});
+
+test("journey names match case-insensitively and another feature's prefix never matches", () => {
+  assert.equal(
+    excuseControlGaps([
+      smokeBreak(["Smoke/Sandbox"]),
+      smokeControl(["smoke/sandbox"], ["smoke/create"]),
+    ])[0].passed,
+    true,
+  );
+  assert.equal(
+    excuseControlGaps([
+      smokeBreak(["smoke/sandbox"]),
+      smokeControl(["smoke-x/sandbox"], ["smoke-x/create"]),
+    ])[0].passed,
+    false,
+  );
+});
+
+test("a break whose FAIL does not name its feature is never excused", () => {
+  const results = [
+    caseOf(
+      "break",
+      "break-smoke",
+      "smoke",
+      full("FAIL", ["other"], ["smoke/sandbox"], []),
+    ),
+    caseOf(
+      "control",
+      "control",
+      "head",
+      full("PASS+NOTES", [], [], ["smoke/create"]),
+    ),
+  ];
+
+  assert.equal(excuseControlGaps(results)[0].passed, false);
 });

@@ -56,6 +56,68 @@ export function judgeCase(item, outcome) {
   return { passed: !why, status: why ? "wrong" : "ok", why };
 }
 
+/**
+ * Counts a break as caught when its FAIL names the feature and every journey
+ * of that feature it left unrun is listed as not run on the unpatched head
+ * too: a journey that never runs there (a SaaS sandbox without keys) cannot be
+ * required to run for the catch. The unpatched head is the control when its
+ * verdict lists a journey of the feature, else the feature's touched twin when
+ * it did not FAIL; with neither, an unnamed journey (a bare feature entry) or a
+ * verdict written before `passed` existed, the break keeps its strict
+ * judgement.
+ */
+export function excuseControlGaps(results) {
+  const lower = (entries) =>
+    (entries ?? []).map((entry) => entry.toLowerCase());
+  const journeyOf = (entry, feature) =>
+    entry.toLowerCase().startsWith(`${feature.toLowerCase()}/`);
+  const covers = (verdict, feature) =>
+    Array.isArray(verdict?.passed) &&
+    [...verdict.passed, ...(verdict.notRun ?? [])].some((entry) =>
+      journeyOf(entry, feature),
+    );
+  const control = results.find((result) => result.kind === "control");
+  const baselineOf = (feature) => {
+    if (covers(control?.verdict, feature)) return control.verdict;
+    const twin = results.find(
+      (result) => result.kind === "touched" && result.subject === feature,
+    );
+    return twin?.verdict?.result !== "FAIL" && covers(twin?.verdict, feature)
+      ? twin.verdict
+      : undefined;
+  };
+  return results.map((result) => {
+    const verdict = result.verdict;
+    if (result.kind !== "break" || result.passed || !verdict) return result;
+    if (
+      verdict.result !== "FAIL" ||
+      !lower(verdict.failedFeatures).includes(result.subject.toLowerCase())
+    )
+      return result;
+    const skipped = (verdict.notRun ?? []).filter((entry) =>
+      ofFeature(entry, result.subject),
+    );
+    const baseline = baselineOf(result.subject);
+    const unrunThere = new Set(lower(baseline?.notRun));
+    if (
+      !baseline ||
+      !skipped.length ||
+      !skipped.every(
+        (entry) =>
+          journeyOf(entry, result.subject) &&
+          unrunThere.has(entry.toLowerCase()),
+      )
+    )
+      return result;
+    return {
+      ...result,
+      passed: true,
+      status: "ok",
+      why: `caught; ${skipped.join(", ")} did not run on the unpatched head either`,
+    };
+  });
+}
+
 function rate(results, kind) {
   const of = results.filter(
     (result) => result.kind === kind && result.status !== "interrupted",

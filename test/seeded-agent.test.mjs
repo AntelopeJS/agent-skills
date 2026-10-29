@@ -26,6 +26,7 @@ const REPLY = {
     result: "FAIL",
     failedFeatures: ["alpha"],
     notRun: ["beta/x"],
+    passed: ["alpha/y"],
     doors: [],
     summary: "s",
   },
@@ -155,6 +156,7 @@ test("the output gives the verdict, cost, tokens and models", () => {
   assert.equal(parsed.verdict.result, "FAIL");
   assert.deepEqual(parsed.verdict.failedFeatures, ["alpha"]);
   assert.deepEqual(parsed.verdict.notRun, ["beta/x"]);
+  assert.deepEqual(parsed.verdict.passed, ["alpha/y"]);
   assert.equal(parsed.costUsd, 0.25);
   assert.equal(parsed.turns, 9);
   assert.deepEqual(parsed.tokens, {

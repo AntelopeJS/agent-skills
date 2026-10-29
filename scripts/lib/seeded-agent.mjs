@@ -36,7 +36,14 @@ const SECRET_NAME_RE =
 export const VERDICT_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["result", "failedFeatures", "notRun", "doors", "summary"],
+  required: [
+    "result",
+    "failedFeatures",
+    "notRun",
+    "passed",
+    "doors",
+    "summary",
+  ],
   properties: {
     result: { type: "string", enum: RESULTS },
     failedFeatures: {
@@ -50,6 +57,12 @@ export const VERDICT_SCHEMA = {
       items: { type: "string" },
       description:
         "The journeys the plan required, as feature/journey, that did not run or did not finish, for any reason such as a run that could not start; empty when every required journey ran.",
+    },
+    passed: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "The journeys that ran and passed, as feature/journey; a journey reported not verified is not listed.",
     },
     doors: {
       type: "array",
@@ -67,7 +80,7 @@ export function buildPrompt({ skill, baseSha }) {
     `You are the fresh verifier of a change. This checkout holds one commit on top of base commit ${baseSha}, which \`origin/main\` points at. You did not write the change and do not know what it does.`,
     `Follow the verification skill at .agents/skills/${skill}/SKILL.md exactly, from its setup to its verdict rules: run what it tells you to run for this diff, read the evidence and judge it as the skill says. Install dependencies only if they are missing. Do not guess the feature from the diff alone when the skill gives a command that maps the diff.`,
     "Limits. Work only inside the current directory and the run folders the skill's commands create. You have no GitHub credentials and no push access, and you must not try to get them. Never run the skill's publish step or any other command that posts, comments, pushes or sets a status. When a command needs a pull request number only to render the verdict locally, pass 1.",
-    "Finish with your Verdict as the structured result: `result` (PASS, PASS+NOTES or FAIL by the skill's rules), `failedFeatures` (the Feature map names that made it FAIL), `notRun` (the required journeys that did not run or finish, as feature/journey), `doors` (the kind of each row of the One-way doors section, from the skill's door scan), and a short `summary`.",
+    "Finish with your Verdict as the structured result: `result` (PASS, PASS+NOTES or FAIL by the skill's rules), `failedFeatures` (the Feature map names that made it FAIL), `notRun` (the required journeys that did not run or finish, as feature/journey), `passed` (the journeys that ran and passed, as feature/journey), `doors` (the kind of each row of the One-way doors section, from the skill's door scan), and a short `summary`.",
   ].join("\n\n");
 }
 
@@ -177,6 +190,7 @@ function cleanVerdict(value) {
     result: value.result,
     failedFeatures,
     notRun,
+    passed: list(value.passed) ?? [],
     doors,
     summary: String(value.summary ?? ""),
   };

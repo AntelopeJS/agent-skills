@@ -24,7 +24,12 @@ import {
 } from "./seeded-cases.mjs";
 import { trapInterrupt } from "./seeded-interrupt.mjs";
 import { runSeeded } from "./seeded-run.mjs";
-import { formatSeeded, summarizeSeeded, totals } from "./seeded-score.mjs";
+import {
+  excuseControlGaps,
+  formatSeeded,
+  summarizeSeeded,
+  totals,
+} from "./seeded-score.mjs";
 import { DEFAULT_SETUP } from "./seeded-scratch.mjs";
 import { TEARDOWNS } from "./seeded-teardown.mjs";
 
@@ -110,6 +115,7 @@ export async function seeded(values) {
   } finally {
     trap.release();
   }
+  results = excuseControlGaps(results);
   const summary = summarizeSeeded(results, {
     minCatch: parseRatio(values["min-catch"], "min-catch"),
     minDoorCatch: parseRatio(values["min-door-catch"], "min-door-catch"),
