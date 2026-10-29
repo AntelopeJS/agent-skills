@@ -20,7 +20,8 @@ export const TEARDOWNS = {
 /**
  * Runs the harness's own stop command for every run the case left under its
  * private temporary folder. Never throws; the outcome says whether it ran and,
- * when it failed, the tail of its error.
+ * when it failed, the tail of its error. `signal` aborting kills the stop
+ * command's process group.
  */
 export async function runTeardown({
   command,
@@ -29,6 +30,7 @@ export async function runTeardown({
   runs,
   timeoutMs = TEARDOWN_TIMEOUT_MS,
   run = spawnRun,
+  signal,
 }) {
   if (!command) return { ran: false };
   try {
@@ -40,6 +42,7 @@ export async function runTeardown({
       cwd,
       timeoutMs,
       group: true,
+      signal,
     });
     return { ran: true };
   } catch (error) {
@@ -48,8 +51,7 @@ export async function runTeardown({
 }
 
 /**
- * The processes still alive whose command line or working directory lies in
- * one of `roots`: what the case started and the harness did not stop. Reads
+ * The processes still alive whose command line mentions one of `roots`: what the case started and the harness did not stop. Reads
  * `/proc`; returns nothing where it does not exist.
  */
 export function leakedProcesses(roots, procRoot = "/proc") {

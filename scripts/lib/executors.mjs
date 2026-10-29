@@ -65,8 +65,10 @@ function killTree(child, group) {
 /**
  * Runs a command with `input` on stdin; resolves with its stdout. With
  * `group`, the command leads its own process group and a timeout or a finished
- * run kills the whole group, so processes it started do not outlive it. A
- * rejection carries the `stdout` and whether it `timedOut`.
+ * run kills the whole group, so processes it started do not outlive it. When
+ * `signal` aborts, the command (its whole group with `group`) is killed and the
+ * run rejects with `interrupted` set. A rejection carries the `stdout` and
+ * whether it `timedOut`.
  */
 export function spawnRun({
   command,
@@ -76,6 +78,7 @@ export function spawnRun({
   cwd,
   timeoutMs,
   group = false,
+  signal,
 }) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -87,23 +90,31 @@ export function spawnRun({
     const out = [];
     const err = [];
     let timedOut = false;
+    let interrupted = false;
     const timer = setTimeout(() => {
       timedOut = true;
       killTree(child, group);
     }, timeoutMs);
+    const onAbort = () => {
+      interrupted = true;
+      killTree(child, group);
+    };
+    if (signal?.aborted) onAbort();
+    else signal?.addEventListener("abort", onAbort, { once: true });
     child.stdout.on("data", (chunk) => out.push(chunk));
     child.stderr.on("data", (chunk) => err.push(chunk));
     child.on("error", reject);
-    child.on("close", (code, signal) => {
+    child.on("close", (code, killedBy) => {
       clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
       if (group) killTree(child, group);
       const stdout = Buffer.concat(out).toString("utf8");
       if (code === 0) return resolve({ stdout });
       const tail = Buffer.concat(err).toString("utf8").trim().slice(-400);
       reject(
         Object.assign(
-          new Error(`${command} exited with ${code ?? signal}: ${tail}`),
-          { stdout, timedOut },
+          new Error(`${command} exited with ${code ?? killedBy}: ${tail}`),
+          { stdout, timedOut, interrupted },
         ),
       );
     });
