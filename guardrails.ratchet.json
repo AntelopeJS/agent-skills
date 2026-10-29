@@ -1,15 +1,10 @@
 {
   "rules": {
-    "antelopejs/no-comments": 257,
-    "antelopejs/no-fs-read-in-tests": 1,
-    "anti-slop/no-conditional-empty-object-spread": 4,
-    "anti-slop/no-runtime-typeof": 27,
+    "anti-slop/no-runtime-typeof": 4,
     "eslint/complexity": 1,
-    "eslint/max-depth": 1,
-    "typescript/require-array-sort-compare": 6,
-    "typescript/restrict-template-expressions": 2
+    "eslint/max-depth": 1
   },
   "oversizeFiles": {
-    "scripts/resolve-interface.mjs": 40728
+    "scripts/resolve-interface.mjs": 38196
   }
 }
