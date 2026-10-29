@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 
 import { verifyText } from "../scripts/lib/verify.mjs";
+import { compareText } from "../scripts/lib/values.mjs";
 import { makeTempDir, removeDir, writeFile, writeJson } from "./helpers.mjs";
 
 const fence = "```";
@@ -143,7 +144,7 @@ test("flags a missing AntelopeJS package and leaves other missing or untyped pac
     report.findings.map((f) => [f.kind, f.name]),
     [["package", "@antelopejs/core"]],
   );
-  assert.deepEqual(report.unchecked.map((u) => u.specifier).sort(), [
+  assert.deepEqual(report.unchecked.map((u) => u.specifier).sort(compareText), [
     "lodash",
     "untyped-lib",
   ]);

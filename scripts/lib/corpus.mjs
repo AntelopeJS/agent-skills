@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { parseFrontmatter } from "./frontmatter.mjs";
 import { fetchPackage } from "./packages.mjs";
+import { isText } from "./values.mjs";
 
 const SKILL_FILE = "SKILL.md";
 const SCAN_DEPTH = 4;
@@ -44,10 +45,8 @@ function skillDirsUnder(dir, depth = SCAN_DEPTH) {
 function readSkill(skillDir, source) {
   const path = join(skillDir, SKILL_FILE);
   const { data, body } = parseFrontmatter(readFileSync(path, "utf8"));
-  const name =
-    typeof data.name === "string" && data.name ? data.name : basename(skillDir);
-  const description =
-    typeof data.description === "string" ? data.description : "";
+  const name = isText(data.name) && data.name ? data.name : basename(skillDir);
+  const description = isText(data.description) ? data.description : "";
   return { name, description, path, dir: skillDir, source, content: body };
 }
 
@@ -74,7 +73,7 @@ function packageSkillDirs(dir) {
     ? pkg.antelopeJs.skills
     : [];
   return declared
-    .filter((rel) => typeof rel === "string")
+    .filter(isText)
     .flatMap((rel) => skillDirsUnder(resolve(dir, rel), 1))
     .map((skillDir) => ({ dir: skillDir, source: pkg.name }));
 }

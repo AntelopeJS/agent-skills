@@ -7,6 +7,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import { isRecord, isText } from "./values.mjs";
+
 export const DATASET_FILE = fileURLToPath(
   new URL("../../evals/cases.json", import.meta.url),
 );
@@ -41,8 +43,7 @@ const EXPECT_KEYS = [
   "avoid",
 ];
 
-const isNonEmptyString = (value) =>
-  typeof value === "string" && value.trim().length > 0;
+const isNonEmptyString = (value) => isText(value) && value.trim().length > 0;
 const isStringList = (value) =>
   Array.isArray(value) && value.every(isNonEmptyString);
 const isSkillList = (value) =>
@@ -51,10 +52,7 @@ const oneOf = (allowed) => (value) => allowed.includes(value);
 const optional = (check) => (value) => value === undefined || check(value);
 
 const CASE_FIELDS = {
-  id: [
-    (value) => typeof value === "string" && ID_RE.test(value),
-    "a kebab-case string",
-  ],
+  id: [(value) => isText(value) && ID_RE.test(value), "a kebab-case string"],
   area: [oneOf(AREAS), `one of ${AREAS.join(", ")}`],
   style: [oneOf(STYLES), `one of ${STYLES.join(", ")}`],
   prompt: [isNonEmptyString, "a non-empty string"],
@@ -86,8 +84,7 @@ function unknownKeys(value, allowed, prefix) {
 }
 
 function expectErrors(expect) {
-  if (!expect || typeof expect !== "object")
-    return ["expect must be an object"];
+  if (!isRecord(expect)) return ["expect must be an object"];
   const allowed = [...(expect.skills ?? []), ...(expect.acceptable ?? [])];
   const overlap = (expect.acceptable ?? []).filter((name) =>
     expect.skills?.includes(name),
@@ -108,9 +105,8 @@ function expectErrors(expect) {
 }
 
 function caseErrors(item, index) {
-  if (!item || typeof item !== "object")
-    return [`case #${index} must be an object`];
-  const label = `case ${typeof item.id === "string" ? item.id : `#${index}`}`;
+  if (!isRecord(item)) return [`case #${index} must be an object`];
+  const label = `case ${isText(item.id) ? item.id : `#${index}`}`;
   const errors = [
     ...checkFields(item, CASE_FIELDS, ""),
     ...unknownKeys(item, CASE_KEYS, ""),

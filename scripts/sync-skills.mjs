@@ -52,6 +52,8 @@ import {
 } from "node:fs";
 import { join, relative, resolve, dirname, isAbsolute } from "node:path";
 
+import { compareText, isText } from "./lib/values.mjs";
+
 const args = process.argv.slice(2);
 const argv = new Set(args);
 const LIST = argv.has("--list");
@@ -211,7 +213,7 @@ function pnpmWorkspaceGlobs(root) {
 function packageJsonWorkspaceGlobs(root) {
   const workspaces = readJsonSafe(join(root, "package.json"))?.workspaces;
   const globs = Array.isArray(workspaces) ? workspaces : workspaces?.packages;
-  return Array.isArray(globs) ? globs.filter((g) => typeof g === "string") : [];
+  return Array.isArray(globs) ? globs.filter(isText) : [];
 }
 
 function childDirs(dir) {
@@ -290,7 +292,7 @@ function discoverSkills(warnings) {
   const seenPackages = new Set();
   for (const { dir, origin } of candidatePackages()) {
     const pkg = readJsonSafe(join(dir, "package.json"));
-    if (typeof pkg?.name !== "string" || seenPackages.has(pkg.name)) continue;
+    if (!isText(pkg?.name) || seenPackages.has(pkg.name)) continue;
     const declared = pkg.antelopeJs?.skills;
     if (!Array.isArray(declared) || !declared.length) continue;
     seenPackages.add(pkg.name);
@@ -315,7 +317,7 @@ function skillName(skillDir, fallback) {
 function collectPackageSkills(source, declaredDirs, skills, warnings) {
   const { pkg, dir: pkgDir, origin } = source;
   const moduleShort = pkg.name.slice(pkg.name.lastIndexOf("/") + 1);
-  for (const rel of declaredDirs.filter((d) => typeof d === "string")) {
+  for (const rel of declaredDirs.filter(isText)) {
     const dir = resolve(pkgDir, rel);
     if (escapesPackage(pkgDir, dir)) {
       warnings.push(
@@ -349,15 +351,13 @@ function collectPackageSkills(source, declaredDirs, skills, warnings) {
 
 function loadManifest(target) {
   const data = readJsonSafe(join(target.dir, MANIFEST_FILE));
-  return Array.isArray(data?.entries)
-    ? data.entries.filter((e) => typeof e === "string")
-    : [];
+  return Array.isArray(data?.entries) ? data.entries.filter(isText) : [];
 }
 
 function saveManifest(target, entries) {
   writeFileSync(
     join(target.dir, MANIFEST_FILE),
-    `${JSON.stringify({ entries: [...entries].sort() }, null, 2)}\n`,
+    `${JSON.stringify({ entries: [...entries].sort(compareText) }, null, 2)}\n`,
   );
 }
 
@@ -367,7 +367,7 @@ function writeGitignore(target, entries) {
     "# Managed by the antelopejs agent skills sync — do not edit.",
     GITIGNORE_FILE,
     MANIFEST_FILE,
-    ...[...entries].sort(),
+    ...[...entries].sort(compareText),
   ];
   const content = `${lines.join("\n")}\n`;
   if (readTextSafe(path) === content) return;

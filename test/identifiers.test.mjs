@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { extractApiReferences } from "../scripts/lib/identifiers.mjs";
+import { compareText } from "../scripts/lib/values.mjs";
 
 const fence = "```";
 
@@ -73,7 +74,7 @@ test("collects API-shaped references from inline code and code, minus locals, im
     fence,
   ].join("\n");
 
-  assert.deepEqual(referencesOf(answer).sort(), [
+  assert.deepEqual(referencesOf(answer).sort(compareText), [
     "Controller",
     "DatabaseService",
     "KpiCard",

@@ -72,6 +72,8 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { execFileSync } from "node:child_process";
 
+import { isRecord, isText } from "./lib/values.mjs";
+
 const PUBLIC_SCOPE = "@antelopejs";
 const PKG_PREFIX = `${PUBLIC_SCOPE}/interface-`;
 const SHORT_PREFIX = "interface-";
@@ -220,7 +222,7 @@ function discoveryRoots() {
 
 function isInterfacePackage(dir) {
   const pkg = readJsonSafe(join(dir, "package.json"));
-  return typeof pkg?.name === "string" && INTERFACE_PKG_RE.test(pkg.name);
+  return isText(pkg?.name) && INTERFACE_PKG_RE.test(pkg.name);
 }
 
 let interfaceCache = null;
@@ -524,8 +526,8 @@ function listVersions(fullName, localEntry) {
 function dtsForTarget(dir, target) {
   let rel = null;
   if (Array.isArray(target)) rel = target[0];
-  else if (target && typeof target === "object") rel = target.types;
-  else if (typeof target === "string") rel = target;
+  else if (isRecord(target)) rel = target.types;
+  else if (isText(target)) rel = target;
   if (!rel) return null;
   const resolved = join(dir, rel);
   return existsSync(resolved) ? resolved : null;
@@ -548,8 +550,7 @@ function subpaths(entry) {
   for (const [sub, target] of Object.entries(entry.pkg.exports ?? {})) {
     if (sub === "./package.json") continue;
     if (sub.includes("*")) {
-      if (target && typeof target === "object" && target.types)
-        wildcardTypes = target.types;
+      if (isRecord(target) && target.types) wildcardTypes = target.types;
       continue;
     }
     add(sub, dtsForTarget(dir, target));
@@ -951,7 +952,7 @@ function cmdList(json) {
     try {
       for (const r of npm(["search", PKG_PREFIX])) {
         if (
-          typeof r.name !== "string" ||
+          !isText(r.name) ||
           !r.name.startsWith(PKG_PREFIX) ||
           byKey.has(r.name)
         )
@@ -976,7 +977,7 @@ function cmdList(json) {
       try {
         for (const r of npm(["search", prefix])) {
           if (
-            typeof r.name !== "string" ||
+            !isText(r.name) ||
             !r.name.startsWith(prefix) ||
             byKey.has(r.name)
           )
@@ -1054,10 +1055,10 @@ function cmdShow(input, json) {
   console.log(
     `${data.source === "npm" ? "cached" : "location"}: ${data.location}`,
   );
-  if (data.latest) console.log(`latest: v${data.latest}`);
+  if (data.latest) console.log(`latest: v${String(data.latest)}`);
   if (data.availableVersions.length) {
     console.log(
-      `versions: ${data.availableVersions.map((v) => `v${v}`).join(", ")}`,
+      `versions: ${data.availableVersions.map((v) => `v${String(v)}`).join(", ")}`,
     );
   }
   console.log("\nexport surface:");
