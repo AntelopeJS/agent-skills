@@ -133,6 +133,18 @@ export function cmdList(json) {
   printRows(rows, dms);
 }
 
+/** The version listing of a target; empty when the lookup fails. */
+function bestEffortVersions(target) {
+  try {
+    return listVersions(
+      target.versionsPkg,
+      target.entry.remote ? null : target.entry,
+    );
+  } catch {
+    return { versions: [], latest: null };
+  }
+}
+
 /** Shows an interface; its version listing is best-effort and left empty when it fails. */
 export function cmdShow(input, json) {
   const target = resolveTarget(input);
@@ -140,13 +152,7 @@ export function cmdShow(input, json) {
     ...s,
     symbols: exportedSymbols(s.dts),
   }));
-  let versionInfo = { versions: [], latest: null };
-  try {
-    versionInfo = listVersions(
-      target.versionsPkg,
-      target.entry.remote ? null : target.entry,
-    );
-  } catch {}
+  const versionInfo = bestEffortVersions(target);
   const data = {
     name: target.displayName,
     package: target.entry.pkg.name,
@@ -167,10 +173,10 @@ export function cmdShow(input, json) {
   console.log(
     `${data.source === "npm" ? "cached" : "location"}: ${data.location}`,
   );
-  if (data.latest) console.log(`latest: v${String(data.latest)}`);
+  if (data.latest) console.log(`latest: v${data.latest}`);
   if (data.availableVersions.length) {
     console.log(
-      `versions: ${data.availableVersions.map((v) => `v${String(v)}`).join(", ")}`,
+      `versions: ${data.availableVersions.map((v) => `v${v}`).join(", ")}`,
     );
   }
   console.log("\nexport surface:");

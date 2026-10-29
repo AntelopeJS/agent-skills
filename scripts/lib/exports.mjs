@@ -103,7 +103,7 @@ function typesTarget(target) {
 
 function exportsMap(exports) {
   const isSubpathMap =
-    typeof exports === "object" &&
+    (exports === null || isRecord(exports)) &&
     !Array.isArray(exports) &&
     Object.keys(exports).every((key) => key.startsWith("."));
   return isSubpathMap ? exports : { ".": exports };
