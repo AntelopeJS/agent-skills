@@ -385,3 +385,7 @@ codex plugin marketplace add .    # register this checkout as a Codex marketplac
 ```
 
 Bump `version` in `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json` and `package.json` together on every release: installed copies only update when it changes.
+
+## License
+
+[Apache-2.0](./LICENSE)
