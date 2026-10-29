@@ -116,7 +116,8 @@ function groupForSub(entry, interfaceSub) {
 
 /**
  * A host interface by bare group name, resolved against discovered host
- * packages (plus any named via AJS_DMS_PACKAGES). No host name is guessed.
+ * packages (plus any named via AJS_DMS_PACKAGES). No host name is guessed. A host
+ * that cannot be resolved, or has no such group, is skipped for the next one.
  */
 function resolveDmsBare(name, version) {
   if (!version) {

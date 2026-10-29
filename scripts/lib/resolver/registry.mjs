@@ -75,7 +75,8 @@ export function resolveRemoteVersion(fullName, wanted) {
 
 /**
  * Download `<pkg>@<version>` and extract it under the cache. Returns the extracted
- * `package/` dir (a drop-in for a local package dir). Cached across runs.
+ * `package/` dir (a drop-in for a local package dir). Cached across runs. The
+ * tarball stays in the cache when it cannot be removed.
  */
 export function fetchToCache(fullName, version) {
   const safe = fullName.replace(/^@/, "").replace(/\//g, "__");

@@ -72,6 +72,12 @@ function addNpmRows(byKey, prefix) {
   }
 }
 
+/**
+ * Adds the interface packages the registry lists for the public scope, then for
+ * every discovered scope. The public search failing is warned about; a scope
+ * whose registry does not support search is skipped, since local discovery is
+ * then the only source.
+ */
 function addNpmListing(byKey) {
   try {
     addNpmRows(byKey, PKG_PREFIX);
@@ -127,6 +133,7 @@ export function cmdList(json) {
   printRows(rows, dms);
 }
 
+/** Shows an interface; its version listing is best-effort and left empty when it fails. */
 export function cmdShow(input, json) {
   const target = resolveTarget(input);
   const subs = target.parts.map((s) => ({
@@ -228,6 +235,7 @@ export function cmdVersions(input) {
   );
 }
 
+/** The registry manifest of an interface, from the `main` branch, else `master`; null when neither can be fetched. */
 async function fetchRegistryManifest(name) {
   for (const branch of ["main", "master"]) {
     const url = `https://raw.githubusercontent.com/AntelopeJS/interfaces/${branch}/interfaces/${name}/manifest.json`;
