@@ -6,6 +6,7 @@
     "name": "AntelopeJS",
     "email": "contact@antelopejs.com"
   },
+  "license": "Apache-2.0",
   "homepage": "https://github.com/AntelopeJS/agent-skills",
   "repository": "https://github.com/AntelopeJS/agent-skills",
   "keywords": ["antelopejs", "ajs", "interface", "module", "framework", "dms"],
