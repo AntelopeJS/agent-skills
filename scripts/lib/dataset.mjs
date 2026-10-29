@@ -8,8 +8,20 @@ import { fileURLToPath } from "node:url";
 export const DATASET_FILE = fileURLToPath(
   new URL("../../evals/cases.json", import.meta.url),
 );
+export const VERIFY_CASES_FILE = fileURLToPath(
+  new URL("../../evals/verify-cases.json", import.meta.url),
+);
+/** The central datasets: the routing cases, then the verification skills' trigger cases. */
+export const CENTRAL_FILES = [DATASET_FILE, VERIFY_CASES_FILE];
 export const DATASET_VERSION = 1;
-export const AREAS = ["framework", "dms", "dms-ai", "modules", "install"];
+export const AREAS = [
+  "framework",
+  "dms",
+  "dms-ai",
+  "modules",
+  "install",
+  "verify",
+];
 export const STYLES = ["clean", "casual"];
 export const ORIGINS = ["docs-assistant"];
 /** `asks-first`: the answer asks the user a question before writing any code. */

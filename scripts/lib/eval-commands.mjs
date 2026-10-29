@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadCases, minimumGaps } from "./cases.mjs";
-import { DATASET_FILE, loadDataset } from "./dataset.mjs";
+import { CENTRAL_FILES, loadDataset } from "./dataset.mjs";
 import { execRun, readExecutorRecords } from "./executors.mjs";
 import { computeLift, formatLift } from "./lift.mjs";
 import { parseModels } from "./matrix.mjs";
@@ -180,11 +180,12 @@ export async function lift(values, positionals) {
 
 export function check(values) {
   const problems = [];
-  try {
-    loadDataset(values.cases ? resolve(values.cases) : DATASET_FILE);
-  } catch (error) {
-    problems.push(error.message);
-  }
+  for (const file of values.cases ? [resolve(values.cases)] : CENTRAL_FILES)
+    try {
+      loadDataset(file);
+    } catch (error) {
+      problems.push(error.message);
+    }
   problems.push(
     ...rubricErrorsOf(
       readdirSync(PLUGIN_SKILLS_DIR, { withFileTypes: true })
@@ -197,7 +198,7 @@ export function check(values) {
     try {
       const { cases } = loadCases({
         skills,
-        centralFile: values.cases ? resolve(values.cases) : DATASET_FILE,
+        centralFile: values.cases ? resolve(values.cases) : undefined,
       });
       for (const gap of minimumGaps(cases, skills))
         problems.push(`${gap.skill} lacks ${gap.missing.join("; ")}`);

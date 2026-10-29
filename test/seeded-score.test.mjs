@@ -1,0 +1,161 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+
+import { judgeCase, summarizeSeeded } from "../scripts/lib/seeded-score.mjs";
+
+const BREAK = { kind: "break", subject: "alpha" };
+const DOOR = { kind: "door", subject: "data" };
+const CONTROL = { kind: "control", subject: "head" };
+const verdict = (result, failedFeatures = [], doors = [], notRun = []) => ({
+  verdict: { result, failedFeatures, notRun, doors, summary: "" },
+});
+
+test("a break is caught only by a FAIL that names its feature", () => {
+  assert.equal(judgeCase(BREAK, verdict("FAIL", ["alpha"])).passed, true);
+  assert.equal(
+    judgeCase(BREAK, verdict("FAIL", ["Alpha", "smoke"])).passed,
+    true,
+  );
+  assert.equal(judgeCase(BREAK, verdict("FAIL", ["smoke"])).passed, false);
+  assert.equal(judgeCase(BREAK, verdict("FAIL", [])).passed, false);
+  assert.equal(judgeCase(BREAK, verdict("PASS", ["alpha"])).passed, false);
+  assert.equal(
+    judgeCase(BREAK, verdict("PASS+NOTES", ["alpha"])).passed,
+    false,
+  );
+});
+
+test("a FAIL for a feature whose journeys did not run is not a catch", () => {
+  const blocked = judgeCase(
+    BREAK,
+    verdict("FAIL", ["alpha"], [], ["alpha/start", "smoke/smoke"]),
+  );
+
+  assert.equal(blocked.passed, false);
+  assert.match(blocked.why, /alpha\/start/);
+  assert.equal(
+    judgeCase(BREAK, verdict("FAIL", ["alpha"], [], ["beta/other"])).passed,
+    true,
+  );
+  assert.equal(
+    judgeCase(BREAK, verdict("FAIL", ["alpha"], [], ["alpha"])).passed,
+    false,
+  );
+});
+
+test("a door is caught by naming its kind, whatever the result", () => {
+  assert.equal(
+    judgeCase(DOOR, verdict("PASS+NOTES", [], ["data"])).passed,
+    true,
+  );
+  assert.equal(judgeCase(DOOR, verdict("FAIL", ["x"], ["data"])).passed, true);
+  assert.equal(
+    judgeCase(DOOR, verdict("FAIL", ["data"], ["format"])).passed,
+    false,
+  );
+  assert.equal(judgeCase(DOOR, verdict("PASS", [], [])).passed, false);
+});
+
+test("the unpatched head passes unless the verdict is FAIL", () => {
+  assert.equal(judgeCase(CONTROL, verdict("PASS")).passed, true);
+  assert.equal(judgeCase(CONTROL, verdict("PASS+NOTES")).passed, true);
+  const alarm = judgeCase(CONTROL, verdict("FAIL", ["smoke"]));
+  assert.equal(alarm.passed, false);
+  assert.match(alarm.why, /false alarm/);
+});
+
+test("a case with no verdict is an error and counts as missed on every kind", () => {
+  for (const item of [BREAK, DOOR, CONTROL]) {
+    const result = judgeCase(item, { error: "timed out after 5 s" });
+    assert.deepEqual(
+      [result.passed, result.status, result.why],
+      [false, "error", "timed out after 5 s"],
+    );
+  }
+});
+
+function resultsOf(entries) {
+  return entries.map(([kind, id, passed, subject, status = "wrong"]) => ({
+    kind,
+    id,
+    passed,
+    subject,
+    status,
+  }));
+}
+
+test("the gates fail on one missed break, one missed door or a false alarm", () => {
+  const allCaught = resultsOf([
+    ["break", "break-a", true],
+    ["break", "break-b", true],
+    ["door", "door-data", true],
+    ["control", "control", true],
+  ]);
+  const gates = { minCatch: 1, minDoorCatch: 1 };
+
+  assert.equal(summarizeSeeded(allCaught, gates).passed, true);
+  const missedBreak = summarizeSeeded(
+    resultsOf([
+      ["break", "break-a", true],
+      ["break", "break-b", false],
+    ]),
+    gates,
+  );
+  assert.equal(missedBreak.breaks.rate, 0.5);
+  assert.match(missedBreak.failures[0], /break-b/);
+  assert.equal(
+    summarizeSeeded(resultsOf([["door", "door-data", false]]), gates).passed,
+    false,
+  );
+  assert.equal(
+    summarizeSeeded(resultsOf([["control", "control", false]]), gates).passed,
+    false,
+  );
+});
+
+test("a touched head gates only under --min-clean", () => {
+  const results = resultsOf([
+    ["touched", "touched-a", true],
+    ["touched", "touched-b", false],
+  ]);
+
+  assert.equal(summarizeSeeded(results).passed, true);
+  assert.equal(summarizeSeeded(results).touched.rate, 0.5);
+  const gated = summarizeSeeded(results, { minClean: 1 });
+  assert.equal(gated.passed, false);
+  assert.match(gated.failures[0], /touched-b/);
+});
+
+test("a break whose touched twin also FAILs is reported as not separated from the head", () => {
+  const summary = summarizeSeeded(
+    resultsOf([
+      ["break", "break-a", true, "a"],
+      ["touched", "touched-a", true, "a"],
+      ["break", "break-b", true, "b"],
+      ["touched", "touched-b", false, "b"],
+      ["break", "break-c", true, "c"],
+      ["break", "break-d", true, "d"],
+      ["touched", "touched-d", false, "d", "error"],
+    ]),
+  );
+
+  assert.deepEqual(summary.separated.indistinct, ["break-b"]);
+  assert.equal(summary.separated.total, 1);
+  assert.equal(summary.separated.rate, 1);
+  assert.equal(summary.breaks.rate, 1);
+});
+
+test("without a gate a missed break reports its rate and does not fail the run", () => {
+  const summary = summarizeSeeded(resultsOf([["break", "break-a", false]]));
+
+  assert.equal(summary.breaks.rate, 0);
+  assert.equal(summary.passed, true);
+});
+
+test("a gate on a run that held no break fails instead of passing on zero cases", () => {
+  assert.equal(
+    summarizeSeeded(resultsOf([["control", "control", true]]), { minCatch: 1 })
+      .passed,
+    false,
+  );
+});

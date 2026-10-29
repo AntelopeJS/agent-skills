@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "verify-antelopejs",
+      "area": "verify",
+      "style": "clean",
+      "prompt": "Prove that my change to `ajs project init` in the antelopejs repository works before I merge it. Run the CLI the way a user would, from a clean state, and give me a verdict with evidence.",
+      "expect": {
+        "skills": ["verify-antelopejs"],
+        "acceptable": ["ajs-cli"],
+        "mustMention": ["verify-ajs"]
+      }
+    },
+    {
+      "id": "verify-antelopejs-casual",
+      "area": "verify",
+      "style": "casual",
+      "prompt": "i touched project dev in antelopejs, can you prove this change works",
+      "expect": {
+        "skills": ["verify-antelopejs"],
+        "acceptable": ["ajs-cli"]
+      }
+    },
+    {
+      "id": "verify-antelopejs-neighbour",
+      "area": "verify",
+      "style": "clean",
+      "prompt": "How do I create a project with `ajs project init` from a template?",
+      "expect": {
+        "skills": ["ajs-cli"],
+        "avoid": ["verify-antelopejs"]
+      }
+    },
+    {
+      "id": "verify-dms",
+      "area": "verify",
+      "style": "clean",
+      "prompt": "Verify this pull request on the AntelopeJS DMS repository: prove the change to the dashboard works by driving it as an administrator on a clean database, and give me a verdict with evidence.",
+      "expect": {
+        "skills": ["verify-dms"],
+        "acceptable": ["dms"],
+        "mustMention": ["dms-control"]
+      }
+    },
+    {
+      "id": "verify-dms-casual",
+      "area": "verify",
+      "style": "casual",
+      "prompt": "changed the members settings page in dms, prove this change works",
+      "expect": {
+        "skills": ["verify-dms"],
+        "acceptable": ["dms"]
+      }
+    },
+    {
+      "id": "verify-dms-neighbour",
+      "area": "verify",
+      "style": "clean",
+      "prompt": "How do I add a custom page to the DMS dashboard from my module?",
+      "expect": {
+        "skills": ["dms-pages"],
+        "avoid": ["verify-dms"]
+      }
+    },
+    {
+      "id": "verify-interface",
+      "area": "verify",
+      "style": "clean",
+      "prompt": "Prove my change to this AntelopeJS interface package works: load the packed interface with a stub provider and a consumer, call every declared function through core, and check that the version bump matches the change.",
+      "expect": {
+        "skills": ["verify-interface"],
+        "acceptable": ["ajs-author-interface"],
+        "mustMention": ["every-function"]
+      }
+    },
+    {
+      "id": "verify-interface-casual",
+      "area": "verify",
+      "style": "casual",
+      "prompt": "added a function to interface-mongodb, prove this change works and the minor bump is right",
+      "expect": {
+        "skills": ["verify-interface"],
+        "acceptable": ["ajs-author-interface"]
+      }
+    },
+    {
+      "id": "verify-interface-neighbour",
+      "area": "verify",
+      "style": "clean",
+      "prompt": "How do I add a function to an interface I am authoring so that modules can implement it?",
+      "expect": {
+        "skills": ["ajs-author-interface"],
+        "avoid": ["verify-interface"]
+      }
+    },
+    {
+      "id": "verify-module",
+      "area": "verify",
+      "style": "clean",
+      "prompt": "Prove this change to the redis implementation module works: install it as local in a fixture project, run Redis in Docker, call its interfaces from a consumer module and read the stored state back with redis-cli.",
+      "expect": {
+        "skills": ["verify-module"],
+        "acceptable": ["ajs-consume-interface"],
+        "mustMention": ["module-dev"]
+      }
+    },
+    {
+      "id": "verify-module-casual",
+      "area": "verify",
+      "style": "casual",
+      "prompt": "just changed the mongodb module, prove this change works against a real mongo",
+      "expect": {
+        "skills": ["verify-module"],
+        "acceptable": ["ajs-consume-interface"]
+      }
+    },
+    {
+      "id": "verify-module-neighbour",
+      "area": "verify",
+      "style": "clean",
+      "prompt": "How does a module call the functions of an interface another module implements?",
+      "expect": {
+        "skills": ["ajs-consume-interface"],
+        "avoid": ["verify-module"]
+      }
+    },
+    {
+      "id": "verify-template",
+      "area": "verify",
+      "style": "clean",
+      "prompt": "Prove this change to the AntelopeJS template works the way a new user meets it: scaffold a project from it with `ajs project init`, install, run its checks, start it with `ajs project dev` and hit the welcome endpoint.",
+      "expect": {
+        "skills": ["verify-template"],
+        "acceptable": ["ajs-cli"],
+        "mustMention": ["scaffold-dev"]
+      }
+    },
+    {
+      "id": "verify-template-casual",
+      "area": "verify",
+      "style": "casual",
+      "prompt": "updated the template, can you prove this change works when someone inits a new project from it",
+      "expect": {
+        "skills": ["verify-template"],
+        "acceptable": ["ajs-cli"]
+      }
+    },
+    {
+      "id": "verify-template-neighbour",
+      "area": "verify",
+      "style": "clean",
+      "prompt": "Which command scaffolds a new AntelopeJS project from a template and which flags skip the questions?",
+      "expect": {
+        "skills": ["ajs-cli"],
+        "avoid": ["verify-template"]
+      }
+    }
+  ]
+}

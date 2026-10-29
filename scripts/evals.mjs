@@ -37,8 +37,9 @@ import {
   formatAnswers,
 } from "./lib/answers.mjs";
 import { verifyText } from "./lib/verify.mjs";
+import { seeded } from "./lib/seeded-command.mjs";
 
-const COMMAND_HANDLERS = { prepare, exec, score, check, lift };
+const COMMAND_HANDLERS = { prepare, exec, score, check, lift, seeded };
 const DEFAULT_BACKENDS = {
   trigger: BACKENDS.baseline,
   answers: BACKENDS.anthropic,

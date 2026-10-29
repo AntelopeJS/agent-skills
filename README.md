@@ -65,16 +65,16 @@ npx -y github:AntelopeJS/agent-skills sync
 
 ## What you get
 
-| Kind   | Name                                    | Use                                                                                              |
-| ------ | --------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Skill  | `antelopejs:eval-skills`                | Run the skill evals on a pull request or a directory and produce an Eval report                  |
-| Skill  | `antelopejs:interface <name> [subpath]` | Look up an interface contract                                                                    |
-| Skill  | `antelopejs:new-module <path>`          | Scaffold a module and wire its interfaces                                                        |
-| Skill  | `antelopejs:skills`                     | List the skills synced from the project's packages and where each comes from                     |
-| Skill  | `antelopejs:sync-skills`                | Sync those skills now                                                                            |
-| Hooks  | `SessionStart`, `PostToolUse` (Bash)    | Run the skill sync automatically (Codex: once trusted in `/hooks`)                               |
-| Script | `scripts/resolve-interface.mjs`         | The interface contract resolver, also run as `npx -y github:AntelopeJS/agent-skills interface …` |
-| CLI    | `verify`, `evals`                       | Report invented API names in an answer or a diff; score which skills a prompt triggers           |
+| Kind   | Name                                    | Use                                                                                                         |
+| ------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Skill  | `antelopejs:eval-skills`                | Run the skill evals on a pull request or a directory and produce an Eval report                             |
+| Skill  | `antelopejs:interface <name> [subpath]` | Look up an interface contract                                                                               |
+| Skill  | `antelopejs:new-module <path>`          | Scaffold a module and wire its interfaces                                                                   |
+| Skill  | `antelopejs:skills`                     | List the skills synced from the project's packages and where each comes from                                |
+| Skill  | `antelopejs:sync-skills`                | Sync those skills now                                                                                       |
+| Hooks  | `SessionStart`, `PostToolUse` (Bash)    | Run the skill sync automatically (Codex: once trusted in `/hooks`)                                          |
+| Script | `scripts/resolve-interface.mjs`         | The interface contract resolver, also run as `npx -y github:AntelopeJS/agent-skills interface …`            |
+| CLI    | `verify`, `evals`                       | Report invented API names in an answer or a diff; score which skills a prompt triggers or catch seeded bugs |
 
 Invoke the plugin's skills as `/antelopejs:<name>` in Claude Code and `$antelopejs:<name>` in Codex; both tools also pick them on their own when a request matches. They take their arguments from the request and reach the plugin's scripts relative to their own directory, so the same files serve both tools.
 
@@ -295,7 +295,7 @@ A skill only helps when the agent loads it, and a loaded skill only helps when t
 
 A case is a user prompt, the skills an agent should load for it (`expect.skills`), the ones it may load without penalty (`expect.acceptable`), the ones it must not load (`expect.avoid`, for a prompt that belongs to a neighbour), and optionally API names the answer must or must not mention and an expected behaviour (`asks-first`: ask the user before writing code, as `dms-best-practices` requires before leaving DMS blocks). `style` is `clean` (well formed) or `casual` (as typed).
 
-Cases live beside their skill, in `skills/<name>/cases.json` of the package that ships it (`{ "version": 1, "cases": [...] }`); [`evals/cases.json`](evals/cases.json) keeps the cross-package routing cases. The corpus loader collects both, and a skill's own case replaces a central case with the same id. `scripts/lib/dataset.mjs` is the schema; `pnpm test` rejects an invalid file.
+Cases live beside their skill, in `skills/<name>/cases.json` of the package that ships it (`{ "version": 1, "cases": [...] }`); [`evals/cases.json`](evals/cases.json) keeps the cross-package routing cases and [`evals/verify-cases.json`](evals/verify-cases.json) the trigger cases of the verification skills (`verify-antelopejs`, `verify-dms` and the shared `verify-interface`, `verify-module`, `verify-template`), which no package ships: their cases are skipped until `--skills` points at a checkout holding them. The corpus loader collects both, and a skill's own case replaces a central case with the same id. `scripts/lib/dataset.mjs` is the schema; `pnpm test` rejects an invalid file.
 
 Every skill needs the minimum, enforced by `evals check`: a clean and a casual should-trigger case, one should-not-trigger case (`avoid`) aimed at its nearest neighbour, and one answers case with `mustMention` or a `behaviour`. Write prompts the way users ask, from the package's docs and issues.
 
@@ -354,6 +354,31 @@ npx -y github:AntelopeJS/agent-skills evals answers --project . --out answers/
 ```
 
 The model answers each prompt with the case's expected skills loaded in full; `verify` then counts the API names it invented. The report adds the expected names the answer left out, the forbidden ones it used, and whether it asked first when it had to. `--max-invented` sets the failing rate. It needs a key (`--backend anthropic` or `openai`) and is skipped without one.
+
+### Seeded-break eval
+
+```bash
+npx -y github:AntelopeJS/agent-skills evals seeded --repo ../antelopejs --min-catch 1.0 --min-door-catch 1.0 --out seeded-run
+```
+
+A verification skill (`.agents/skills/verify-<repo>/`) is Trusted only if it catches every bug planted in it. This eval measures that with the agent that will use the skill. The checkout supplies the cases:
+
+| Case          | Patch                                                                         | The headless verifier must                                                                                             |
+| ------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `break-<f>`   | `seeded-breaks/<feature>.patch`                                               | return FAIL naming the feature                                                                                         |
+| `door-<kind>` | `seeded-doors/<kind>.patch`                                                   | name the kind in its One-way doors section (the door scan the skill defines)                                           |
+| `control`     | none, the unpatched head                                                      | not return FAIL: a false alarm fails the run (PASS, or PASS+NOTES for an empty diff)                                   |
+| `touched-<f>` | none, a blank line appended to the files of `<f>`'s patch (`--modes touched`) | not return FAIL: the feature's journeys run on correct code, which shows what a catch of the break is measured against |
+
+For each case the eval builds a scratch checkout, runs `claude -p` in it and reads the verdict the agent returns as structured output (`result`, `failedFeatures`, `notRun`, `doors`, `summary`). The prompt names the skill and the base commit and nothing about the change; the agent finds the feature the way a verifier does, through the skill's own diff-to-feature command.
+
+- **Scratch checkout.** A fresh single-commit repository of the checkout's tracked files at `--ref` (default `HEAD`), with `seeded-breaks/` and `seeded-doors/` removed, so the verifier can read neither the patches nor their history. `origin/main` points at the base commit, the diff base the skills default to; `origin` keeps the checkout's URL (verdict rendering reads it) with its push URL disabled. `--setup` runs between the base commit and the patch (default `pnpm install --frozen-lockfile --prefer-offline --ignore-scripts`); the patch becomes the one commit on top.
+- **Isolation.** The agent runs in its own process group with a temporary `HOME`, a temporary Claude config directory holding only a link to the login, and an allowlisted environment: no `GH_*`, `GITHUB_*`, `SSH_*` or other token reaches it, and `--pass-env` adds names. Settings, plugins, MCP servers and slash commands are off. Its tools are `Bash`, `Read`, `Grep` and `Glob`. The prompt forbids publishing; with no credential and no push URL nothing could be posted. The XDG cache stays the caller's, so a warm pnpm store and the skill's base builds are reused. The agent's `TMPDIR` is private to the case, and `DMS_CONTROL_RUNS` points into it, so every run a harness starts lives under one folder. When the agent ends (or a timeout kills its process group), the eval runs the harness's own stop command for each of those runs (`--teardown`; by default `dms-control down` for `verify-dms` and `verify-ajs clean` for `verify-antelopejs`), lists any process of the case that is still alive, reports it in `result.json` and fails the run, and removes the case's folders. It never kills a leftover itself.
+- **Scoring.** A break is caught when the verdict is FAIL, `failedFeatures` names the feature and none of the feature's journeys is in `notRun` (the required journeys that did not run or finish): a FAIL for a run that could not start proves nothing. With `--modes breaks,touched` the report adds the catch rate over the breaks whose touched twin does not FAIL, and lists the breaks whose twin FAILs too: on a feature that already fails on the head (known findings) a FAIL naming it cannot tell the break from them, the case V1's own `seeded` handles by excluding journeys that fail in the control. A door is caught when `doors` (the kinds of the One-way doors rows, false positives excluded) names the kind, whatever the result. A case with no verdict (timeout, budget, setup or CLI failure) is an error and counts as missed. The report prints the catch rate of the breaks and the door catch rate; `--min-catch` and `--min-door-catch` exit 1 under a ratio, and a false alarm on `control` fails the run whatever the gates, and `--min-clean` gates the `touched` cases the same way (without it they are only reported: a feature with known findings fails its verdict by the skill's own rule whenever a diff touches it).
+- **Concurrency and cost.** `--jobs` (default 3) cases at once, `--timeout` seconds per case (default 1800), `--max-budget` dollars per case (default 5), `--resume` to rerun only the cases of `--out` that errored or are missing, `--only break-x,door-y` to iterate on a few cases. Each case writes `<out>/<id>/result.json` with the verdict, wall time, turns, tokens and dollars; `summary.json` and `report.md` sum them up. `--keep-scratch` keeps the checkouts.
+- **Runtime.** `claude -p` with `--model claude-sonnet-5-5 --effort medium`, because it takes a tool allowlist, a JSON schema for the final answer, a dollar cap and a config directory switch, and reports tokens, turns and dollars per call. `codex exec` has an output schema and a sandbox but no cost cap and no per-call dollars. Sonnet was enough. Measured on the 37 cases of `verify-antelopejs` (2026-10-29, `claude` 2.1.312): $0.07 per case on average ($0.06 to $0.13, $2.69 for all 37), a median of 7 turns (3 to 12), about 75,000 input tokens of which 86% were cache reads, 1,700 output tokens, and a median of 0.8 minutes of wall time (0.4 to 19 on a busy machine). A case that needs a long journey, such as `project-dev`, takes longer, not more tokens.
+
+The verifier runs with the caller's `PATH`, so the tools the skill needs (the pnpm its `packageManager` names, Docker, Node) must resolve there. `--cache-home` gives it a dedicated XDG cache instead of the caller's, which keeps other sessions out of a skill's warm store; run one case first (`--only control`) so the cache is warm before three cases share it, then `--resume`.
 
 ### `verify`
 
