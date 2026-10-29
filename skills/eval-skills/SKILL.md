@@ -36,6 +36,10 @@ When a touched skill misses its should-trigger cases or a neighbour keeps being 
 
 To measure whether a skill earns its place, run the answers eval twice and compare: `EVALS prepare --out $work/with --modes answers ...`, `EVALS prepare --out $work/without --modes answers --no-skills ...`, execute both, then `EVALS lift $work/with $work/without`. It prints per skill and model the share of answers cases passing with and without, and the lift. A skill whose mean lift is not above zero has none: report it as a line to merge or delete. Nothing is committed or posted.
 
+## Seeded breaks
+
+To measure whether a repo's verification skill catches the bugs planted in it, run `EVALS seeded --repo <checkout> --min-catch 1.0 --min-door-catch 1.0 --out $work/seeded`. A headless `claude -p` verifier follows the skill on a scratch copy of the checkout once per `seeded-breaks/<feature>.patch` (it must return FAIL naming the feature) and once per `seeded-doors/<kind>.patch` (its One-way doors section must name the kind), and once on the unpatched head (it must not return FAIL). Add `--modes breaks,doors,control,touched` for the false-alarm twins. It needs the local `claude` login and no key, runs three cases at a time, and prints the catch rates and the cost per case. Never restate or adjust a rate; paste the printed lines.
+
 ## After the result
 
 A red result blocks the pull request. Improve the skill or the case, then run again, at most 3 rounds, and then stop and report what still fails. Contributors without a Thread can run the same flow on their own machine and paste the report; it helps the maintainer decide, and never replaces the run before merge. With a key of their own, `EVALS --backend anthropic` or `--backend openai` runs the same evals directly.

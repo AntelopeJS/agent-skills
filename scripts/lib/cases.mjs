@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { loadDataset, DATASET_FILE } from "./dataset.mjs";
+import { loadDataset, CENTRAL_FILES } from "./dataset.mjs";
 
 export const SKILL_CASES_FILE = "cases.json";
 export const CENTRAL_SOURCE = "central";
@@ -15,8 +15,13 @@ function withSource(cases, source) {
  * own `cases.json`. A case id found twice keeps the skill-side case, so a
  * package can take over a central case without a second copy running.
  */
-export function loadCases({ skills, centralFile = DATASET_FILE }) {
-  const central = withSource(loadDataset(centralFile).cases, CENTRAL_SOURCE);
+export function loadCases({ skills, centralFile }) {
+  const central = withSource(
+    (centralFile ? [centralFile] : CENTRAL_FILES).flatMap(
+      (file) => loadDataset(file).cases,
+    ),
+    CENTRAL_SOURCE,
+  );
   const own = skills
     .filter((skill) => existsSync(join(skill.dir, SKILL_CASES_FILE)))
     .flatMap((skill) =>

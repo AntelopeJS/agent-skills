@@ -53,26 +53,59 @@ function scrubbedEnv(env) {
   );
 }
 
-/** Runs a command with `input` on stdin; resolves with its stdout. */
-export function spawnRun({ command, args, input, env, cwd, timeoutMs }) {
+function killTree(child, group) {
+  try {
+    if (group) process.kill(-child.pid, "SIGKILL");
+    else child.kill("SIGKILL");
+  } catch {
+    child.kill("SIGKILL");
+  }
+}
+
+/**
+ * Runs a command with `input` on stdin; resolves with its stdout. With
+ * `group`, the command leads its own process group and a timeout or a finished
+ * run kills the whole group, so processes it started do not outlive it. A
+ * rejection carries the `stdout` and whether it `timedOut`.
+ */
+export function spawnRun({
+  command,
+  args,
+  input,
+  env,
+  cwd,
+  timeoutMs,
+  group = false,
+}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd,
       env,
+      detached: group,
       stdio: ["pipe", "pipe", "pipe"],
     });
     const out = [];
     const err = [];
-    const timer = setTimeout(() => child.kill("SIGKILL"), timeoutMs);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      killTree(child, group);
+    }, timeoutMs);
     child.stdout.on("data", (chunk) => out.push(chunk));
     child.stderr.on("data", (chunk) => err.push(chunk));
     child.on("error", reject);
     child.on("close", (code, signal) => {
       clearTimeout(timer);
+      if (group) killTree(child, group);
       const stdout = Buffer.concat(out).toString("utf8");
       if (code === 0) return resolve({ stdout });
       const tail = Buffer.concat(err).toString("utf8").trim().slice(-400);
-      reject(new Error(`${command} exited with ${code ?? signal}: ${tail}`));
+      reject(
+        Object.assign(
+          new Error(`${command} exited with ${code ?? signal}: ${tail}`),
+          { stdout, timedOut },
+        ),
+      );
     });
     child.stdin.on("error", () => undefined);
     child.stdin.end(input);
@@ -218,7 +251,7 @@ function prepareCodexHome(root) {
   return home;
 }
 
-async function pool(items, limit, worker) {
+export async function pool(items, limit, worker) {
   const queue = [...items];
   const workers = Array.from(
     { length: Math.min(limit, queue.length) },
