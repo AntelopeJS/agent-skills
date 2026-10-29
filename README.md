@@ -219,6 +219,7 @@ agent-skills/
     verify.mjs             # API names of an answer or diff vs the installed .d.ts
     evals.mjs              # trigger and answer-quality evals
     lib/                   # corpus loader, dataset schema, baseline, scoring, backends, prepare/exec/score
+      resolver/            # modules of resolve-interface.mjs: discovery, registry, surface, targets, commands
   evals/
     cases.json             # cross-package routing cases (the skills' own cases live beside them)
     commands/<skill>/      # rubric cases of the plugin's workflow skills

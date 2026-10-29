@@ -1,6 +1,6 @@
 {
   "rules": {
-    "anti-slop/no-runtime-typeof": 4
+    "anti-slop/no-runtime-typeof": 3
   },
   "oversizeFiles": {}
 }
