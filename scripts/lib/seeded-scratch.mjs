@@ -11,13 +11,29 @@ import { join } from "node:path";
 
 import { SKILLS_DIR } from "./seeded-cases.mjs";
 
+/**
+ * The scratch checkout one case runs in: its folder, the checkout inside it and
+ * the base and head commits.
+ * @typedef {object} Scratch
+ * @property {string} base
+ * @property {string} dir
+ * @property {string} baseSha
+ * @property {string} headSha
+ */
+
 export const DEFAULT_SETUP =
   "pnpm install --frozen-lockfile --prefer-offline --ignore-scripts";
+/** @type {string[]} */
 const AUTHOR = ["-c", "user.name=seeded-eval", "-c", "user.email=eval@invalid"];
 const SETUP_TIMEOUT_MS = 900_000;
 const HIDDEN = ["seeded-breaks", "seeded-doors"];
 const NO_PUSH_URL = "file:///seeded-eval-push-disabled";
 
+/**
+ * @param {string} dir
+ * @param {string} patch
+ * @returns {string[]}
+ */
 function pathsOf(dir, patch) {
   return git(dir, ["apply", "--numstat", patch])
     .split("\n")
@@ -25,11 +41,20 @@ function pathsOf(dir, patch) {
     .filter(Boolean);
 }
 
+/**
+ * @param {string} dir
+ * @param {string} patch
+ * @returns {void}
+ */
 function touchFiles(dir, patch) {
   for (const path of pathsOf(dir, patch))
     if (existsSync(join(dir, path))) appendFileSync(join(dir, path), "\n");
 }
 
+/**
+ * @param {string} checkout
+ * @returns {string | undefined}
+ */
 function originOf(checkout) {
   try {
     return git(checkout, ["remote", "get-url", "origin"]);
@@ -38,6 +63,11 @@ function originOf(checkout) {
   }
 }
 
+/**
+ * @param {string} cwd
+ * @param {string[]} args
+ * @returns {string}
+ */
 function git(cwd, args) {
   return execFileSync("git", [...AUTHOR, ...args], {
     cwd,
@@ -46,7 +76,11 @@ function git(cwd, args) {
   }).trim();
 }
 
-/** Environment of the setup command: the caller's, with `CI` set. The caller strips the credentials (`withoutCredentials`, applied in seeded-command.mjs). */
+/**
+ * Environment of the setup command: the caller's, with `CI` set. The caller strips the credentials (`withoutCredentials`, applied in seeded-command.mjs).
+ * @param {NodeJS.ProcessEnv} env
+ * @returns {NodeJS.ProcessEnv}
+ */
 function setupEnv(env) {
   return { ...env, CI: "1" };
 }
@@ -59,6 +93,16 @@ function setupEnv(env) {
  * disabled; `origin/main` points at the base commit, the diff base the skills
  * default to. The case's patch, when
  * there is one, becomes the commit on top of it. `setup` runs between the two.
+ * @param {object} request
+ * @param {string} request.checkout
+ * @param {string} request.skill
+ * @param {string} [request.patch]
+ * @param {boolean} [request.touch]
+ * @param {string} [request.ref]
+ * @param {string} [request.root]
+ * @param {string | null} [request.setup] The shell command to run, or nothing to skip it.
+ * @param {NodeJS.ProcessEnv} [request.env]
+ * @returns {Scratch}
  */
 export function createScratch({
   checkout,
@@ -113,6 +157,10 @@ export function createScratch({
   }
 }
 
+/**
+ * @param {Pick<Scratch, "base">} scratch
+ * @returns {void}
+ */
 export function removeScratch(scratch) {
   rmSync(scratch.base, { recursive: true, force: true });
 }
