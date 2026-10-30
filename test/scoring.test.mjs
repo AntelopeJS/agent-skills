@@ -3,8 +3,15 @@ import assert from "node:assert/strict";
 
 import { scoreCase, summarize, formatTable } from "../scripts/lib/scoring.mjs";
 
+/** @typedef {import("../scripts/lib/dataset.mjs").EvalCase} EvalCase */
+
 const CORPUS = new Set(["dms-pages", "dms-best-practices", "dms", "dms-auth"]);
 
+/**
+ * @param {string[]} skills
+ * @param {string[]} [acceptable]
+ * @returns {EvalCase}
+ */
 function evalCase(skills, acceptable = []) {
   return {
     id: "c",

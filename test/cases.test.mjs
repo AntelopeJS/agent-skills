@@ -12,6 +12,7 @@ import {
   writeJson,
 } from "./helpers.mjs";
 
+/** @type {string} */
 let root;
 
 beforeEach(() => {
@@ -22,12 +23,20 @@ afterEach(() => {
   removeDir(root);
 });
 
+/**
+ * @param {import("../scripts/lib/dataset.mjs").EvalCase[]} cases
+ * @returns {string}
+ */
 function writeCentral(cases) {
   const file = join(root, "central.json");
   writeJson(file, { version: 1, cases });
   return file;
 }
 
+/**
+ * @param {string} name
+ * @param {import("../scripts/lib/dataset.mjs").EvalCase[]} cases
+ */
 function skillWithCases(name, cases) {
   const dir = join(root, "skills", name);
   writeJson(join(dir, "cases.json"), { version: 1, cases });

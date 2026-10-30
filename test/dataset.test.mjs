@@ -15,6 +15,10 @@ const VALID_CASE = {
   expect: { skills: ["dms-pages"] },
 };
 
+/**
+ * @param {unknown} cases
+ * @returns {string[]}
+ */
 function errorsOf(cases) {
   return validateDataset({ version: 1, cases });
 }
