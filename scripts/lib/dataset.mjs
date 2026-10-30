@@ -163,26 +163,35 @@ function unknownKeys(value, allowed, prefix) {
 }
 
 /**
+ * @param {unknown} value
+ * @returns {unknown[]}
+ */
+function listOf(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+/**
  * @param {unknown} expect
  * @returns {string[]}
  */
 function expectErrors(expect) {
   if (!isRecord(expect)) return ["expect must be an object"];
-  const allowed = [...(expect.skills ?? []), ...(expect.acceptable ?? [])];
-  const overlap = (expect.acceptable ?? []).filter((name) =>
-    expect.skills?.includes(name),
+  const skills = listOf(expect.skills);
+  const allowed = [...skills, ...listOf(expect.acceptable)];
+  const overlap = listOf(expect.acceptable).filter((name) =>
+    skills.includes(name),
   );
-  const contradiction = (expect.avoid ?? []).filter((name) =>
+  const contradiction = listOf(expect.avoid).filter((name) =>
     allowed.includes(name),
   );
   return [
     ...checkFields(expect, EXPECT_FIELDS, "expect."),
     ...unknownKeys(expect, EXPECT_KEYS, "expect."),
     ...overlap.map(
-      (name) => `expect.acceptable repeats the expected skill ${name}`,
+      (name) => "expect.acceptable repeats the expected skill " + name,
     ),
     ...contradiction.map(
-      (name) => `expect.avoid lists ${name}, which the case also allows`,
+      (name) => "expect.avoid lists " + name + ", which the case also allows",
     ),
   ];
 }
