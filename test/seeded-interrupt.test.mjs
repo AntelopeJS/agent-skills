@@ -3,16 +3,33 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 
+import { readJsonFile } from "../scripts/lib/json.mjs";
+import { fieldOf } from "../scripts/lib/safe-read.mjs";
 import { makeTempDir, removeDir } from "./helpers.mjs";
-import { exists, listDir, readJson, readText } from "./helpers/read.mjs";
+import { exists, listDir, readText } from "./helpers/read.mjs";
 import { makeSeededRepo } from "./helpers/seeded-repo.mjs";
-import { makeSleepingAgent, recordsOf } from "./helpers/sleeping-agent.mjs";
+import {
+  makeSleepingAgent,
+  readAgentRecord,
+  recordsOf,
+} from "./helpers/sleeping-agent.mjs";
+
+/**
+ * How an eval run ended: its exit code or signal, and what it printed.
+ * @typedef {object} EvalExit
+ * @property {number | null} code
+ * @property {NodeJS.Signals | null} signal
+ * @property {string} stdout
+ */
+
+/** @typedef {import("node:child_process").ChildProcess} ChildProcess */
 
 const SCRIPT = join(import.meta.dirname, "..", "scripts", "evals.mjs");
 const POLL_MS = 25;
 const WAIT_MS = 15_000;
-let repo;
-let work;
+let repo = "";
+let work = "";
+/** @type {ChildProcess[]} */
 const evals = [];
 
 afterEach(() => {
@@ -24,9 +41,13 @@ afterEach(() => {
     killQuietly(Number(readText(join(work, "td.sleep"))));
   if (repo) removeDir(repo);
   if (work) removeDir(work);
-  repo = work = undefined;
+  repo = work = "";
 });
 
+/**
+ * @param {number} pid
+ * @returns {void}
+ */
 function killQuietly(pid) {
   try {
     process.kill(pid, "SIGKILL");
@@ -35,15 +56,23 @@ function killQuietly(pid) {
   }
 }
 
+/**
+ * @param {string} file
+ * @returns {number[]}
+ */
 function pidsOf(file) {
   try {
-    const record = readJson(file);
+    const record = readAgentRecord(file);
     return [record.agent, record.child, record.harness];
   } catch {
     return [];
   }
 }
 
+/**
+ * @param {number} pid
+ * @returns {boolean}
+ */
 function alive(pid) {
   try {
     process.kill(pid, 0);
@@ -53,6 +82,10 @@ function alive(pid) {
   }
 }
 
+/**
+ * @param {() => boolean} condition
+ * @returns {Promise<void>}
+ */
 async function until(condition) {
   const deadline = Date.now() + WAIT_MS;
   while (!condition()) {
@@ -65,6 +98,10 @@ function agentRecords() {
   return recordsOf(work);
 }
 
+/**
+ * @param {(dir: string) => string} teardownOf
+ * @returns {{ child: ChildProcess, closed: Promise<EvalExit> }}
+ */
 function startEval(teardownOf) {
   repo = makeSeededRepo();
   work = makeTempDir();
@@ -91,8 +128,10 @@ function startEval(teardownOf) {
     { stdio: ["ignore", "pipe", "pipe"] },
   );
   evals.push(child);
+  /** @type {Buffer[]} */
   const stdout = [];
-  child.stdout.on("data", (chunk) => stdout.push(chunk));
+  child.stdout.on("data", (/** @type {Buffer} */ chunk) => stdout.push(chunk));
+  /** @type {Promise<EvalExit>} */
   const closed = new Promise((resolve) =>
     child.on("close", (code, signal) =>
       resolve({ code, signal, stdout: Buffer.concat(stdout).toString() }),
@@ -134,16 +173,20 @@ void test("an interrupted eval kills each agent and its children, stops the runs
     listDir(work).filter((name) => name.startsWith("seeded-")),
     [],
   );
-  const { results, summary } = readJson(join(work, "out", "summary.json"));
+  const written = readJsonFile(join(work, "out", "summary.json"));
+  const results = fieldOf(written, "results");
+  const interrupted = fieldOf(fieldOf(written, "summary"), "interrupted");
+  assert.ok(Array.isArray(results));
+  assert.ok(Array.isArray(interrupted));
   assert.deepEqual(
-    results.map((result) => result.status),
+    results.map((result) => fieldOf(result, "status")),
     ["interrupted", "interrupted", "interrupted"],
   );
   assert.deepEqual(
-    results.flatMap((result) => result.leaked ?? []),
+    results.flatMap((result) => fieldOf(result, "leaked") ?? []),
     [],
   );
-  assert.equal(summary.interrupted.length, 3);
+  assert.equal(interrupted.length, 3);
   assert.match(stdout, /INTERRUPTED/);
 });
 

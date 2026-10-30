@@ -10,6 +10,7 @@ import {
 import { removeDir } from "./helpers.mjs";
 import { makeSeededRepo } from "./helpers/seeded-repo.mjs";
 
+/** @type {string | undefined} */
 let repo;
 
 afterEach(() => {
@@ -31,7 +32,7 @@ void test("a repo yields a case per seeded break, per seeded door, the unpatched
       ["touched-alpha", "touched", "alpha"],
     ],
   );
-  assert.ok(cases[0].patch.endsWith("seeded-breaks/alpha.patch"));
+  assert.ok(cases[0].patch?.endsWith("seeded-breaks/alpha.patch"));
   assert.equal(cases[2].patch, undefined);
 });
 
@@ -60,9 +61,10 @@ void test("modes and ids narrow the cases, and an id of another mode never leaks
 });
 
 void test("the verification skill is the only verify-* directory, or the one --skill names", () => {
-  repo = makeSeededRepo();
+  const checkout = makeSeededRepo();
+  repo = checkout;
 
-  assert.deepEqual(verifySkillsOf(repo), ["verify-demo"]);
-  assert.equal(pickSkill(repo, undefined), "verify-demo");
-  assert.throws(() => pickSkill(repo, "verify-other"), /verify-other/);
+  assert.deepEqual(verifySkillsOf(checkout), ["verify-demo"]);
+  assert.equal(pickSkill(checkout, undefined), "verify-demo");
+  assert.throws(() => pickSkill(checkout, "verify-other"), /verify-other/);
 });

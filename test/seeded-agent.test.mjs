@@ -15,6 +15,8 @@ import {
 } from "../scripts/lib/seeded-agent.mjs";
 import { exists } from "./helpers/read.mjs";
 
+/** @typedef {import("../scripts/lib/executors.mjs").SpawnCall} SpawnCall */
+
 const SCRATCH = { dir: "/nowhere", baseSha: "abc123" };
 const HOME = {
   home: "/tmp/agent/home",
@@ -124,6 +126,10 @@ void test("the headless call is pinned, tool-limited, budget-capped and returns 
     effort: "medium",
     maxBudget: 3,
   });
+  /**
+   * @param {string} flag
+   * @returns {string}
+   */
   const after = (flag) => args[args.indexOf(flag) + 1];
 
   assert.equal(input, "go");
@@ -153,10 +159,10 @@ void test("the prompt names the skill and the base, forbids publishing, and does
 void test("the output gives the verdict, cost, tokens and models", () => {
   const parsed = parseAgentOutput(JSON.stringify(REPLY));
 
-  assert.equal(parsed.verdict.result, "FAIL");
-  assert.deepEqual(parsed.verdict.failedFeatures, ["alpha"]);
-  assert.deepEqual(parsed.verdict.notRun, ["beta/x"]);
-  assert.deepEqual(parsed.verdict.passed, ["alpha/y"]);
+  assert.equal(parsed.verdict?.result, "FAIL");
+  assert.deepEqual(parsed.verdict?.failedFeatures, ["alpha"]);
+  assert.deepEqual(parsed.verdict?.notRun, ["beta/x"]);
+  assert.deepEqual(parsed.verdict?.passed, ["alpha/y"]);
   assert.equal(parsed.costUsd, 0.25);
   assert.equal(parsed.turns, 9);
   assert.deepEqual(parsed.tokens, {
@@ -169,10 +175,14 @@ void test("the output gives the verdict, cost, tokens and models", () => {
 });
 
 void test("an error reply, a missing structured verdict and an unknown result give no verdict", () => {
+  /**
+   * @param {unknown} reply
+   * @returns {import("../scripts/lib/seeded-agent.mjs").AgentOutput}
+   */
   const bad = (reply) => parseAgentOutput(JSON.stringify(reply));
 
   assert.equal(bad({ is_error: true, result: "budget" }).verdict, undefined);
-  assert.match(bad({ is_error: true, result: "budget" }).error, /budget/);
+  assert.match(bad({ is_error: true, result: "budget" }).error ?? "", /budget/);
   assert.equal(bad({ result: "text only" }).verdict, undefined);
   assert.equal(
     bad({ structured_output: { ...REPLY.structured_output, result: "MAYBE" } })
@@ -181,7 +191,7 @@ void test("an error reply, a missing structured verdict and an unknown result gi
   );
   const { notRun: _omitted, ...withoutNotRun } = REPLY.structured_output;
   assert.equal(bad({ structured_output: withoutNotRun }).verdict, undefined);
-  assert.match(parseAgentOutput("not json").error, /no JSON/);
+  assert.match(parseAgentOutput("not json").error ?? "", /no JSON/);
 });
 
 void test("a run that times out reports it, whatever it printed", async () => {
@@ -206,7 +216,9 @@ void test("a run that times out reports it, whatever it printed", async () => {
 });
 
 void test("the run is a process group in the scratch checkout with the capped wall time", async () => {
+  /** @type {SpawnCall[]} */
   const calls = [];
+  /** @type {import("../scripts/lib/executors.mjs").SpawnRunner} */
   const run = async (call) => {
     calls.push(call);
     return { stdout: JSON.stringify(REPLY) };
@@ -220,7 +232,7 @@ void test("the run is a process group in the scratch checkout with the capped wa
     run,
   });
 
-  assert.equal(outcome.verdict.result, "FAIL");
+  assert.equal(outcome.verdict?.result, "FAIL");
   assert.equal(calls[0].cwd, "/nowhere");
   assert.equal(calls[0].group, true);
   assert.equal(calls[0].timeoutMs, 7000);

@@ -15,8 +15,15 @@ import { makeTempDir, removeDir } from "./helpers.mjs";
 import { exists, readText } from "./helpers/read.mjs";
 import { makeSeededRepo } from "./helpers/seeded-repo.mjs";
 
+/** @typedef {import("node:child_process").ChildProcess} ChildProcess */
+/** @typedef {import("../scripts/lib/executors.mjs").SpawnRunner} SpawnRunner */
+/** @typedef {import("../scripts/lib/seeded-run.mjs").SeededOptions} SeededOptions */
+
+/** @type {string | undefined} */
 let repo;
+/** @type {string | undefined} */
 let work;
+/** @type {ChildProcess[]} */
 const children = [];
 
 afterEach(() => {
@@ -26,6 +33,10 @@ afterEach(() => {
   repo = work = undefined;
 });
 
+/**
+ * @param {string} marker
+ * @returns {ChildProcess}
+ */
 function sleeper(marker) {
   const child = spawn(
     process.execPath,
@@ -36,7 +47,13 @@ function sleeper(marker) {
   return child;
 }
 
+/**
+ * @param {SpawnRunner} run
+ * @param {{ teardown?: string }} [extra]
+ * @returns {SeededOptions}
+ */
 function optionsOf(run, extra = {}) {
+  assert.ok(work);
   return {
     jobs: 1,
     model: "m",
@@ -76,7 +93,7 @@ void test("a stop command that fails is reported and does not throw", async () =
   });
 
   assert.equal(outcome.ran, true);
-  assert.match(outcome.error, /broken/);
+  assert.match(outcome.error ?? "", /broken/);
   assert.deepEqual(await runTeardown({ cwd: ".", env: {}, runs: "/r" }), {
     ran: false,
   });
@@ -108,7 +125,9 @@ void test("every case stops its runs after the agent, even when the agent died, 
   const cases = discoverCases(repo, "verify-demo").filter(
     (item) => item.kind === "break",
   );
+  /** @type {SpawnRunner} */
   const run = async ({ env }) => {
+    assert.ok(env.TMPDIR);
     sleeper(env.TMPDIR);
     throw Object.assign(new Error("killed"), { stdout: "", timedOut: true });
   };
@@ -130,8 +149,8 @@ void test("every case stops its runs after the agent, even when the agent died, 
       work.startsWith("/tmp") ? "/tmp/seeded-tmp-" : "/",
     ),
   );
-  assert.equal(result.teardown.ran, true);
-  assert.equal(result.leaked.length, 1);
+  assert.equal(result.teardown?.ran, true);
+  assert.equal(result.leaked?.length, 1);
   assert.equal(exists(join(work, "out", "break-alpha", "result.json")), true);
 });
 
@@ -141,8 +160,11 @@ void test("a stop command that really stops the process leaves no leak and the f
   const cases = discoverCases(repo, "verify-demo").filter(
     (item) => item.kind === "break",
   );
+  /** @type {ChildProcess | undefined} */
   let started;
+  /** @type {SpawnRunner} */
   const run = async ({ env }) => {
+    assert.ok(env.TMPDIR);
     started = sleeper(env.TMPDIR);
     writeFileSync(join(env.TMPDIR, "pid"), String(started.pid));
     return { stdout: "{}" };
@@ -158,7 +180,7 @@ void test("a stop command that really stops the process leaves no leak and the f
     }),
   });
 
-  assert.ok(started.pid);
+  assert.ok(started?.pid);
   assert.deepEqual(result.leaked, []);
   assert.equal(exists(join(work, "seeded-eval-")), false);
 });
