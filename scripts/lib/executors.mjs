@@ -19,6 +19,112 @@ import {
   readRequest,
   writeAnswer,
 } from "./requests.mjs";
+import { parseJson } from "./json.mjs";
+import { isRecord, isText } from "./values.mjs";
+
+/** @typedef {import("./matrix.mjs").MatrixEntry} MatrixEntry */
+/** @typedef {import("./model.mjs").ModelRequest} ModelRequest */
+/** @typedef {import("./requests.mjs").RunTask} RunTask */
+
+/**
+ * One command to run: what to execute, what to feed it, where and for how long.
+ * @typedef {object} SpawnCall
+ * @property {string} command
+ * @property {string[]} args
+ * @property {string} input Written to the command's stdin.
+ * @property {NodeJS.ProcessEnv} env
+ * @property {string} cwd
+ * @property {number} timeoutMs
+ * @property {boolean} [group] Whether the command leads its own process group.
+ * @property {AbortSignal} [signal]
+ */
+
+/**
+ * @typedef {object} SpawnResult
+ * @property {string} stdout
+ */
+
+/**
+ * Runs a command; `spawnRun` is the real one.
+ * @typedef {(call: SpawnCall) => Promise<SpawnResult>} SpawnRunner
+ */
+
+/**
+ * What a run that failed carries besides the error message.
+ * @typedef {Error & { stdout: string, timedOut: boolean, interrupted: boolean }} SpawnFailure
+ */
+
+/**
+ * A command line and the text it reads on stdin.
+ * @typedef {object} Invocation
+ * @property {string[]} args
+ * @property {string} input
+ */
+
+/**
+ * The files `codex exec` writes its reply to and reads its schema from.
+ * @typedef {object} CodexFiles
+ * @property {string} out
+ * @property {string} schema
+ */
+
+/**
+ * What an executor returned for a request: the reply and the models the CLI says served it.
+ * @typedef {object} ExecutorReply
+ * @property {string} text
+ * @property {string[]} models
+ */
+
+/**
+ * The binary to run per executor name.
+ * @typedef {Record<string, string>} ExecutorBins
+ */
+
+/**
+ * @typedef {object} ExecOptions
+ * @property {number} [jobs]
+ * @property {number} [timeoutMs]
+ * @property {ExecutorBins} [bins]
+ * @property {SpawnRunner} [run]
+ */
+
+/**
+ * @typedef {object} ExecContext
+ * @property {SpawnRunner} run
+ * @property {ExecutorBins} bins
+ * @property {number} timeoutMs
+ * @property {string} codexHome
+ */
+
+/**
+ * A task that failed after its retry and the message of its last error.
+ * @typedef {object} ExecFailure
+ * @property {RunTask} task
+ * @property {string} error
+ */
+
+/**
+ * @typedef {object} ExecResult
+ * @property {number} executed
+ * @property {ExecFailure[]} failed
+ */
+
+/**
+ * `executor.json`: how a model's answers were produced.
+ * @typedef {object} ExecutorRecord
+ * @property {string} executor
+ * @property {string | null} requestedModel
+ * @property {string | null} effort
+ * @property {string[]} observedModels
+ * @property {string} cli
+ * @property {string[]} sanitization
+ * @property {string} at
+ */
+
+/**
+ * The record of a model, or an empty one when no run wrote it yet.
+ * @typedef {ExecutorRecord | Record<string, never>} StoredExecutorRecord
+ */
 
 export const DEFAULT_JOBS = 4;
 const DEFAULT_TIMEOUT_MS = 300_000;
@@ -26,7 +132,10 @@ const ATTEMPTS = 2;
 const SCRUBBED_ENV_RE = /^(?:CLAUDECODE|CLAUDE_(?!CONFIG_DIR$).*|AI_AGENT)$/;
 const EXECUTOR_FILE = "executor.json";
 
-/** What each local executor does so that none loads the user's own setup. */
+/**
+ * What each local executor does so that none loads the user's own setup.
+ * @type {Record<string, string[]>}
+ */
 export const SANITIZATION = {
   claude: [
     "empty temporary working directory",
@@ -47,15 +156,24 @@ export const SANITIZATION = {
   ],
 };
 
+/**
+ * @param {NodeJS.ProcessEnv} env
+ * @returns {NodeJS.ProcessEnv}
+ */
 function scrubbedEnv(env) {
   return Object.fromEntries(
     Object.entries(env).filter(([name]) => !SCRUBBED_ENV_RE.test(name)),
   );
 }
 
+/**
+ * @param {import("node:child_process").ChildProcess} child
+ * @param {boolean} group
+ * @returns {void}
+ */
 function killTree(child, group) {
   try {
-    if (group) process.kill(-child.pid, "SIGKILL");
+    if (group && child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
     else child.kill("SIGKILL");
   } catch {
     child.kill("SIGKILL");
@@ -69,6 +187,8 @@ function killTree(child, group) {
  * `signal` aborts, the command (its whole group with `group`) is killed and the
  * run rejects with `interrupted` set. A rejection carries the `stdout` and
  * whether it `timedOut`.
+ * @param {SpawnCall} call
+ * @returns {Promise<SpawnResult>}
  */
 export function spawnRun({
   command,
@@ -87,7 +207,9 @@ export function spawnRun({
       detached: group,
       stdio: ["pipe", "pipe", "pipe"],
     });
+    /** @type {Buffer[]} */
     const out = [];
+    /** @type {Buffer[]} */
     const err = [];
     let timedOut = false;
     let interrupted = false;
@@ -101,8 +223,14 @@ export function spawnRun({
     };
     if (signal?.aborted) onAbort();
     else signal?.addEventListener("abort", onAbort, { once: true });
-    child.stdout.on("data", (chunk) => out.push(chunk));
-    child.stderr.on("data", (chunk) => err.push(chunk));
+    child.stdout.on(
+      "data",
+      /** @param {Buffer} chunk */ (chunk) => out.push(chunk),
+    );
+    child.stderr.on(
+      "data",
+      /** @param {Buffer} chunk */ (chunk) => err.push(chunk),
+    );
     child.on("error", reject);
     child.on("close", (code, killedBy) => {
       clearTimeout(timer);
@@ -123,7 +251,13 @@ export function spawnRun({
   });
 }
 
-/** The `claude -p` call for one request, as a command line and its stdin. */
+/**
+ * The `claude -p` call for one request, as a command line and its stdin.
+ * @param {MatrixEntry} entry
+ * @param {ModelRequest} request
+ * @param {string} systemFile
+ * @returns {Invocation}
+ */
 export function claudeInvocation(entry, request, systemFile) {
   return {
     args: [
@@ -150,7 +284,11 @@ export function claudeInvocation(entry, request, systemFile) {
   };
 }
 
-/** The prompt `codex exec` gets: Codex has no system prompt option. */
+/**
+ * The prompt `codex exec` gets: Codex has no system prompt option.
+ * @param {ModelRequest} request
+ * @returns {string}
+ */
 export function codexPrompt(request) {
   return [
     `<instructions>\n${request.system.trim()}\n</instructions>`,
@@ -159,7 +297,13 @@ export function codexPrompt(request) {
   ].join("\n\n");
 }
 
-/** The `codex exec` call for one request, as a command line and its stdin. */
+/**
+ * The `codex exec` call for one request, as a command line and its stdin.
+ * @param {MatrixEntry} entry
+ * @param {ModelRequest} request
+ * @param {CodexFiles} files
+ * @returns {Invocation}
+ */
 export function codexInvocation(entry, request, files) {
   return {
     args: [
@@ -183,16 +327,29 @@ export function codexInvocation(entry, request, files) {
   };
 }
 
+/**
+ * @param {string} stdout
+ * @returns {ExecutorReply}
+ */
 function parseClaude(stdout) {
-  const result = JSON.parse(stdout);
+  const result = parseJson(stdout);
+  if (!isRecord(result)) throw new Error("claude printed no JSON object");
   if (result.is_error)
-    throw new Error(`claude reported an error: ${result.result}`);
+    throw new Error("claude reported an error: " + result.result);
+  if (!isText(result.result)) throw new Error("claude gave no result text");
   return {
     text: result.result,
-    models: Object.keys(result.modelUsage ?? {}),
+    models: isRecord(result.modelUsage) ? Object.keys(result.modelUsage) : [],
   };
 }
 
+/**
+ * @param {ExecContext} context
+ * @param {MatrixEntry} entry
+ * @param {ModelRequest} request
+ * @param {string} scratch
+ * @returns {Promise<ExecutorReply>}
+ */
 async function runClaude(context, entry, request, scratch) {
   const systemFile = join(scratch, "system.txt");
   writeFileSync(systemFile, request.system);
@@ -208,6 +365,13 @@ async function runClaude(context, entry, request, scratch) {
   return parseClaude(stdout);
 }
 
+/**
+ * @param {ExecContext} context
+ * @param {MatrixEntry} entry
+ * @param {ModelRequest} request
+ * @param {string} scratch
+ * @returns {Promise<ExecutorReply>}
+ */
 async function runCodex(context, entry, request, scratch) {
   const files = {
     out: join(scratch, "reply.txt"),
@@ -227,8 +391,19 @@ async function runCodex(context, entry, request, scratch) {
   return { text: readFileSync(files.out, "utf8"), models: [] };
 }
 
+/**
+ * @typedef {(context: ExecContext, entry: MatrixEntry, request: ModelRequest, scratch: string) => Promise<ExecutorReply>} Runner
+ */
+
+/** @type {Record<string, Runner>} */
 const RUNNERS = { claude: runClaude, codex: runCodex };
 
+/**
+ * @param {ExecContext} context
+ * @param {MatrixEntry} entry
+ * @param {ModelRequest} request
+ * @returns {Promise<ExecutorReply>}
+ */
 async function execute(context, entry, request) {
   const scratch = mkdtempSync(join(tmpdir(), "ajs-eval-job-"));
   try {
@@ -238,7 +413,14 @@ async function execute(context, entry, request) {
   }
 }
 
+/**
+ * @param {ExecContext} context
+ * @param {MatrixEntry} entry
+ * @param {ModelRequest} request
+ * @returns {Promise<ExecutorReply>}
+ */
 async function attempt(context, entry, request) {
+  /** @type {unknown} */
   let last;
   for (let tries = 0; tries < ATTEMPTS; tries += 1) {
     try {
@@ -250,6 +432,10 @@ async function attempt(context, entry, request) {
   throw last;
 }
 
+/**
+ * @param {string} root
+ * @returns {string}
+ */
 function prepareCodexHome(root) {
   const home = join(root, "codex-home");
   mkdirSync(home, { recursive: true });
@@ -262,6 +448,13 @@ function prepareCodexHome(root) {
   return home;
 }
 
+/**
+ * @template T
+ * @param {T[]} items
+ * @param {number} limit
+ * @param {(item: T) => Promise<void>} worker
+ * @returns {Promise<void>}
+ */
 export async function pool(items, limit, worker) {
   const queue = [...items];
   const workers = Array.from(
@@ -273,6 +466,10 @@ export async function pool(items, limit, worker) {
   await Promise.all(workers);
 }
 
+/**
+ * @param {string} home
+ * @returns {string[]}
+ */
 function codexDefaultModel(home) {
   const file = join(home, "models_cache.json");
   if (!existsSync(file)) return [];
@@ -283,11 +480,20 @@ function codexDefaultModel(home) {
   return first ? [first.slug] : [];
 }
 
+/**
+ * @param {string} dir
+ * @param {MatrixEntry} entry
+ * @returns {StoredExecutorRecord}
+ */
 function readExecutorRecord(dir, entry) {
   const file = join(dir, entry.id, EXECUTOR_FILE);
   return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
 }
 
+/**
+ * @param {string} bin
+ * @returns {string}
+ */
 function cliVersion(bin) {
   try {
     return execFileSync(bin, ["--version"], { encoding: "utf8" }).trim();
@@ -296,6 +502,12 @@ function cliVersion(bin) {
   }
 }
 
+/**
+ * @param {string} dir
+ * @param {MatrixEntry} entry
+ * @param {{ bins: ExecutorBins, observed: string[], at: string }} seen
+ * @returns {void}
+ */
 function writeExecutorRecord(dir, entry, { bins, observed, at }) {
   const previous = readExecutorRecord(dir, entry);
   const record = {
@@ -320,6 +532,11 @@ function writeExecutorRecord(dir, entry, { bins, observed, at }) {
  * (`claude -p`, `codex exec`), in sanitized directories. Tasks that already
  * have an answer file are skipped, so an interrupted run resumes. Returns the
  * tasks that failed after a retry; each leaves an `.error.txt` beside it.
+ * @param {object} run
+ * @param {string} run.dir
+ * @param {string[]} [run.models] The matrix ids to answer; all of the run's by default.
+ * @param {ExecOptions} [run.options]
+ * @returns {Promise<ExecResult>}
  */
 export async function execRun({ dir, models, options = {} }) {
   const {
@@ -332,7 +549,9 @@ export async function execRun({ dir, models, options = {} }) {
   const wanted = new Set(models ?? manifest.models.map((entry) => entry.id));
   const root = mkdtempSync(join(tmpdir(), "ajs-eval-exec-"));
   const context = { run, bins, timeoutMs, codexHome: prepareCodexHome(root) };
+  /** @type {Map<string, string[]>} */
   const observed = new Map();
+  /** @type {ExecFailure[]} */
   const failed = [];
   const pending = listTasks(manifest).filter(
     (task) => wanted.has(task.model) && !existsSync(answerFile(dir, task)),
@@ -350,8 +569,9 @@ export async function execRun({ dir, models, options = {} }) {
         rmSync(errorFile(dir, task), { force: true });
         observed.set(entry.id, [...(observed.get(entry.id) ?? []), ...seen]);
       } catch (error) {
-        writeFileSync(errorFile(dir, task), `${error.message}\n`);
-        failed.push({ task, error: error.message });
+        const message = error instanceof Error ? error.message : "" + error;
+        writeFileSync(errorFile(dir, task), `${message}\n`);
+        failed.push({ task, error: message });
       }
     });
   } finally {
@@ -371,6 +591,11 @@ export async function execRun({ dir, models, options = {} }) {
   return { executed: pending.length - failed.length, failed };
 }
 
+/**
+ * @param {string} dir
+ * @param {MatrixEntry[]} models
+ * @returns {Record<string, StoredExecutorRecord>}
+ */
 export function readExecutorRecords(dir, models) {
   return Object.fromEntries(
     models.map((entry) => [entry.id, readExecutorRecord(dir, entry)]),
