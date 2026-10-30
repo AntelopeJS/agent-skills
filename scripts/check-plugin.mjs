@@ -6,7 +6,7 @@ import { parseArgs } from "node:util";
 
 import { parseFrontmatter } from "./lib/frontmatter.mjs";
 import { fieldOf } from "./lib/safe-read.mjs";
-import { isText } from "./lib/values.mjs";
+import { isRecord, isText } from "./lib/values.mjs";
 
 /**
  * @typedef {object} HookSpec
@@ -159,23 +159,74 @@ function checkSkills(root, failures) {
 }
 
 /**
+ * @typedef {object} ComparableHook
+ * @property {unknown} type
+ * @property {unknown} timeout
+ * @property {string | undefined} command
+ */
+
+/**
+ * @typedef {object} ComparableGroup
+ * @property {unknown} matcher
+ * @property {ComparableHook[]} hooks
+ */
+
+/**
+ * @param {unknown} hook
+ * @param {HookSpec} spec
+ * @returns {ComparableHook | null}
+ */
+function comparableHook(hook, { root, target }) {
+  if (!isRecord(hook)) return null;
+  if (hook.command !== undefined && !isText(hook.command)) return null;
+  return {
+    type: hook.type,
+    timeout: hook.timeout ?? null,
+    command: hook.command
+      ?.replaceAll(root, "<root>")
+      .replaceAll(target, "<target>"),
+  };
+}
+
+/**
+ * @param {unknown} group
+ * @param {HookSpec} spec
+ * @returns {ComparableGroup | null}
+ */
+function comparableGroup(group, spec) {
+  if (!isRecord(group) || !Array.isArray(group.hooks)) return null;
+  /** @type {ComparableHook[]} */
+  const hooks = [];
+  for (const hook of group.hooks) {
+    const comparable = comparableHook(hook, spec);
+    if (comparable === null) return null;
+    hooks.push(comparable);
+  }
+  return { matcher: group.matcher ?? null, hooks };
+}
+
+/**
+ * @param {unknown} config
  * @param {string} tool
+ * @returns {[string, ComparableGroup[]][] | null} null when the file is not shaped as a hooks file
  */
 function comparableHooks(config, tool) {
-  const { root, target } = HOOKS[tool];
-  return Object.entries(config.hooks ?? {}).map(([event, groups]) => [
-    event,
-    groups.map((group) => ({
-      matcher: group.matcher ?? null,
-      hooks: group.hooks.map((hook) => ({
-        type: hook.type,
-        timeout: hook.timeout ?? null,
-        command: hook.command
-          ?.replaceAll(root, "<root>")
-          .replaceAll(target, "<target>"),
-      })),
-    })),
-  ]);
+  const events = fieldOf(config, "hooks") ?? {};
+  if (!isRecord(events)) return null;
+  /** @type {[string, ComparableGroup[]][]} */
+  const entries = [];
+  for (const [event, groups] of Object.entries(events)) {
+    if (!Array.isArray(groups)) return null;
+    /** @type {ComparableGroup[]} */
+    const comparable = [];
+    for (const group of groups) {
+      const next = comparableGroup(group, HOOKS[tool]);
+      if (next === null) return null;
+      comparable.push(next);
+    }
+    entries.push([event, comparable]);
+  }
+  return entries;
 }
 
 /**
@@ -191,6 +242,13 @@ function checkHooks(root, failures) {
     comparableHooks(claude, "claude"),
     comparableHooks(codex, "codex"),
   ];
+  for (const [tool, comparable] of [
+    ["claude", claudeHooks],
+    ["codex", codexHooks],
+  ])
+    if (comparable === null)
+      failures.push(`${HOOKS[tool].file}: not shaped as a hooks file`);
+  if (claudeHooks === null || codexHooks === null) return;
   if (JSON.stringify(claudeHooks) !== JSON.stringify(codexHooks)) {
     failures.push(
       `${HOOKS.claude.file} and ${HOOKS.codex.file} must run the same commands on the same events, apart from ${HOOKS.claude.root} / ${HOOKS.codex.root} and --target.`,

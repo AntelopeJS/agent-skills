@@ -165,3 +165,12 @@ void test("fails when the hook files differ in more than the tool-specific value
   assert.equal(status, 1);
   assert.match(output, /must run the same commands on the same events/);
 });
+
+void test("fails, naming the file, when a hook file is not shaped as hooks", () => {
+  writeJson(join(root, "hooks", "codex-hooks.json"), {
+    hooks: { SessionStart: "node sync" },
+  });
+  const { status, output } = check();
+  assert.equal(status, 1);
+  assert.match(output, /hooks\/codex-hooks\.json: not shaped as a hooks file/);
+});
