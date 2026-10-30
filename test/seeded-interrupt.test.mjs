@@ -101,7 +101,7 @@ function startEval(teardownOf) {
   return { child, closed };
 }
 
-test("an interrupted eval kills each agent and its children, stops the runs, removes the folders and marks the cases interrupted", async () => {
+void test("an interrupted eval kills each agent and its children, stops the runs, removes the folders and marks the cases interrupted", async () => {
   const { child, closed } = startEval(
     (dir) =>
       `kill "$(cat "$SEEDED_RUNS/harness.pid")"; sleep 0.3; echo down >> "${join(dir, "teardown.log")}"`,
@@ -147,7 +147,7 @@ test("an interrupted eval kills each agent and its children, stops the runs, rem
   assert.match(stdout, /INTERRUPTED/);
 });
 
-test("a second signal kills the stop command and exits at once", async () => {
+void test("a second signal kills the stop command and exits at once", async () => {
   const { child, closed } = startEval(
     (dir) => `sleep 60 & echo $! > "${join(dir, "td.sleep")}"; wait`,
   );

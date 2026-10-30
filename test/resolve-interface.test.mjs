@@ -48,7 +48,7 @@ after(() => {
   removeDir(project);
 });
 
-test("show resolves a bare name against a scope discovered from the project", () => {
+void test("show resolves a bare name against a scope discovered from the project", () => {
   const result = runJson(SCRIPT, project, ["show", "payments", ...OFFLINE]);
 
   assert.equal(result.package, "@acme/interface-payments");
@@ -59,7 +59,7 @@ test("show resolves a bare name against a scope discovered from the project", ()
   );
 });
 
-test("contract prints the .d.ts of a subpath", () => {
+void test("contract prints the .d.ts of a subpath", () => {
   const output = runScript(SCRIPT, project, [
     "contract",
     "@acme/interface-payments",
@@ -70,7 +70,7 @@ test("contract prints the .d.ts of a subpath", () => {
   assert.match(output, /export interface Refund/);
 });
 
-test("list includes locally installed interfaces when offline", () => {
+void test("list includes locally installed interfaces when offline", () => {
   const rows = runJson(SCRIPT, project, ["list", ...OFFLINE]);
 
   assert.ok(

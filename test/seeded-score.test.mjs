@@ -14,7 +14,7 @@ const verdict = (result, failedFeatures = [], doors = [], notRun = []) => ({
   verdict: { result, failedFeatures, notRun, doors, summary: "" },
 });
 
-test("a break is caught only by a FAIL that names its feature", () => {
+void test("a break is caught only by a FAIL that names its feature", () => {
   assert.equal(judgeCase(BREAK, verdict("FAIL", ["alpha"])).passed, true);
   assert.equal(
     judgeCase(BREAK, verdict("FAIL", ["Alpha", "smoke"])).passed,
@@ -29,7 +29,7 @@ test("a break is caught only by a FAIL that names its feature", () => {
   );
 });
 
-test("a FAIL for a feature whose journeys did not run is not a catch", () => {
+void test("a FAIL for a feature whose journeys did not run is not a catch", () => {
   const blocked = judgeCase(
     BREAK,
     verdict("FAIL", ["alpha"], [], ["alpha/start", "smoke/smoke"]),
@@ -47,7 +47,7 @@ test("a FAIL for a feature whose journeys did not run is not a catch", () => {
   );
 });
 
-test("a door is caught by naming its kind, whatever the result", () => {
+void test("a door is caught by naming its kind, whatever the result", () => {
   assert.equal(
     judgeCase(DOOR, verdict("PASS+NOTES", [], ["data"])).passed,
     true,
@@ -60,7 +60,7 @@ test("a door is caught by naming its kind, whatever the result", () => {
   assert.equal(judgeCase(DOOR, verdict("PASS", [], [])).passed, false);
 });
 
-test("the unpatched head passes unless the verdict is FAIL", () => {
+void test("the unpatched head passes unless the verdict is FAIL", () => {
   assert.equal(judgeCase(CONTROL, verdict("PASS")).passed, true);
   assert.equal(judgeCase(CONTROL, verdict("PASS+NOTES")).passed, true);
   const alarm = judgeCase(CONTROL, verdict("FAIL", ["smoke"]));
@@ -68,7 +68,7 @@ test("the unpatched head passes unless the verdict is FAIL", () => {
   assert.match(alarm.why, /false alarm/);
 });
 
-test("a case with no verdict is an error and counts as missed on every kind", () => {
+void test("a case with no verdict is an error and counts as missed on every kind", () => {
   for (const item of [BREAK, DOOR, CONTROL]) {
     const result = judgeCase(item, { error: "timed out after 5 s" });
     assert.deepEqual(
@@ -88,7 +88,7 @@ function resultsOf(entries) {
   }));
 }
 
-test("the gates fail on one missed break, one missed door or a false alarm", () => {
+void test("the gates fail on one missed break, one missed door or a false alarm", () => {
   const allCaught = resultsOf([
     ["break", "break-a", true],
     ["break", "break-b", true],
@@ -117,7 +117,7 @@ test("the gates fail on one missed break, one missed door or a false alarm", () 
   );
 });
 
-test("a false alarm on the unpatched head fails the run even when every break and door is caught", () => {
+void test("a false alarm on the unpatched head fails the run even when every break and door is caught", () => {
   const falseAlarm = resultsOf([
     ["break", "break-a", true],
     ["door", "door-data", true],
@@ -138,7 +138,7 @@ test("a false alarm on the unpatched head fails the run even when every break an
   );
 });
 
-test("a touched head gates only under --min-clean", () => {
+void test("a touched head gates only under --min-clean", () => {
   const results = resultsOf([
     ["touched", "touched-a", true],
     ["touched", "touched-b", false],
@@ -151,7 +151,7 @@ test("a touched head gates only under --min-clean", () => {
   assert.match(gated.failures[0], /touched-b/);
 });
 
-test("a break whose touched twin also FAILs is reported as not separated from the head", () => {
+void test("a break whose touched twin also FAILs is reported as not separated from the head", () => {
   const summary = summarizeSeeded(
     resultsOf([
       ["break", "break-a", true, "a"],
@@ -170,14 +170,14 @@ test("a break whose touched twin also FAILs is reported as not separated from th
   assert.equal(summary.breaks.rate, 1);
 });
 
-test("without a gate a missed break reports its rate and does not fail the run", () => {
+void test("without a gate a missed break reports its rate and does not fail the run", () => {
   const summary = summarizeSeeded(resultsOf([["break", "break-a", false]]));
 
   assert.equal(summary.breaks.rate, 0);
   assert.equal(summary.passed, true);
 });
 
-test("a gate on a run that held no break fails instead of passing on zero cases", () => {
+void test("a gate on a run that held no break fails instead of passing on zero cases", () => {
   assert.equal(
     summarizeSeeded(resultsOf([["control", "control", true]]), { minCatch: 1 })
       .passed,
@@ -185,7 +185,7 @@ test("a gate on a run that held no break fails instead of passing on zero cases"
   );
 });
 
-test("an interrupted case is listed, fails the run and does not count as a miss in the rates", () => {
+void test("an interrupted case is listed, fails the run and does not count as a miss in the rates", () => {
   const caught = {
     id: "break-alpha",
     kind: "break",
@@ -227,7 +227,7 @@ const full = (result, failedFeatures, notRun, passed) => ({
   summary: "",
 });
 
-test("a break whose only unrun journey never passes on the unpatched head is caught", () => {
+void test("a break whose only unrun journey never passes on the unpatched head is caught", () => {
   const results = [
     caseOf(
       "break",
@@ -250,7 +250,7 @@ test("a break whose only unrun journey never passes on the unpatched head is cau
   assert.equal(summarizeSeeded(scored, { minCatch: 1 }).passed, true);
 });
 
-test("a break whose unrun journey passes on the unpatched head stays missed", () => {
+void test("a break whose unrun journey passes on the unpatched head stays missed", () => {
   const results = [
     caseOf(
       "break",
@@ -271,7 +271,7 @@ test("a break whose unrun journey passes on the unpatched head stays missed", ()
   assert.equal(summarizeSeeded(scored, { minCatch: 1 }).passed, false);
 });
 
-test("a break with no unpatched run of its feature keeps the strict judgement", () => {
+void test("a break with no unpatched run of its feature keeps the strict judgement", () => {
   const results = [
     caseOf(
       "break",
@@ -290,7 +290,7 @@ test("a break with no unpatched run of its feature keeps the strict judgement", 
   assert.equal(excuseControlGaps(results)[0].passed, false);
 });
 
-test("the touched twin is the unpatched run of a feature the control does not cover", () => {
+void test("the touched twin is the unpatched run of a feature the control does not cover", () => {
   const results = [
     caseOf(
       "break",
@@ -320,7 +320,7 @@ const smokeBreak = (notRun) =>
 const smokeControl = (notRun, passed) =>
   caseOf("control", "control", "head", full("PASS+NOTES", [], notRun, passed));
 
-test("a journey the unpatched head does not list as unrun is not excused", () => {
+void test("a journey the unpatched head does not list as unrun is not excused", () => {
   const scored = excuseControlGaps([
     smokeBreak(["smoke/sandbox"]),
     smokeControl([], ["smoke/create"]),
@@ -329,7 +329,7 @@ test("a journey the unpatched head does not list as unrun is not excused", () =>
   assert.equal(scored[0].passed, false);
 });
 
-test("a bare feature entry is never excused", () => {
+void test("a bare feature entry is never excused", () => {
   const scored = excuseControlGaps([
     smokeBreak(["smoke"]),
     smokeControl(["smoke"], ["smoke/create"]),
@@ -338,7 +338,7 @@ test("a bare feature entry is never excused", () => {
   assert.equal(scored[0].passed, false);
 });
 
-test("a touched twin that FAILs is no baseline", () => {
+void test("a touched twin that FAILs is no baseline", () => {
   const scored = excuseControlGaps([
     caseOf(
       "break",
@@ -358,7 +358,7 @@ test("a touched twin that FAILs is no baseline", () => {
   assert.equal(scored[0].passed, false);
 });
 
-test("a control written before `passed` existed gives no baseline and does not throw", () => {
+void test("a control written before `passed` existed gives no baseline and does not throw", () => {
   const legacy = {
     kind: "control",
     id: "control",
@@ -378,7 +378,7 @@ test("a control written before `passed` existed gives no baseline and does not t
   assert.equal(scored[0].passed, false);
 });
 
-test("journey names match case-insensitively and another feature's prefix never matches", () => {
+void test("journey names match case-insensitively and another feature's prefix never matches", () => {
   assert.equal(
     excuseControlGaps([
       smokeBreak(["Smoke/Sandbox"]),
@@ -395,7 +395,7 @@ test("journey names match case-insensitively and another feature's prefix never 
   );
 });
 
-test("a break whose FAIL does not name its feature is never excused", () => {
+void test("a break whose FAIL does not name its feature is never excused", () => {
   const results = [
     caseOf(
       "break",

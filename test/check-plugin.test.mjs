@@ -77,11 +77,11 @@ beforeEach(() => {
 
 afterEach(() => removeDir(root));
 
-test("passes a plugin whose hook files differ only in the root variable and target, silently", () => {
+void test("passes a plugin whose hook files differ only in the root variable and target, silently", () => {
   assert.deepEqual(check(), { status: 0, output: "" });
 });
 
-test("fails on a root plugin.json, which Codex reads before .codex-plugin", () => {
+void test("fails on a root plugin.json, which Codex reads before .codex-plugin", () => {
   writeJson(join(root, "plugin.json"), {
     $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   });
@@ -90,7 +90,7 @@ test("fails on a root plugin.json, which Codex reads before .codex-plugin", () =
   assert.match(output, /^plugin\.json: /m);
 });
 
-test("fails when the Codex manifest points at the Claude hooks", () => {
+void test("fails when the Codex manifest points at the Claude hooks", () => {
   writeJson(join(root, ".codex-plugin", "plugin.json"), {
     version: "1.0.0",
     hooks: "./hooks/hooks.json",
@@ -100,7 +100,7 @@ test("fails when the Codex manifest points at the Claude hooks", () => {
   assert.match(output, /\.codex-plugin\/plugin\.json: "hooks"/);
 });
 
-test("fails when one manifest version lags behind", () => {
+void test("fails when one manifest version lags behind", () => {
   writeJson(join(root, ".codex-plugin", "plugin.json"), {
     version: "0.9.0",
     hooks: "./hooks/codex-hooks.json",
@@ -110,7 +110,7 @@ test("fails when one manifest version lags behind", () => {
   assert.match(output, /\.codex-plugin\/plugin\.json 0\.9\.0/);
 });
 
-test("fails on a commands directory", () => {
+void test("fails on a commands directory", () => {
   writeFile(join(root, "commands", "interface.md"), "Look up $ARGUMENTS.\n");
   const { status, output } = check();
   assert.equal(status, 1);
@@ -118,7 +118,7 @@ test("fails on a commands directory", () => {
 });
 
 for (const placeholder of ["$ARGUMENTS", "$1", "${CLAUDE_PLUGIN_ROOT}"]) {
-  test(`fails on a skill body that uses ${placeholder}`, () => {
+  void test(`fails on a skill body that uses ${placeholder}`, () => {
     writeSkill("interface", `Run the resolver on ${placeholder}.`);
     const { status, output } = check();
     assert.equal(status, 1);
@@ -126,28 +126,28 @@ for (const placeholder of ["$ARGUMENTS", "$1", "${CLAUDE_PLUGIN_ROOT}"]) {
   });
 }
 
-test("fails on a skill whose name differs from its directory", () => {
+void test("fails on a skill whose name differs from its directory", () => {
   writeSkill("sync-skills", "Sync.", "sync");
   const { status, output } = check();
   assert.equal(status, 1);
   assert.match(output, /sync-skills\/SKILL\.md: "name" must be "sync-skills"/);
 });
 
-test("fails on a skill beyond the plugin's own, which would shadow a package-shipped one", () => {
+void test("fails on a skill beyond the plugin's own, which would shadow a package-shipped one", () => {
   writeSkill("ajs-cli", "Drive the ajs CLI.");
   const { status, output } = check();
   assert.equal(status, 1);
   assert.match(output, /^skills\/ajs-cli: /m);
 });
 
-test("fails when one of the plugin's skills is missing", () => {
+void test("fails when one of the plugin's skills is missing", () => {
   removeDir(join(root, "skills", "new-module"));
   const { status, output } = check();
   assert.equal(status, 1);
   assert.match(output, /new-module\/SKILL\.md: missing/);
 });
 
-test("fails when the hook files differ in more than the tool-specific values", () => {
+void test("fails when the hook files differ in more than the tool-specific values", () => {
   const codex = hooks("${PLUGIN_ROOT}", "--target codex");
   codex.hooks.PostToolUse[0].matcher = "Edit";
   writeJson(join(root, "hooks", "codex-hooks.json"), codex);

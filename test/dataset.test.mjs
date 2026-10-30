@@ -19,13 +19,13 @@ function errorsOf(cases) {
   return validateDataset({ version: 1, cases });
 }
 
-test("the committed dataset is valid", () => {
+void test("the committed dataset is valid", () => {
   const { cases } = loadDataset(DATASET_FILE);
 
   assert.ok(cases.length >= 50);
 });
 
-test("the committed dataset ports every docs-assistant question in both styles", () => {
+void test("the committed dataset ports every docs-assistant question in both styles", () => {
   const ported = loadDataset(DATASET_FILE).cases.filter(
     (c) => c.origin === "docs-assistant",
   );
@@ -34,11 +34,11 @@ test("the committed dataset ports every docs-assistant question in both styles",
   assert.equal(ported.filter((c) => c.style === "casual").length, 12);
 });
 
-test("a well-formed case passes", () => {
+void test("a well-formed case passes", () => {
   assert.deepEqual(errorsOf([VALID_CASE]), []);
 });
 
-test("rejects missing fields, unknown keys and bad enum values", () => {
+void test("rejects missing fields, unknown keys and bad enum values", () => {
   const errors = errorsOf([
     { ...VALID_CASE, style: "shouty", extra: true, prompt: "" },
   ]);
@@ -50,7 +50,7 @@ test("rejects missing fields, unknown keys and bad enum values", () => {
   assert.ok(errors.some((e) => e.includes("prompt")));
 });
 
-test("rejects duplicate ids and an empty expected skill list", () => {
+void test("rejects duplicate ids and an empty expected skill list", () => {
   const errors = errorsOf([
     VALID_CASE,
     { ...VALID_CASE, expect: { skills: [] } },
@@ -60,7 +60,7 @@ test("rejects duplicate ids and an empty expected skill list", () => {
   assert.ok(errors.some((e) => e.includes("expect.skills")));
 });
 
-test("rejects a skill both expected and merely acceptable, and unknown behaviours", () => {
+void test("rejects a skill both expected and merely acceptable, and unknown behaviours", () => {
   const errors = errorsOf([
     {
       ...VALID_CASE,
@@ -76,7 +76,7 @@ test("rejects a skill both expected and merely acceptable, and unknown behaviour
   assert.ok(errors.some((e) => e.includes("behaviour")));
 });
 
-test("loadDataset throws with every problem listed", () => {
+void test("loadDataset throws with every problem listed", () => {
   assert.throws(
     () =>
       loadDataset(new URL("./fixtures/invalid-cases.json", import.meta.url)),

@@ -49,14 +49,14 @@ function byName(result) {
   return Object.fromEntries(result.skills.map((s) => [s.name, s]));
 }
 
-test("does nothing outside an AntelopeJS project", () => {
+void test("does nothing outside an AntelopeJS project", () => {
   writeJson(join(root, "package.json"), { name: "plain" });
   const result = sync(root);
   assert.equal(result.project, false);
   assert.equal(existsSync(join(root, ".claude")), false);
 });
 
-test("follows pnpm symlinks and links through the stable node_modules path", () => {
+void test("follows pnpm symlinks and links through the stable node_modules path", () => {
   writeAntelopeConfig(root);
   const store = join(
     root,
@@ -85,7 +85,7 @@ test("follows pnpm symlinks and links through the stable node_modules path", () 
   assert.equal(byName(result)["dms--dms"].origin, "node_modules");
 });
 
-test("links skills of modules installed by ajs in .antelope/cache", () => {
+void test("links skills of modules installed by ajs in .antelope/cache", () => {
   writeAntelopeConfig(root);
   writeSkillPackage(
     join(root, ".antelope", "cache", "@antelopejs", "dms-saas"),
@@ -104,7 +104,7 @@ test("links skills of modules installed by ajs in .antelope/cache", () => {
   assert.equal(skills["local-mod--local-mod"].package, "local-mod");
 });
 
-test("detects an embedded runtime project without antelope.config", () => {
+void test("detects an embedded runtime project without antelope.config", () => {
   writeJson(join(root, "package.json"), {
     name: "adonis-app",
     dependencies: { "@antelopejs/core": "^1.14.0" },
@@ -121,7 +121,7 @@ test("detects an embedded runtime project without antelope.config", () => {
   assert.deepEqual(forTarget(result).added, ["dms--dms"]);
 });
 
-test("links workspace packages of a monorepo before installed copies", () => {
+void test("links workspace packages of a monorepo before installed copies", () => {
   writeFile(
     join(root, "pnpm-workspace.yaml"),
     'packages:\n  - "packages/*"\n  # comment\nonlyBuiltDependencies:\n  - esbuild\n',
@@ -154,7 +154,7 @@ test("links workspace packages of a monorepo before installed copies", () => {
   assert.equal(skills["interface-dms--dms-interface"].origin, "workspace");
 });
 
-test("prunes skills whose package disappeared and never touches user entries", () => {
+void test("prunes skills whose package disappeared and never touches user entries", () => {
   writeAntelopeConfig(root);
   const pkg = join(root, "node_modules", "mod-a");
   writeSkillPackage(pkg, "mod-a", ["alpha"]);
@@ -174,7 +174,7 @@ test("prunes skills whose package disappeared and never touches user entries", (
   assert.equal(byName(result)["mod-b--beta"].status.claude, "skipped");
 });
 
-test("keeps managed entries out of git and stays idempotent", () => {
+void test("keeps managed entries out of git and stays idempotent", () => {
   writeAntelopeConfig(root);
   writeSkillPackage(join(root, "node_modules", "mod-a"), "mod-a", ["alpha"]);
   sync(root);
@@ -192,7 +192,7 @@ test("keeps managed entries out of git and stays idempotent", () => {
   }
 });
 
-test("--list reports skills with their source and changes nothing", () => {
+void test("--list reports skills with their source and changes nothing", () => {
   writeAntelopeConfig(root);
   writeSkillPackage(join(root, "node_modules", "mod-a"), "mod-a", ["alpha"]);
 
@@ -207,7 +207,7 @@ test("--list reports skills with their source and changes nothing", () => {
   assert.equal(existsSync(join(root, ".agents")), false);
 });
 
-test("skips skill directories that escape their package", () => {
+void test("skips skill directories that escape their package", () => {
   writeAntelopeConfig(root);
   writeJson(join(root, "node_modules", "evil", "package.json"), {
     name: "evil",
@@ -221,7 +221,7 @@ test("skips skill directories that escape their package", () => {
   assert.match(result.warnings[0], /escapes the package/);
 });
 
-test("links the same entries into .claude/skills and .agents/skills by default", () => {
+void test("links the same entries into .claude/skills and .agents/skills by default", () => {
   writeAntelopeConfig(root);
   writeSkillPackage(
     join(root, "node_modules", "@antelopejs", "dms"),
@@ -241,7 +241,7 @@ test("links the same entries into .claude/skills and .agents/skills by default",
   }
 });
 
-test("--target syncs one directory and leaves the other untouched", () => {
+void test("--target syncs one directory and leaves the other untouched", () => {
   writeAntelopeConfig(root);
   writeSkillPackage(join(root, "node_modules", "mod-a"), "mod-a", ["alpha"]);
   writeFile(
@@ -267,7 +267,7 @@ test("--target syncs one directory and leaves the other untouched", () => {
   );
 });
 
-test("rejects an unknown --target", () => {
+void test("rejects an unknown --target", () => {
   writeAntelopeConfig(root);
 
   assert.throws(
@@ -276,7 +276,7 @@ test("rejects an unknown --target", () => {
   );
 });
 
-test("the agent-skills bin forwards sync to the sync script", () => {
+void test("the agent-skills bin forwards sync to the sync script", () => {
   writeAntelopeConfig(root);
   writeSkillPackage(join(root, "node_modules", "mod-a"), "mod-a", ["alpha"]);
   const bin = join(import.meta.dirname, "..", "bin", "agent-skills.mjs");
@@ -292,7 +292,7 @@ test("the agent-skills bin forwards sync to the sync script", () => {
   ]);
 });
 
-test("links the framework skills @antelopejs/core ships into an embedded-runtime app", () => {
+void test("links the framework skills @antelopejs/core ships into an embedded-runtime app", () => {
   writeJson(join(root, "package.json"), {
     name: "host-app",
     dependencies: { "@antelopejs/core": "^1.0.0" },

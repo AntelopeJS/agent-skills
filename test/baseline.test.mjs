@@ -26,7 +26,7 @@ const SKILLS = [
   },
 ];
 
-test("tokenize lowercases, strips accents, splits identifiers and drops stop words", () => {
+void test("tokenize lowercases, strips accents, splits identifiers and drops stop words", () => {
   assert.deepEqual(tokenize("Add the KpiCard to café-pages"), [
     "add",
     "kpi",
@@ -36,7 +36,7 @@ test("tokenize lowercases, strips accents, splits identifiers and drops stop wor
   ]);
 });
 
-test("picks the skill whose description carries the prompt's key terms", () => {
+void test("picks the skill whose description carries the prompt's key terms", () => {
   const pick = createBaselinePicker(SKILLS);
 
   assert.deepEqual(pick("Add a table of the orders on an admin page"), [
@@ -45,13 +45,13 @@ test("picks the skill whose description carries the prompt's key terms", () => {
   assert.deepEqual(pick("deploy the frontend behind nginx"), ["dms-frontend"]);
 });
 
-test("picks nothing for an unrelated prompt", () => {
+void test("picks nothing for an unrelated prompt", () => {
   const pick = createBaselinePicker(SKILLS);
 
   assert.deepEqual(pick("apple pie recipe"), []);
 });
 
-test("stops picking a skill once its description loses the key terms", () => {
+void test("stops picking a skill once its description loses the key terms", () => {
   const renamed = SKILLS.map((s) =>
     s.name === "dms-mailing" ? { ...s, description: "Messaging module." } : s,
   );
@@ -66,7 +66,7 @@ test("stops picking a skill once its description loses the key terms", () => {
   );
 });
 
-test("is deterministic", () => {
+void test("is deterministic", () => {
   const pick = createBaselinePicker(SKILLS);
 
   assert.deepEqual(pick("build the dms pages"), pick("build the dms pages"));

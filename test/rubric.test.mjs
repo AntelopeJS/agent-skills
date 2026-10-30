@@ -37,7 +37,7 @@ function suiteDir() {
   return dir;
 }
 
-test("a suite needs three behaviour cases, each with 3 to 6 criteria and a fixture that exists", () => {
+void test("a suite needs three behaviour cases, each with 3 to 6 criteria and a fixture that exists", () => {
   const dir = suiteDir();
   const good = { cases: ["a", "b", "c"].map((id) => rubricCase(id)) };
 
@@ -73,7 +73,7 @@ test("a suite needs three behaviour cases, each with 3 to 6 criteria and a fixtu
   );
 });
 
-test("a case from a Lesson may carry fewer criteria", () => {
+void test("a case from a Lesson may carry fewer criteria", () => {
   const dir = suiteDir();
   const lesson = rubricCase("c", {
     rubric: CRITERIA.slice(0, 1),
@@ -86,7 +86,7 @@ test("a case from a Lesson may carry fewer criteria", () => {
   );
 });
 
-test("a suite directory must belong to a plugin skill and hold a cases file", () => {
+void test("a suite directory must belong to a plugin skill and hold a cases file", () => {
   writeJson(join(root, "unknown", "cases.json"), { cases: [] });
   writeFile(join(root, "new-module", "fixtures", "x"), "");
 

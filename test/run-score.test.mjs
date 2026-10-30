@@ -29,7 +29,7 @@ function prepared(cases) {
   });
 }
 
-test("trigger replies are read bare, fenced or wrapped in prose, and a reply without a list is refused", () => {
+void test("trigger replies are read bare, fenced or wrapped in prose, and a reply without a list is refused", () => {
   assert.deepEqual(parsePicks('{"skills":["a"]}'), ["a"]);
   assert.deepEqual(parsePicks('```json\n{"skills":["a","b"]}\n```'), [
     "a",
@@ -39,7 +39,7 @@ test("trigger replies are read bare, fenced or wrapped in prose, and a reply wit
   assert.throws(() => parsePicks('{"picks":[]}'), /no skills array/);
 });
 
-test("an unreadable trigger reply fails its case with the reason instead of throwing", async () => {
+void test("an unreadable trigger reply fails its case with the reason instead of throwing", async () => {
   const manifest = prepared([caseOf("pages", ["dms-pages"])]);
   for (const task of listTasks(manifest))
     writeAnswer(dir, task, task.mode === "trigger" ? "not json" : "ok");
@@ -50,7 +50,7 @@ test("an unreadable trigger reply fails its case with the reason instead of thro
   assert.match(result.trigger[0].error, /JSON|Unexpected/);
 });
 
-test("an answers case passes only when both runs pass", async () => {
+void test("an answers case passes only when both runs pass", async () => {
   const manifest = prepared([
     caseOf("pages", ["dms-pages"], { expect: { mustMention: ["Table"] } }),
   ]);
@@ -75,7 +75,7 @@ test("an answers case passes only when both runs pass", async () => {
   assert.deepEqual(result.answers[0].runs[1].missingMentions, ["Table"]);
 });
 
-test("invented names found by verify fail the run that holds them", async () => {
+void test("invented names found by verify fail the run that holds them", async () => {
   const manifest = prepared([
     caseOf("pages", ["dms-pages"], { expect: { mustMention: ["X"] } }),
   ]);
@@ -89,7 +89,7 @@ test("invented names found by verify fail the run that holds them", async () => 
   assert.equal(result.answers[0].pass, false);
 });
 
-test("a missing answer file is marked missing", async () => {
+void test("a missing answer file is marked missing", async () => {
   const manifest = prepared([
     caseOf("pages", ["dms-pages"], { expect: { mustMention: ["X"] } }),
   ]);
@@ -100,7 +100,7 @@ test("a missing answer file is marked missing", async () => {
   assert.equal(result.answers[0].runs[0].missing, true);
 });
 
-test("an extra pick leaves a trigger case passing, but picking an avoided skill fails it", async () => {
+void test("an extra pick leaves a trigger case passing, but picking an avoided skill fails it", async () => {
   const manifest = prepared([
     caseOf("mail", ["dms-mailing"], {
       expect: { avoid: ["dms-pages"], acceptable: [] },
@@ -121,7 +121,7 @@ test("an extra pick leaves a trigger case passing, but picking an avoided skill 
   assert.equal(clean.pass, true);
 });
 
-test("an extra pick that the case does not avoid costs precision, not the case", async () => {
+void test("an extra pick that the case does not avoid costs precision, not the case", async () => {
   const manifest = prepared([caseOf("mail", ["dms-mailing"])]);
   const [task] = listTasks(manifest).filter((item) => item.mode === "trigger");
   writeAnswer(dir, task, '{"skills":["dms-mailing","dms-pages"]}');
@@ -132,7 +132,7 @@ test("an extra pick that the case does not avoid costs precision, not the case",
   assert.equal(result.trigger[0].precision, 0.5);
 });
 
-test("an API-shaped name used without an import is unverified and does not fail the run", async () => {
+void test("an API-shaped name used without an import is unverified and does not fail the run", async () => {
   const manifest = prepared([
     caseOf("pages", ["dms-pages"], { expect: { mustMention: ["Table"] } }),
   ]);

@@ -53,7 +53,7 @@ function run(model, passes, { withSkills = true } = {}) {
   };
 }
 
-test("the Eval report states the verdict, the executors and quotes each failing answer with its reason", () => {
+void test("the Eval report states the verdict, the executors and quotes each failing answer with its reason", () => {
   const scored = run(OPUS, [false, true]);
   const bar = applyPassBar(scored, { touched: new Set(["dms-pages"]) });
 
@@ -78,7 +78,7 @@ test("the Eval report states the verdict, the executors and quotes each failing 
   assert.match(report, /~~~~\nline one\nline two\n~~~~/);
 });
 
-test("a baseline run says so in the Attention section", () => {
+void test("a baseline run says so in the Attention section", () => {
   const scored = run(OPUS, [true, true], { withSkills: false });
 
   const report = formatEvalReport({ scored, bar: applyPassBar(scored, {}) });
@@ -87,7 +87,7 @@ test("a baseline run says so in the Attention section", () => {
   assert.match(report, /Run without any skill loaded: a baseline, not a gate/);
 });
 
-test("lift is with minus without per skill and model, and a skill that helps nowhere has none", () => {
+void test("lift is with minus without per skill and model, and a skill that helps nowhere has none", () => {
   const withSkills = {
     ...run(OPUS, [true, false]),
     models: [
@@ -118,7 +118,7 @@ test("lift is with minus without per skill and model, and a skill that helps now
   );
 });
 
-test("a case with no answer in either run is left out of the lift, and a model with none reads not run", () => {
+void test("a case with no answer in either run is left out of the lift, and a model with none reads not run", () => {
   const withSkills = run(OPUS, [true, true]);
   const without = run(OPUS, [false, false], { withSkills: false });
   without.models[0].answers[0].runs[0].missing = true;

@@ -12,7 +12,7 @@ const VERIFY_SKILLS = [
   "verify-template",
 ];
 
-test("the default case set carries trigger cases for every verification skill", () => {
+void test("the default case set carries trigger cases for every verification skill", () => {
   const { cases } = loadCases({ skills: [] });
 
   for (const name of VERIFY_SKILLS) {
@@ -28,7 +28,7 @@ test("the default case set carries trigger cases for every verification skill", 
   }
 });
 
-test("each verification skill meets the case minimum of the corpus check", () => {
+void test("each verification skill meets the case minimum of the corpus check", () => {
   const { cases } = loadCases({ skills: [] });
 
   assert.deepEqual(
@@ -40,7 +40,7 @@ test("each verification skill meets the case minimum of the corpus check", () =>
   );
 });
 
-test("a neighbour case keeps each verification skill from being picked for plain usage questions", () => {
+void test("a neighbour case keeps each verification skill from being picked for plain usage questions", () => {
   const { cases } = loadCases({ skills: [] });
 
   for (const name of VERIFY_SKILLS)

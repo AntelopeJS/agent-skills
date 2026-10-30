@@ -34,7 +34,7 @@ function skillWithCases(name, cases) {
   return skillOf(name, { dir });
 }
 
-test("a skill's own case replaces the central case with the same id, so it never runs twice", () => {
+void test("a skill's own case replaces the central case with the same id, so it never runs twice", () => {
   const centralFile = writeCentral([
     caseOf("pages-table", ["dms-pages"], { prompt: "central wording" }),
     caseOf("other", ["dms"]),
@@ -58,7 +58,7 @@ test("a skill's own case replaces the central case with the same id, so it never
   );
 });
 
-test("a skill without a cases file adds no case and an invalid file is refused", () => {
+void test("a skill without a cases file adds no case and an invalid file is refused", () => {
   const centralFile = writeCentral([]);
   const plain = skillOf("dms-auth", { dir: join(root, "none") });
   const broken = skillOf("dms-pages", { dir: join(root, "broken") });
@@ -77,11 +77,11 @@ const COMPLETE = [
   caseOf("a-neighbour", ["dms-auth"], { expect: { avoid: ["dms-pages"] } }),
 ];
 
-test("a skill with all four kinds of case meets the minimum", () => {
+void test("a skill with all four kinds of case meets the minimum", () => {
   assert.deepEqual(minimumGaps(COMPLETE, [skillOf("dms-pages")]), []);
 });
 
-test("each missing kind of case is named", () => {
+void test("each missing kind of case is named", () => {
   const gaps = minimumGaps(
     [caseOf("only-clean", ["dms-pages"])],
     [skillOf("dms-pages")],
@@ -99,7 +99,7 @@ test("each missing kind of case is named", () => {
   ]);
 });
 
-test("an acceptable skill does not count as covered", () => {
+void test("an acceptable skill does not count as covered", () => {
   const cases = [
     ...COMPLETE.filter((item) => item.id !== "a-casual"),
     caseOf("a-casual", ["dms"], {
@@ -111,7 +111,7 @@ test("an acceptable skill does not count as covered", () => {
   assert.equal(minimumGaps(cases, [skillOf("dms-pages")]).length, 1);
 });
 
-test("a case cannot both allow and avoid a skill", () => {
+void test("a case cannot both allow and avoid a skill", () => {
   const errors = validateDataset({
     version: 1,
     cases: [

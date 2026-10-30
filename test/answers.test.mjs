@@ -21,7 +21,7 @@ const CASE = {
   },
 };
 
-test("mentions, forbidden names and the asks-first behaviour are checked on the answer text", () => {
+void test("mentions, forbidden names and the asks-first behaviour are checked on the answer text", () => {
   const good = checkAnswer(
     CASE,
     "There is no kanban block. Build it as a `CustomComponent`, or keep a TableView?\n",
@@ -43,7 +43,7 @@ test("mentions, forbidden names and the asks-first behaviour are checked on the 
   });
 });
 
-test("a case without expectations passes every check", () => {
+void test("a case without expectations passes every check", () => {
   const plain = { ...CASE, expect: { skills: ["dms-pages"] } };
 
   assert.deepEqual(checkAnswer(plain, "anything"), {
@@ -53,7 +53,7 @@ test("a case without expectations passes every check", () => {
   });
 });
 
-test("answers each case with its expected skills loaded, verifies it and summarizes the invented rate", async () => {
+void test("answers each case with its expected skills loaded, verifies it and summarizes the invented rate", async () => {
   const requests = [];
   const backend = {
     complete: async (request) => {
@@ -86,7 +86,7 @@ test("answers each case with its expected skills loaded, verifies it and summari
   assert.equal(summary.passed, false);
 });
 
-test("a case whose skills are all absent from the corpus is skipped", async () => {
+void test("a case whose skills are all absent from the corpus is skipped", async () => {
   const backend = { complete: async () => assert.fail("must not be called") };
 
   const results = await runAnswerEval({

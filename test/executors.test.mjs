@@ -26,7 +26,7 @@ const REQUEST = {
   schema: { type: "object" },
 };
 
-test("claude runs with no settings, skills, tools or MCP and reads the user prompt from stdin", () => {
+void test("claude runs with no settings, skills, tools or MCP and reads the user prompt from stdin", () => {
   const { args, input } = claudeInvocation(OPUS, REQUEST, "/tmp/system.txt");
 
   assert.equal(input, "User text");
@@ -52,7 +52,7 @@ test("claude runs with no settings, skills, tools or MCP and reads the user prom
   assert.equal(args[args.indexOf("--json-schema") + 1], '{"type":"object"}');
 });
 
-test("codex ignores the user config and rules, keeps the CLI's default model and gets the system text inline", () => {
+void test("codex ignores the user config and rules, keeps the CLI's default model and gets the system text inline", () => {
   const files = { out: "/tmp/o.txt", schema: "/tmp/s.json" };
 
   const { args, input } = codexInvocation(CODEX, REQUEST, files);
@@ -106,7 +106,7 @@ function fakeRun(log, behaviour = () => '{"skills":["dms-pages"]}') {
   };
 }
 
-test("every pending task is answered by its model's executor and the observed model is recorded", async () => {
+void test("every pending task is answered by its model's executor and the observed model is recorded", async () => {
   const manifest = prepared();
   const calls = [];
 
@@ -128,7 +128,7 @@ test("every pending task is answered by its model's executor and the observed mo
   );
 });
 
-test("a task that already has an answer is not run again", async () => {
+void test("a task that already has an answer is not run again", async () => {
   prepared();
   const calls = [];
   const options = { run: fakeRun(calls) };
@@ -139,7 +139,7 @@ test("a task that already has an answer is not run again", async () => {
   assert.equal(calls.length, 1);
 });
 
-test("a failing call is retried once, then reported with an error file and no answer", async () => {
+void test("a failing call is retried once, then reported with an error file and no answer", async () => {
   const manifest = prepared();
   const calls = [];
   const run = async (call) => {
@@ -163,7 +163,7 @@ test("a failing call is retried once, then reported with an error file and no an
   assert.ok(exists(join(dir, SONNET.id, "trigger", "pages.1.error.txt")));
 });
 
-test("claude's error result is a failure, not an answer", async () => {
+void test("claude's error result is a failure, not an answer", async () => {
   prepared();
   const run = async () => ({
     stdout: JSON.stringify({ is_error: true, result: "rate limited" }),
@@ -178,7 +178,7 @@ test("claude's error result is a failure, not an answer", async () => {
   assert.match(failed[0].error, /rate limited/);
 });
 
-test("the codex call gets a home with only the auth link and reads the reply file back", async () => {
+void test("the codex call gets a home with only the auth link and reads the reply file back", async () => {
   prepared();
   const homes = [];
   const run = async (call) => {

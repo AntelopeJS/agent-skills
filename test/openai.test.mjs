@@ -12,7 +12,7 @@ function fakeFetch(reply, { ok = true, status = 200 } = {}) {
   return { impl, calls };
 }
 
-test("the request carries the system text as instructions, the effort and a strict JSON schema", () => {
+void test("the request carries the system text as instructions, the effort and a strict JSON schema", () => {
   const schema = { type: "object" };
 
   const params = openaiParams("gpt-6.1-sol", {
@@ -34,7 +34,7 @@ test("the request carries the system text as instructions, the effort and a stri
   });
 });
 
-test("the backend posts to the Responses API with the bearer key and joins the output text parts", async () => {
+void test("the backend posts to the Responses API with the bearer key and joins the output text parts", async () => {
   const { impl, calls } = fakeFetch({
     output: [
       { content: [{ type: "output_text", text: "Hel" }] },
@@ -55,7 +55,7 @@ test("the backend posts to the Responses API with the bearer key and joins the o
   assert.equal(calls[0].init.headers.authorization, "Bearer k");
 });
 
-test("an API error, an incomplete response and a missing key are all refused", async () => {
+void test("an API error, an incomplete response and a missing key are all refused", async () => {
   const request = { system: "s", user: "u" };
   const failing = fakeFetch(
     { error: { message: "quota" } },

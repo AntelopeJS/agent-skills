@@ -55,7 +55,7 @@ function scored(model, cases, results) {
 
 const PAGES = ["pages", ["dms-pages"]];
 
-test("a case that passed on main and fails now is a regression on that model only", () => {
+void test("a case that passed on main and fails now is a regression on that model only", () => {
   const before = scored(OPUS, [PAGES], {
     trigger: [
       trigger("pages", { expected: ["dms-pages"], predicted: ["dms-pages"] }),
@@ -79,7 +79,7 @@ test("a case that passed on main and fails now is a regression on that model onl
   );
 });
 
-test("a case that already failed on main is not a regression", () => {
+void test("a case that already failed on main is not a regression", () => {
   const failing = scored(OPUS, [PAGES], {
     trigger: [trigger("pages", { expected: ["dms-pages"], predicted: [] })],
   });
@@ -89,7 +89,7 @@ test("a case that already failed on main is not a regression", () => {
   assert.deepEqual(bar.failures, []);
 });
 
-test("every new case must pass, trigger and answers", () => {
+void test("every new case must pass, trigger and answers", () => {
   const now = scored(OPUS, [PAGES], {
     trigger: [trigger("pages", { expected: ["dms-pages"], predicted: [] })],
     answers: [answer("pages", 1)],
@@ -106,7 +106,7 @@ test("every new case must pass, trigger and answers", () => {
   );
 });
 
-test("the trigger floors are 0.8 and 0.7, with 0.1 less for Sonnet only", () => {
+void test("the trigger floors are 0.8 and 0.7, with 0.1 less for Sonnet only", () => {
   const cases = [
     ["a", ["dms-pages"]],
     ["b", ["dms-pages"]],
@@ -146,7 +146,7 @@ test("the trigger floors are 0.8 and 0.7, with 0.1 less for Sonnet only", () => 
   assert.deepEqual(applyPassBar(result, {}).failures, []);
 });
 
-test("an extra pick outside the allowed skills lowers that skill's precision", () => {
+void test("an extra pick outside the allowed skills lowers that skill's precision", () => {
   const cases = [
     ["a", ["dms-pages"]],
     ["b", ["dms-mailing"]],
@@ -169,7 +169,7 @@ test("an extra pick outside the allowed skills lowers that skill's precision", (
   );
 });
 
-test("one invented API name in a touched skill's answers fails, and an untouched skill's does not", () => {
+void test("one invented API name in a touched skill's answers fails, and an untouched skill's does not", () => {
   const now = scored(OPUS, [PAGES], { answers: [answer("pages", 1)] });
 
   assert.equal(
@@ -182,7 +182,7 @@ test("one invented API name in a touched skill's answers fails, and an untouched
   );
 });
 
-test("a task with no answer file fails the run instead of passing silently", () => {
+void test("a task with no answer file fails the run instead of passing silently", () => {
   const now = scored(OPUS, [PAGES], {
     trigger: [
       {
@@ -197,7 +197,7 @@ test("a task with no answer file fails the run instead of passing silently", () 
   assert.equal(bar.failures[0].rule, "missing-answer");
 });
 
-test("the full-corpus means may fall by 2 points, not more", () => {
+void test("the full-corpus means may fall by 2 points, not more", () => {
   const ids = Array.from({ length: 50 }, (_, index) => `c${index}`);
   const cases = ids.map((id) => [id, ["dms-pages"]]);
   const run = (hits) =>

@@ -17,7 +17,7 @@ afterEach(() => {
   repo = undefined;
 });
 
-test("a repo yields a case per seeded break, per seeded door, the unpatched head and each break's touched twin", () => {
+void test("a repo yields a case per seeded break, per seeded door, the unpatched head and each break's touched twin", () => {
   repo = makeSeededRepo();
 
   const cases = discoverCases(repo, "verify-demo");
@@ -35,7 +35,7 @@ test("a repo yields a case per seeded break, per seeded door, the unpatched head
   assert.equal(cases[2].patch, undefined);
 });
 
-test("modes and ids narrow the cases, and an id of another mode never leaks in", () => {
+void test("modes and ids narrow the cases, and an id of another mode never leaks in", () => {
   repo = makeSeededRepo();
   const cases = discoverCases(repo, "verify-demo");
 
@@ -59,7 +59,7 @@ test("modes and ids narrow the cases, and an id of another mode never leaks in",
   );
 });
 
-test("the verification skill is the only verify-* directory, or the one --skill names", () => {
+void test("the verification skill is the only verify-* directory, or the one --skill names", () => {
   repo = makeSeededRepo();
 
   assert.deepEqual(verifySkillsOf(repo), ["verify-demo"]);

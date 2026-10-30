@@ -15,7 +15,7 @@ function evalCase(skills, acceptable = []) {
   };
 }
 
-test("perfect prediction scores 1/1", () => {
+void test("perfect prediction scores 1/1", () => {
   const score = scoreCase(
     evalCase(["dms-pages", "dms-best-practices"]),
     ["dms-pages", "dms-best-practices"],
@@ -26,7 +26,7 @@ test("perfect prediction scores 1/1", () => {
   assert.equal(score.recall, 1);
 });
 
-test("acceptable skills do not cost precision but do not count toward recall", () => {
+void test("acceptable skills do not cost precision but do not count toward recall", () => {
   const score = scoreCase(
     evalCase(["dms-pages", "dms-best-practices"], ["dms"]),
     ["dms-pages", "dms"],
@@ -37,7 +37,7 @@ test("acceptable skills do not cost precision but do not count toward recall", (
   assert.equal(score.recall, 0.5);
 });
 
-test("an unrelated or invented skill costs precision", () => {
+void test("an unrelated or invented skill costs precision", () => {
   const score = scoreCase(
     evalCase(["dms-pages"]),
     ["dms-pages", "dms-auth", "made-up"],
@@ -48,7 +48,7 @@ test("an unrelated or invented skill costs precision", () => {
   assert.deepEqual(score.extra, ["dms-auth", "made-up"]);
 });
 
-test("expected skills absent from the corpus are left out; a case with none left is skipped", () => {
+void test("expected skills absent from the corpus are left out; a case with none left is skipped", () => {
   const partial = scoreCase(
     evalCase(["dms-pages", "dms-mailing"]),
     ["dms-pages"],
@@ -61,7 +61,7 @@ test("expected skills absent from the corpus are left out; a case with none left
   assert.equal(skipped.skipped, true);
 });
 
-test("the summary averages scored cases only and checks the thresholds", () => {
+void test("the summary averages scored cases only and checks the thresholds", () => {
   const scores = [
     scoreCase(evalCase(["dms-pages"]), ["dms-pages"], CORPUS),
     scoreCase(evalCase(["dms-auth"]), ["dms"], CORPUS),
@@ -76,7 +76,7 @@ test("the summary averages scored cases only and checks the thresholds", () => {
   assert.equal(summary.passed, false);
 });
 
-test("the table lists every case and the overall line", () => {
+void test("the table lists every case and the overall line", () => {
   const scores = [
     scoreCase(
       { ...evalCase(["dms-pages"]), id: "orders-table" },
