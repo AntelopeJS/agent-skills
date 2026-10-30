@@ -18,8 +18,58 @@ import { createScratch, removeScratch } from "./seeded-scratch.mjs";
 import { judgeCase } from "./seeded-score.mjs";
 import { leakedProcesses, runTeardown } from "./seeded-teardown.mjs";
 
+/** @typedef {import("./executors.mjs").SpawnRunner} SpawnRunner */
+/** @typedef {import("./seeded-agent.mjs").AgentHome} AgentHome */
+/** @typedef {import("./seeded-agent.mjs").AgentOutcome} AgentOutcome */
+/** @typedef {import("./seeded-cases.mjs").SeededCase} SeededCase */
+/** @typedef {import("./seeded-score.mjs").CaseOutcome} CaseOutcome */
+/** @typedef {import("./seeded-score.mjs").CaseResult} CaseResult */
+/** @typedef {import("./seeded-scratch.mjs").Scratch} Scratch */
+/** @typedef {import("./seeded-teardown.mjs").LeakedProcess} LeakedProcess */
+/** @typedef {import("./seeded-teardown.mjs").TeardownOutcome} TeardownOutcome */
+
+/**
+ * How the cases run.
+ * @typedef {object} SeededOptions
+ * @property {number} jobs Cases at once.
+ * @property {string} model
+ * @property {string} effort
+ * @property {number} maxBudget
+ * @property {number} timeoutSeconds
+ * @property {string} claudeBin
+ * @property {string | null} setup The command run in each scratch checkout, or nothing to skip it.
+ * @property {NodeJS.ProcessEnv} setupEnv
+ * @property {string} scratchRoot
+ * @property {string[]} passEnv
+ * @property {boolean} [keepScratch]
+ * @property {boolean} [resume]
+ * @property {string} [cacheHome]
+ * @property {string} [ref]
+ * @property {string} [teardown] The stop command run after each case.
+ * @property {SpawnRunner} [run] Runs the agent; `spawnRun` when absent.
+ * @property {SpawnRunner} [teardownRun] Runs the stop command; `spawnRun` when absent.
+ * @property {AbortSignal} [signal] Aborts on the first interrupt.
+ * @property {AbortSignal} [forceSignal] Aborts on the second interrupt.
+ */
+
+/**
+ * What stopping a case's runs found.
+ * @typedef {object} RunsStopped
+ * @property {TeardownOutcome} teardown
+ * @property {LeakedProcess[]} leaked
+ */
+
+/**
+ * What a case came to: a run that was cut short or failed to start, or the agent's outcome with the commits and what its stop command found.
+ * @typedef {CaseOutcome | (AgentOutcome & RunsStopped & { baseSha: string, headSha: string })} CaseRun
+ */
+
 const RESULT_FILE = "result.json";
 
+/**
+ * @param {string} dir
+ * @returns {CaseResult | undefined}
+ */
 function readFinished(dir) {
   const file = join(dir, RESULT_FILE);
   if (!existsSync(file)) return undefined;
@@ -34,6 +84,8 @@ function readFinished(dir) {
  * started through the harness's own command, then lists the processes of the
  * case that are still alive. It never kills them: a leak is reported, and fails
  * the run.
+ * @param {{ options: SeededOptions, scratch: Scratch, agentHome: AgentHome }} stopped
+ * @returns {Promise<RunsStopped>}
  */
 async function stopRuns({ options, scratch, agentHome }) {
   const teardown = await runTeardown({
@@ -54,6 +106,10 @@ async function stopRuns({ options, scratch, agentHome }) {
   };
 }
 
+/**
+ * @param {{ item: SeededCase, checkout: string, skill: string, caseDir: string, options: SeededOptions }} request
+ * @returns {Promise<CaseRun>}
+ */
 async function runOne({ item, checkout, skill, caseDir, options }) {
   const scratch = createScratch({
     checkout,
@@ -101,10 +157,16 @@ async function runOne({ item, checkout, skill, caseDir, options }) {
   }
 }
 
+/**
+ * @param {unknown} error
+ * @param {SeededOptions} options
+ * @returns {CaseOutcome}
+ */
 function failedSetup(error, options) {
+  const message = error instanceof Error ? error.message : String(error);
   return options.signal?.aborted
     ? { interrupted: true, error: "interrupted during setup" }
-    : { error: `setup failed: ${error.message.slice(0, 400)}` };
+    : { error: `setup failed: ${message.slice(0, 400)}` };
 }
 
 /**
@@ -117,8 +179,11 @@ function failedSetup(error, options) {
  * its folders, the cases not started are skipped, and every one of them is
  * recorded as interrupted. `options.forceSignal` aborting also kills the stop
  * commands.
+ * @param {{ checkout: string, skill: string, cases: SeededCase[], out: string, options: SeededOptions }} request
+ * @returns {Promise<CaseResult[]>}
  */
 export async function runSeeded({ checkout, skill, cases, out, options }) {
+  /** @type {CaseResult[]} */
   const results = [];
   await pool(cases, options.jobs, async (item) => {
     const caseDir = join(out, item.id);
@@ -126,6 +191,7 @@ export async function runSeeded({ checkout, skill, cases, out, options }) {
     const finished = options.resume ? readFinished(caseDir) : undefined;
     if (finished) return void results.push(finished);
     rmSync(join(caseDir, RESULT_FILE), { force: true });
+    /** @type {CaseRun} */
     let outcome;
     try {
       outcome = options.signal?.aborted
