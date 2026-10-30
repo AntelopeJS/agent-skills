@@ -30,6 +30,17 @@ import { isText } from "./values.mjs";
  */
 
 /**
+ * The schema of a trigger reply: `{ "skills": [...] }` over the corpus skill names.
+ * @typedef {object} TriggerSchema
+ * @property {"object"} type
+ * @property {{ skills: { type: "array", items: { type: "string", enum: string[] } } }} properties
+ * @property {string[]} required
+ * @property {false} additionalProperties
+ */
+
+/** @typedef {ModelRequest & { schema: TriggerSchema }} TriggerRequest */
+
+/**
  * A model backend: answers a request with the reply text.
  * @typedef {object} ModelBackend
  * @property {string} [name]
@@ -127,12 +138,13 @@ export function hasCredentials(env = process.env) {
 /**
  * @param {RequestSkill[]} skills
  * @param {string} prompt
- * @returns {ModelRequest}
+ * @returns {TriggerRequest}
  */
 export function triggerRequest(skills, prompt) {
   const listing = skills
     .map((skill) => `- ${skill.name}: ${skill.description}`)
     .join("\n");
+  /** @type {TriggerSchema} */
   const schema = {
     type: "object",
     properties: {

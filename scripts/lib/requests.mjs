@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { isAnswersCase } from "./cases.mjs";
 import { answerRequest, triggerRequest } from "./model.mjs";
 
-/** @typedef {import("./cases.mjs").SourcedCase} SourcedCase */
+/** @typedef {import("./dataset.mjs").EvalCase} EvalCase */
 /** @typedef {import("./matrix.mjs").MatrixEntry} MatrixEntry */
 /** @typedef {import("./model.mjs").ModelRequest} ModelRequest */
 /** @typedef {import("./model.mjs").RequestSkill} RequestSkill */
@@ -46,7 +46,7 @@ import { answerRequest, triggerRequest } from "./model.mjs";
  * @property {Record<Mode, number>} runs How many times each mode runs a case.
  * @property {MatrixEntry[]} models
  * @property {{ name: string, source: string }[]} corpus
- * @property {SourcedCase[]} cases
+ * @property {EvalCase[]} cases
  */
 
 /**
@@ -66,7 +66,7 @@ export const DEFAULT_RUNS = { trigger: 1, answers: 2 };
 
 /**
  * @param {Manifest} manifest
- * @param {SourcedCase} evalCase
+ * @param {EvalCase} evalCase
  * @param {RunSkill[]} skills
  * @returns {RunSkill[]}
  */
@@ -159,7 +159,7 @@ function buildRequest(manifest, skills, task) {
  * same answers cases with no skill loaded.
  * @param {object} run
  * @param {string} run.dir
- * @param {SourcedCase[]} run.cases
+ * @param {EvalCase[]} run.cases
  * @param {RunSkill[]} run.skills
  * @param {MatrixEntry[]} run.models
  * @param {RunOptions} [run.options]
