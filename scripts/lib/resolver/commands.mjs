@@ -92,6 +92,8 @@ function localRows() {
  */
 function addNpmRows(byKey, prefix) {
   const results = npm(["search", prefix]);
+  if (!Array.isArray(results) && !isText(results))
+    throw new TypeError("npm search printed no list of packages");
   for (const r of Array.isArray(results) ? results : []) {
     if (
       !isRecord(r) ||
