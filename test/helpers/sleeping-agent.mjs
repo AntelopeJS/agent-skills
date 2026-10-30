@@ -1,14 +1,28 @@
 import { chmodSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+import { readJsonFile } from "../../scripts/lib/json.mjs";
+import { fieldOf } from "../../scripts/lib/safe-read.mjs";
+import { isText } from "../../scripts/lib/values.mjs";
 import { writeFile } from "../helpers.mjs";
-import { readJson } from "./read.mjs";
+
+/**
+ * What a sleeping agent records about itself: the pids of the agent, of its
+ * child and of its detached harness process, and its TMPDIR.
+ * @typedef {object} AgentRecord
+ * @property {number} agent
+ * @property {number} child
+ * @property {number} harness
+ * @property {string} tmp
+ */
 
 /**
  * An executable that stands for `claude` and never answers: it starts a child
  * in its own process group, and a harness process of its own (detached, with
  * its TMPDIR on the command line, its pid in `$TMPDIR/harness.pid`), and records
  * their pids in `agents/` beside it.
+ * @param {string} dir
+ * @returns {string} The executable's path.
  */
 export function makeSleepingAgent(dir) {
   const bin = join(dir, "sleeping-agent.mjs");
@@ -32,10 +46,38 @@ setTimeout(() => undefined, 60000);
   return bin;
 }
 
-/** The pid records the sleeping agents wrote under `dir`. */
+/**
+ * @param {unknown} value
+ * @returns {value is AgentRecord}
+ */
+function isAgentRecord(value) {
+  return (
+    typeof fieldOf(value, "agent") === "number" &&
+    typeof fieldOf(value, "child") === "number" &&
+    typeof fieldOf(value, "harness") === "number" &&
+    isText(fieldOf(value, "tmp"))
+  );
+}
+
+/**
+ * Reads the record a sleeping agent wrote in `file`; it throws when the file holds anything else.
+ * @param {string} file
+ * @returns {AgentRecord}
+ */
+export function readAgentRecord(file) {
+  const record = readJsonFile(file);
+  if (!isAgentRecord(record)) throw new Error(`${file} holds no agent record`);
+  return record;
+}
+
+/**
+ * The pid records the sleeping agents wrote under `dir`.
+ * @param {string} dir
+ * @returns {AgentRecord[]}
+ */
 export function recordsOf(dir) {
   const agents = join(dir, "agents");
   return existsSync(agents)
-    ? readdirSync(agents).map((name) => readJson(join(agents, name)))
+    ? readdirSync(agents).map((name) => readAgentRecord(join(agents, name)))
     : [];
 }

@@ -3,22 +3,35 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 
+import { parseJson, readJsonFile } from "../scripts/lib/json.mjs";
+import { fieldOf } from "../scripts/lib/safe-read.mjs";
 import { discoverCases } from "../scripts/lib/seeded-cases.mjs";
 import { runSeeded } from "../scripts/lib/seeded-run.mjs";
+import { isText } from "../scripts/lib/values.mjs";
 import { makeTempDir, removeDir } from "./helpers.mjs";
-import { exists, readJson, readText } from "./helpers/read.mjs";
+import { exists, readText } from "./helpers/read.mjs";
 import { makeFakeClaude, makeSeededRepo } from "./helpers/seeded-repo.mjs";
 
+/** @typedef {import("../scripts/lib/executors.mjs").SpawnRunner} SpawnRunner */
+/** @typedef {import("../scripts/lib/seeded-cases.mjs").SeededCase} SeededCase */
+/** @typedef {import("../scripts/lib/seeded-run.mjs").SeededOptions} SeededOptions */
+
 const SCRIPT = join(import.meta.dirname, "..", "scripts", "evals.mjs");
-let repo;
-let work;
+let repo = "";
+let work = "";
 
 afterEach(() => {
   if (repo) removeDir(repo);
   if (work) removeDir(work);
-  repo = work = undefined;
+  repo = work = "";
 });
 
+/**
+ * @param {string} result
+ * @param {string[]} [failedFeatures]
+ * @param {string[]} [doors]
+ * @returns {string}
+ */
 function verdictOf(result, failedFeatures = [], doors = []) {
   return JSON.stringify({
     structured_output: {
@@ -33,6 +46,11 @@ function verdictOf(result, failedFeatures = [], doors = []) {
   });
 }
 
+/**
+ * @param {SpawnRunner} run
+ * @param {{ jobs?: number, resume?: boolean, setup?: string | null }} [extra]
+ * @returns {SeededOptions}
+ */
 function optionsOf(run, extra = {}) {
   return {
     jobs: 2,
@@ -50,6 +68,7 @@ function optionsOf(run, extra = {}) {
   };
 }
 
+/** @returns {SeededCase[]} */
 function setUp() {
   repo = makeSeededRepo();
   work = makeTempDir();
@@ -58,7 +77,9 @@ function setUp() {
 
 void test("each case runs in its own scratch checkout that holds its change, and no scratch survives", async () => {
   const cases = setUp();
+  /** @type {string[]} */
   const seen = [];
+  /** @type {SpawnRunner} */
   const run = async ({ cwd }) => {
     seen.push(
       execFileSync("git", ["diff", "--name-only", "origin/main...HEAD"], {
@@ -90,7 +111,10 @@ void test("each case runs in its own scratch checkout that holds its change, and
     ],
   );
   assert.equal(
-    readJson(join(work, "out", "control", "result.json")).costUsd,
+    fieldOf(
+      readJsonFile(join(work, "out", "control", "result.json")),
+      "costUsd",
+    ),
     0.1,
   );
   assert.equal(exists(join(work, "seeded-eval-")), false);
@@ -100,6 +124,7 @@ void test("no more cases run at once than jobs allows", async () => {
   const cases = setUp();
   let active = 0;
   let peak = 0;
+  /** @type {SpawnRunner} */
   const run = async () => {
     active += 1;
     peak = Math.max(peak, active);
@@ -121,7 +146,9 @@ void test("no more cases run at once than jobs allows", async () => {
 
 void test("resume skips a case with a finished result and reruns one that errored", async () => {
   const cases = setUp().slice(0, 2);
+  /** @type {string[]} */
   const ran = [];
+  /** @type {SpawnRunner} */
   const run = async ({ cwd }) => {
     ran.push(cwd);
     if (ran.length === 1)
@@ -156,6 +183,7 @@ void test("resume skips a case with a finished result and reruns one that errore
 
 void test("a setup that fails is recorded as an error and does not stop the other cases", async () => {
   const cases = setUp().slice(0, 2);
+  /** @type {SpawnRunner} */
   const run = async () => ({ stdout: verdictOf("PASS") });
 
   const results = await runSeeded({
@@ -170,7 +198,7 @@ void test("a setup that fails is recorded as an error and does not stop the othe
     results.map((item) => item.status),
     ["error", "error"],
   );
-  assert.match(results[0].error, /setup failed/);
+  assert.match(results[0].error ?? "", /setup failed/);
 });
 
 void test("evals seeded drives the claude CLI, keeps credentials out of it and gates on the catch rate", () => {
@@ -203,20 +231,27 @@ void test("evals seeded drives the claude CLI, keeps credentials out of it and g
   ];
   const env = { ...process.env, GH_TOKEN: "secret" };
 
-  const output = JSON.parse(
+  const output = parseJson(
     execFileSync(process.execPath, args, { env, encoding: "utf8" }).trim(),
   );
 
-  assert.equal(output.summary.breaks.rate, 1);
-  assert.equal(output.summary.doors.rate, 1);
+  const summary = fieldOf(output, "summary");
+  assert.equal(fieldOf(fieldOf(summary, "breaks"), "rate"), 1);
+  assert.equal(fieldOf(fieldOf(summary, "doors"), "rate"), 1);
   const calls = readText(join(work, "calls.log"))
     .trim()
     .split("\n")
-    .map((line) => JSON.parse(line));
+    .map((line) => parseJson(line));
   assert.equal(calls.length, 2);
-  assert.deepEqual([...new Set(calls.map((call) => call.token))], [null]);
+  assert.deepEqual(
+    [...new Set(calls.map((call) => fieldOf(call, "token")))],
+    [null],
+  );
   assert.equal(
-    calls.every((call) => call.home.startsWith(work)),
+    calls.every((call) => {
+      const home = fieldOf(call, "home");
+      return isText(home) && home.startsWith(work);
+    }),
     true,
   );
   assert.ok(exists(join(work, "out", "report.md")));
@@ -251,8 +286,13 @@ void test("evals seeded exits 1 when a break is missed under --min-catch", () =>
         ],
         { encoding: "utf8", stdio: "pipe" },
       ),
-    (error) =>
-      error.status === 1 &&
-      /Catch rate \(seeded breaks\): 0\/1/.test(error.stdout),
+    (error) => {
+      const stdout = fieldOf(error, "stdout");
+      return (
+        fieldOf(error, "status") === 1 &&
+        isText(stdout) &&
+        /Catch rate \(seeded breaks\): 0\/1/.test(stdout)
+      );
+    },
   );
 });

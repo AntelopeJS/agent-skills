@@ -7,9 +7,26 @@ import {
   summarizeSeeded,
 } from "../scripts/lib/seeded-score.mjs";
 
+/** @typedef {import("../scripts/lib/seeded-agent.mjs").SeededVerdict} SeededVerdict */
+/** @typedef {import("../scripts/lib/seeded-cases.mjs").CaseKind} CaseKind */
+/** @typedef {import("../scripts/lib/seeded-score.mjs").CaseOutcome} CaseOutcome */
+/** @typedef {import("../scripts/lib/seeded-score.mjs").CaseResult} CaseResult */
+/** @typedef {import("../scripts/lib/seeded-score.mjs").CaseStatus} CaseStatus */
+/** @typedef {{ kind: CaseKind, subject: string }} JudgedCase */
+
+/** @type {JudgedCase} */
 const BREAK = { kind: "break", subject: "alpha" };
+/** @type {JudgedCase} */
 const DOOR = { kind: "door", subject: "data" };
+/** @type {JudgedCase} */
 const CONTROL = { kind: "control", subject: "head" };
+/**
+ * @param {string} result
+ * @param {string[]} [failedFeatures]
+ * @param {string[]} [doors]
+ * @param {string[]} [notRun]
+ * @returns {CaseOutcome}
+ */
 const verdict = (result, failedFeatures = [], doors = [], notRun = []) => ({
   verdict: { result, failedFeatures, notRun, doors, summary: "" },
 });
@@ -36,7 +53,7 @@ void test("a FAIL for a feature whose journeys did not run is not a catch", () =
   );
 
   assert.equal(blocked.passed, false);
-  assert.match(blocked.why, /alpha\/start/);
+  assert.match(blocked.why ?? "", /alpha\/start/);
   assert.equal(
     judgeCase(BREAK, verdict("FAIL", ["alpha"], [], ["beta/other"])).passed,
     true,
@@ -65,7 +82,7 @@ void test("the unpatched head passes unless the verdict is FAIL", () => {
   assert.equal(judgeCase(CONTROL, verdict("PASS+NOTES")).passed, true);
   const alarm = judgeCase(CONTROL, verdict("FAIL", ["smoke"]));
   assert.equal(alarm.passed, false);
-  assert.match(alarm.why, /false alarm/);
+  assert.match(alarm.why ?? "", /false alarm/);
 });
 
 void test("a case with no verdict is an error and counts as missed on every kind", () => {
@@ -78,8 +95,12 @@ void test("a case with no verdict is an error and counts as missed on every kind
   }
 });
 
+/**
+ * @param {[CaseKind, string, boolean, string?, CaseStatus?][]} entries
+ * @returns {CaseResult[]}
+ */
 function resultsOf(entries) {
-  return entries.map(([kind, id, passed, subject, status = "wrong"]) => ({
+  return entries.map(([kind, id, passed, subject = id, status = "wrong"]) => ({
     kind,
     id,
     passed,
@@ -186,12 +207,14 @@ void test("a gate on a run that held no break fails instead of passing on zero c
 });
 
 void test("an interrupted case is listed, fails the run and does not count as a miss in the rates", () => {
+  /** @type {CaseResult} */
   const caught = {
     id: "break-alpha",
     kind: "break",
     subject: "alpha",
     ...judgeCase(BREAK, verdict("FAIL", ["alpha"])),
   };
+  /** @type {CaseResult} */
   const stopped = {
     id: "break-beta",
     kind: "break",
@@ -211,6 +234,13 @@ void test("an interrupted case is listed, fails the run and does not count as a 
   assert.match(summary.failures.join("\n"), /interrupted: 1 case\(s\)/);
 });
 
+/**
+ * @param {CaseKind} kind
+ * @param {string} id
+ * @param {string} subject
+ * @param {SeededVerdict} value
+ * @returns {CaseResult}
+ */
 const caseOf = (kind, id, subject, value) => ({
   kind,
   id,
@@ -218,6 +248,13 @@ const caseOf = (kind, id, subject, value) => ({
   ...judgeCase({ kind, subject }, { verdict: value }),
   verdict: value,
 });
+/**
+ * @param {string} result
+ * @param {string[]} failedFeatures
+ * @param {string[]} notRun
+ * @param {string[]} passed
+ * @returns {SeededVerdict}
+ */
 const full = (result, failedFeatures, notRun, passed) => ({
   result,
   failedFeatures,
@@ -246,7 +283,7 @@ void test("a break whose only unrun journey never passes on the unpatched head i
   assert.equal(results[0].passed, false);
   const scored = excuseControlGaps(results);
   assert.equal(scored[0].passed, true);
-  assert.match(scored[0].why, /smoke\/sandbox/);
+  assert.match(scored[0].why ?? "", /smoke\/sandbox/);
   assert.equal(summarizeSeeded(scored, { minCatch: 1 }).passed, true);
 });
 
@@ -315,8 +352,17 @@ void test("the touched twin is the unpatched run of a feature the control does n
   assert.equal(excuseControlGaps(results)[0].passed, true);
 });
 
+/**
+ * @param {string[]} notRun
+ * @returns {CaseResult}
+ */
 const smokeBreak = (notRun) =>
   caseOf("break", "break-smoke", "smoke", full("FAIL", ["smoke"], notRun, []));
+/**
+ * @param {string[]} notRun
+ * @param {string[]} passed
+ * @returns {CaseResult}
+ */
 const smokeControl = (notRun, passed) =>
   caseOf("control", "control", "head", full("PASS+NOTES", [], notRun, passed));
 
@@ -359,6 +405,7 @@ void test("a touched twin that FAILs is no baseline", () => {
 });
 
 void test("a control written before `passed` existed gives no baseline and does not throw", () => {
+  /** @type {CaseResult} */
   const legacy = {
     kind: "control",
     id: "control",

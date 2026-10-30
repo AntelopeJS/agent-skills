@@ -11,8 +11,13 @@ import { makeTempDir, removeDir } from "./helpers.mjs";
 import { exists, listDir, readText } from "./helpers/read.mjs";
 import { gitIn, makeSeededRepo } from "./helpers/seeded-repo.mjs";
 
+/** @typedef {import("../scripts/lib/seeded-scratch.mjs").Scratch} Scratch */
+
+/** @type {string | undefined} */
 let repo;
+/** @type {Scratch | undefined} */
 let scratch;
+/** @type {string | undefined} */
 let root;
 
 afterEach(() => {
@@ -22,20 +27,29 @@ afterEach(() => {
   repo = scratch = root = undefined;
 });
 
+/**
+ * @param {string} id
+ * @param {{ setup?: string | null }} [extra]
+ * @returns {Scratch}
+ */
 function scratchFor(id, extra = {}) {
-  repo = makeSeededRepo();
-  root = makeTempDir();
-  const item = discoverCases(repo, "verify-demo").find((c) => c.id === id);
-  scratch = createScratch({
-    checkout: repo,
+  const checkout = makeSeededRepo();
+  const rootDir = makeTempDir();
+  repo = checkout;
+  root = rootDir;
+  const item = discoverCases(checkout, "verify-demo").find((c) => c.id === id);
+  assert.ok(item);
+  const created = createScratch({
+    checkout,
     skill: "verify-demo",
     patch: item.patch,
     touch: item.touch,
-    root,
+    root: rootDir,
     setup: null,
     ...extra,
   });
-  return scratch;
+  scratch = created;
+  return created;
 }
 
 void test("the patch is the only change over origin/main, and the checkout it came from is untouched", () => {
@@ -48,6 +62,7 @@ void test("the patch is the only change over origin/main, and the checkout it ca
     "src/alpha.txt",
   );
   assert.equal(readText(join(dir, "src", "alpha.txt")), "broken\n");
+  assert.ok(repo);
   assert.equal(readText(join(repo, "src", "alpha.txt")), "alpha\n");
   assert.equal(gitIn(repo, ["status", "--porcelain"]), "");
 });
@@ -106,17 +121,19 @@ void test("the setup runs after the base commit and before the change", () => {
 });
 
 void test("a patch that does not apply leaves no scratch behind", () => {
-  repo = makeSeededRepo();
-  root = makeTempDir();
+  const checkout = makeSeededRepo();
+  const rootDir = makeTempDir();
+  repo = checkout;
+  root = rootDir;
 
   assert.throws(() =>
     createScratch({
-      checkout: repo,
+      checkout,
       skill: "verify-demo",
-      patch: join(repo, "src", "alpha.txt"),
-      root,
+      patch: join(checkout, "src", "alpha.txt"),
+      root: rootDir,
       setup: null,
     }),
   );
-  assert.deepEqual(listDir(root), []);
+  assert.deepEqual(listDir(rootDir), []);
 });
