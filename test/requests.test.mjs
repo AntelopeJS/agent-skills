@@ -15,6 +15,9 @@ import {
 import { caseOf, makeTempDir, removeDir, skillOf } from "./helpers.mjs";
 import { exists } from "./helpers/read.mjs";
 
+/** @typedef {import("../scripts/lib/requests.mjs").RunTask} RunTask */
+
+/** @type {string} */
 let dir;
 
 beforeEach(() => {
@@ -33,6 +36,7 @@ const CASES = [
   caseOf("plain", ["dms-pages"]),
 ];
 
+/** @param {import("../scripts/lib/requests.mjs").RunOptions} [options] */
 function prepare(options) {
   return writeRun({
     dir,
@@ -88,6 +92,7 @@ void test("the trigger request lists every skill and the answers request loads o
 
 void test("the without-skills variant keeps the cases and loads nothing", () => {
   const manifest = prepare({ modes: ["answers"], withSkills: false });
+  /** @type {RunTask} */
   const task = {
     model: manifest.models[0].id,
     mode: "answers",

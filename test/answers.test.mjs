@@ -7,7 +7,12 @@ import {
   summarizeAnswers,
 } from "../scripts/lib/answers.mjs";
 
+/** @typedef {import("../scripts/lib/dataset.mjs").EvalCase} EvalCase */
+/** @typedef {import("../scripts/lib/model.mjs").ModelBackend} ModelBackend */
+/** @typedef {import("../scripts/lib/model.mjs").ModelRequest} ModelRequest */
+
 const fence = "```";
+/** @type {EvalCase} */
 const CASE = {
   id: "kanban-board",
   area: "dms",
@@ -54,7 +59,9 @@ void test("a case without expectations passes every check", () => {
 });
 
 void test("answers each case with its expected skills loaded, verifies it and summarizes the invented rate", async () => {
+  /** @type {ModelRequest[]} */
   const requests = [];
+  /** @type {ModelBackend} */
   const backend = {
     complete: async (request) => {
       requests.push(request);
@@ -81,6 +88,7 @@ void test("answers each case with its expected skills loaded, verifies it and su
 
   assert.match(requests[0].system, /RULES/);
   assert.doesNotMatch(requests[0].system, /PAGES/);
+  assert.ok(!results[0].skipped);
   assert.equal(results[0].invented, 1);
   assert.equal(summary.inventedRate, 0.25);
   assert.equal(summary.passed, false);
@@ -93,7 +101,7 @@ void test("a case whose skills are all absent from the corpus is skipped", async
     cases: [CASE],
     skills: [],
     backend,
-    verify: async () => ({}),
+    verify: async () => ({ checked: 0, findings: [] }),
   });
 
   assert.equal(results[0].skipped, true);

@@ -72,6 +72,10 @@ void test("codex ignores the user config and rules, keeps the CLI's default mode
   assert.equal(pinned.args.includes("--output-schema"), false);
 });
 
+/** @typedef {import("../scripts/lib/executors.mjs").SpawnCall} SpawnCall */
+/** @typedef {import("../scripts/lib/executors.mjs").SpawnRunner} SpawnRunner */
+
+/** @type {string} */
 let dir;
 
 beforeEach(() => {
@@ -92,6 +96,11 @@ function prepared() {
   });
 }
 
+/**
+ * @param {SpawnCall[]} log
+ * @param {(call: SpawnCall) => string} [behaviour]
+ * @returns {SpawnRunner}
+ */
 function fakeRun(log, behaviour = () => '{"skills":["dms-pages"]}') {
   return async (call) => {
     log.push(call);
@@ -108,6 +117,7 @@ function fakeRun(log, behaviour = () => '{"skills":["dms-pages"]}') {
 
 void test("every pending task is answered by its model's executor and the observed model is recorded", async () => {
   const manifest = prepared();
+  /** @type {SpawnCall[]} */
   const calls = [];
 
   const { failed } = await execRun({
@@ -130,6 +140,7 @@ void test("every pending task is answered by its model's executor and the observ
 
 void test("a task that already has an answer is not run again", async () => {
   prepared();
+  /** @type {SpawnCall[]} */
   const calls = [];
   const options = { run: fakeRun(calls) };
 
@@ -141,7 +152,9 @@ void test("a task that already has an answer is not run again", async () => {
 
 void test("a failing call is retried once, then reported with an error file and no answer", async () => {
   const manifest = prepared();
+  /** @type {SpawnCall[]} */
   const calls = [];
+  /** @type {SpawnRunner} */
   const run = async (call) => {
     calls.push(call);
     throw new Error("boom");
@@ -180,7 +193,9 @@ void test("claude's error result is a failure, not an answer", async () => {
 
 void test("the codex call gets a home with only the auth link and reads the reply file back", async () => {
   prepared();
+  /** @type {(string | undefined)[]} */
   const homes = [];
+  /** @type {SpawnRunner} */
   const run = async (call) => {
     homes.push(call.env.CODEX_HOME);
     const out = call.args[call.args.indexOf("--output-last-message") + 1];
