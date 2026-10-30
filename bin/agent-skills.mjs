@@ -14,6 +14,14 @@ const SCRIPTS_DIR = join(
   "scripts",
 );
 const FAILURE_EXIT_CODE = 1;
+/**
+ * @typedef {object} Command
+ * @property {string} script
+ * @property {string[]} args
+ * @property {string} help
+ */
+
+/** @type {Record<string, Command>} */
 const COMMANDS = {
   sync: {
     script: "sync-skills.mjs",
@@ -56,7 +64,8 @@ function printUsage() {
 }
 
 const [name, ...rest] = process.argv.slice(2);
-const command = Object.hasOwn(COMMANDS, name ?? "") ? COMMANDS[name] : null;
+const command =
+  name !== undefined && Object.hasOwn(COMMANDS, name) ? COMMANDS[name] : null;
 if (!command) {
   printUsage();
   process.exit(name ? FAILURE_EXIT_CODE : 0);
