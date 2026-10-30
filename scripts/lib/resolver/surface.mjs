@@ -1,13 +1,34 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { isRecord, isText } from "../values.mjs";
-import { baseUrlOf, isDirectorySafe, shortModuleName } from "./support.mjs";
+import {
+  baseUrlOf,
+  entriesOf,
+  isDirectorySafe,
+  nameOf,
+  shortModuleName,
+} from "./support.mjs";
+
+/**
+ * @typedef {import("./support.mjs").PackageEntry} PackageEntry
+ */
+
+/**
+ * @typedef {object} InterfacePart One importable `.d.ts` of an interface.
+ * @property {string} subpath
+ * @property {string} import
+ * @property {string} dts
+ */
 
 /**
  * Resolve a `.d.ts` from an exports target (object/string) or a typesVersions
  * value (array of paths).
+ * @param {string} dir
+ * @param {unknown} target
+ * @returns {string | null}
  */
 function dtsForTarget(dir, target) {
+  /** @type {unknown} */
   let rel = null;
   if (Array.isArray(target)) rel = target[0];
   else if (isRecord(target)) rel = target.types;
@@ -21,17 +42,25 @@ function dtsForTarget(dir, target) {
  * All importable subpaths of an interface PACKAGE (kind 1), each mapped to the
  * .d.ts it resolves to. Merges explicit `exports`, `typesVersions`, and — when a
  * `./*` wildcard is present — the actual .d.ts files in its target directory.
+ * @param {PackageEntry} entry
+ * @returns {InterfacePart[]}
  */
 export function subpaths(entry) {
   const dir = entry.dir;
+  /** @type {Map<string, string>} */
   const found = new Map();
+  /**
+   * @param {string} sub
+   * @param {string | null} dts
+   */
   const add = (sub, dts) => {
     const key = sub === "." ? "." : sub.replace(/^\.\//, "");
     if (dts && !found.has(key)) found.set(key, dts);
   };
 
+  /** @type {unknown} */
   let wildcardTypes = null;
-  for (const [sub, target] of Object.entries(entry.pkg.exports ?? {})) {
+  for (const [sub, target] of entriesOf(entry.pkg.exports)) {
     if (sub === "./package.json") continue;
     if (sub.includes("*")) {
       if (isRecord(target) && target.types) wildcardTypes = target.types;
@@ -40,8 +69,9 @@ export function subpaths(entry) {
     add(sub, dtsForTarget(dir, target));
   }
 
-  for (const [sub, target] of Object.entries(
-    entry.pkg.typesVersions?.["*"] ?? {},
+  const typesVersions = entry.pkg.typesVersions;
+  for (const [sub, target] of entriesOf(
+    isRecord(typesVersions) ? typesVersions["*"] : undefined,
   )) {
     if (sub.includes("*")) continue;
     add(sub, dtsForTarget(dir, target));
@@ -65,7 +95,8 @@ export function subpaths(entry) {
   return [...found.entries()]
     .map(([subpath, dts]) => ({
       subpath,
-      import: subpath === "." ? entry.pkg.name : `${entry.pkg.name}/${subpath}`,
+      import:
+        subpath === "." ? nameOf(entry.pkg) : `${nameOf(entry.pkg)}/${subpath}`,
       dts,
     }))
     .sort((a, b) =>
@@ -81,24 +112,24 @@ export function subpaths(entry) {
  * The interface "groups" a host package exposes: a directory under
  * `<baseUrl>/interfaces/<group>` (or the singular `<baseUrl>/interface`). Returns
  * [{ name, sub }] where `sub` is the import subpath of the group's entry point.
+ * @param {PackageEntry} entry
+ * @returns {{ name: string, sub: string }[]}
  */
 export function dmsGroups(entry) {
+  /** @type {Map<string, string>} */
   const groups = new Map();
-  for (const key of Object.keys(entry.pkg.exports ?? {})) {
+  const keys = entriesOf(entry.pkg.exports).map(([key]) => key);
+  for (const key of keys) {
     if (key === "." || key === "./package.json") continue;
     const sub = key.replace(/^\.\//, "");
     if (sub === "interface") {
-      groups.set(shortModuleName(entry.pkg.name), "interface");
+      groups.set(shortModuleName(nameOf(entry.pkg)), "interface");
       continue;
     }
     const m = sub.match(/^interfaces\/([^/*]+)/);
     if (m && !groups.has(m[1])) groups.set(m[1], `interfaces/${m[1]}`);
   }
-  if (
-    Object.keys(entry.pkg.exports ?? {}).some(
-      (k) => k.startsWith("./interfaces/") && k.includes("*"),
-    )
-  ) {
+  if (keys.some((k) => k.startsWith("./interfaces/") && k.includes("*"))) {
     const dir = join(entry.dir, baseUrlOf(entry.pkg), "interfaces");
     if (isDirectorySafe(dir)) {
       for (const e of readdirSync(dir)) {
@@ -113,11 +144,21 @@ export function dmsGroups(entry) {
 /**
  * The importable parts of one host interface group: every .d.ts under its dir
  * (depth-limited), as { subpath, import, dts } with the index folded to '.'.
+ * @param {PackageEntry} entry
+ * @param {string} groupSub
+ * @returns {InterfacePart[]}
  */
 export function dmsGroupParts(entry, groupSub) {
   const base = baseUrlOf(entry.pkg);
   const root = join(entry.dir, base, groupSub);
+  /** @type {InterfacePart[]} */
   const parts = [];
+  /**
+   * @param {string} dir
+   * @param {string} rel
+   * @param {number} depth
+   * @returns {void}
+   */
   const walk = (dir, rel, depth) => {
     if (!isDirectorySafe(dir)) return;
     for (const f of readdirSync(dir).sort()) {
@@ -134,8 +175,8 @@ export function dmsGroupParts(entry, groupSub) {
         subpath,
         import:
           subpath === "."
-            ? `${entry.pkg.name}/${groupSub}`
-            : `${entry.pkg.name}/${groupSub}/${subpath}`,
+            ? `${nameOf(entry.pkg)}/${groupSub}`
+            : `${nameOf(entry.pkg)}/${groupSub}/${subpath}`,
         dts: full,
       });
     }
@@ -162,17 +203,31 @@ const REEXPORT_RE = /^export\s*\{([^}]*)\}\s*(?:from\b|;)/;
 const REEXPORT_STAR_RE =
   /^export\s+\*\s+(?:as\s+([A-Za-z0-9_]+)\s+)?from\s*["']([^"']+)["']/;
 
+/**
+ * @param {string} token
+ * @returns {string}
+ */
 function reexportName(token) {
   const aliased = token.match(/\bas\s+([A-Za-z0-9_]+)/);
   if (aliased) return aliased[1];
   return token.replace(/^type\s+/, "").trim();
 }
 
-/** Lightweight symbol extraction from a .d.ts (no TS dependency). */
+/**
+ * Lightweight symbol extraction from a .d.ts (no TS dependency).
+ * @param {string} dtsPath
+ * @returns {{ kind: string, name: string }[]}
+ */
 export function exportedSymbols(dtsPath) {
   if (!dtsPath || !existsSync(dtsPath)) return [];
+  /** @type {{ kind: string, name: string }[]} */
   const out = [];
+  /** @type {Set<string>} */
   const seen = new Set();
+  /**
+   * @param {string} kind
+   * @param {string} name
+   */
   const push = (kind, name) => {
     if (!name) return;
     const key = `${kind} ${name}`;

@@ -17,28 +17,52 @@ import {
   FORCE_REMOTE,
   OFFLINE,
   fail,
-  readJson,
+  nameOf,
+  readManifest,
   shortModuleName,
   shortName,
   splitSpec,
+  versionOf,
 } from "./support.mjs";
 import { dmsGroupParts, dmsGroups, subpaths } from "./surface.mjs";
 
 /**
- * A resolved target: `{ entry, displayName, versionsPkg, parts, defaultSubpath }`,
- * where `parts` is the uniform `[{subpath, import, dts}]` list both show and
- * contract consume.
+ * @typedef {import("./support.mjs").PackageEntry} PackageEntry
+ */
+
+/**
+ * @typedef {import("./surface.mjs").InterfacePart} InterfacePart
+ */
+
+/**
+ * @typedef {object} Target A resolved target.
+ * @property {PackageEntry} entry
+ * @property {string} displayName
+ * @property {string} versionsPkg
+ * @property {InterfacePart[]} parts The uniform `[{subpath, import, dts}]` list both show and contract consume.
+ * @property {string} defaultSubpath
+ */
+
+/**
+ * @param {PackageEntry} entry
+ * @returns {Target}
  */
 function pkgTarget(entry) {
   return {
     entry,
-    displayName: shortName(entry.pkg.name),
-    versionsPkg: entry.pkg.name,
+    displayName: shortName(nameOf(entry.pkg)),
+    versionsPkg: nameOf(entry.pkg),
     parts: subpaths(entry),
     defaultSubpath: ".",
   };
 }
 
+/**
+ * @param {PackageEntry} entry
+ * @param {{ name: string, sub: string }} group
+ * @param {string} [focusSub]
+ * @returns {Target}
+ */
 function dmsTarget(entry, group, focusSub) {
   const parts = dmsGroupParts(entry, group.sub);
   const rel =
@@ -47,8 +71,8 @@ function dmsTarget(entry, group, focusSub) {
       : ".";
   return {
     entry,
-    displayName: `${entry.pkg.name}/${group.sub}`,
-    versionsPkg: entry.pkg.name,
+    displayName: `${nameOf(entry.pkg)}/${group.sub}`,
+    versionsPkg: nameOf(entry.pkg),
     parts,
     defaultSubpath: rel,
   };
@@ -58,6 +82,8 @@ function dmsTarget(entry, group, focusSub) {
  * The full name of a discovered (or env-named) host whose short module name
  * (the part after the last /) equals `alias` — e.g. alias `dms-host` matches
  * `@acme/dms-host`.
+ * @param {string} alias
+ * @returns {string | null}
  */
 function hostForAlias(alias) {
   for (const name of discoverDmsHosts().keys()) {
@@ -73,6 +99,8 @@ function hostForAlias(alias) {
  * Parse a host-style spec into { pkgSpec, interfaceSub } or null. Handles the
  * `<alias>:<group>` shorthand (alias = a host's short module name), full
  * `…/interfaces/<group>[/part]` specifiers, and the singular `…/interface`.
+ * @param {string} input
+ * @returns {{ pkgSpec: string, interfaceSub: string } | null}
  */
 export function parseDmsSpec(input) {
   let spec = input;
@@ -107,9 +135,14 @@ export function parseDmsSpec(input) {
   return null;
 }
 
+/**
+ * @param {PackageEntry} entry
+ * @param {string} interfaceSub
+ * @returns {{ name: string, sub: string }}
+ */
 function groupForSub(entry, interfaceSub) {
   if (interfaceSub === "interface")
-    return { name: shortModuleName(entry.pkg.name), sub: "interface" };
+    return { name: shortModuleName(nameOf(entry.pkg)), sub: "interface" };
   const name = interfaceSub.split("/")[1];
   return { name, sub: `interfaces/${name}` };
 }
@@ -118,6 +151,9 @@ function groupForSub(entry, interfaceSub) {
  * A host interface by bare group name, resolved against discovered host
  * packages (plus any named via AJS_DMS_PACKAGES). No host name is guessed. A host
  * that cannot be resolved, or has no such group, is skipped for the next one.
+ * @param {string} name
+ * @param {string | undefined} version
+ * @returns {Target | null}
  */
 function resolveDmsBare(name, version) {
   if (!version) {
@@ -137,10 +173,15 @@ function resolveDmsBare(name, version) {
   return null;
 }
 
+/**
+ * @param {string} input
+ * @returns {Target}
+ */
 export function resolveTarget(input) {
   const dms = parseDmsSpec(input);
   if (dms) {
     const { rawName: pkg, version } = splitSpec(dms.pkgSpec);
+    /** @type {PackageEntry} */
     let entry;
     try {
       entry = resolvePackageEntry(pkg, version, findLocalPackage);
@@ -172,7 +213,7 @@ export function resolveTarget(input) {
         version && version !== "latest" ? version.replace(/^v/, "") : null;
       if (!pinned || local.pkg.version === pinned) return pkgTarget(local);
       fail(
-        `'${input}' is not available locally (offline); local copy is v${local.pkg.version}.`,
+        `'${input}' is not available locally (offline); local copy is v${versionOf(local.pkg)}.`,
       );
     }
     const dmsHit = resolveDmsBare(rawName, version);
@@ -183,6 +224,7 @@ export function resolveTarget(input) {
     );
   }
 
+  /** @type {unknown} */
   let interfaceErr;
   for (const fullName of candidateFullNames(rawName)) {
     try {
@@ -190,7 +232,7 @@ export function resolveTarget(input) {
       const dir = fetchToCache(fullName, version2);
       return pkgTarget({
         dir,
-        pkg: readJson(join(dir, "package.json")),
+        pkg: readManifest(join(dir, "package.json")),
         remote: true,
       });
     } catch (e) {

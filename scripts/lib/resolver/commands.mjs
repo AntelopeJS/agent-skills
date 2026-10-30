@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { isText } from "../values.mjs";
+import { isRecord, isText } from "../values.mjs";
 import {
   candidateFullNames,
   candidateScopes,
@@ -21,14 +21,36 @@ import {
   PKG_PREFIX,
   SHORT_PREFIX,
   fail,
+  nameOf,
   readJson,
   shortName,
   splitSpec,
+  versionOf,
   warn,
 } from "./support.mjs";
 import { dmsGroups, exportedSymbols } from "./surface.mjs";
 import { parseDmsSpec, resolveTarget } from "./targets.mjs";
 
+/**
+ * @typedef {import("./support.mjs").PackageEntry} PackageEntry
+ */
+
+/**
+ * @typedef {import("./targets.mjs").Target} Target
+ */
+
+/**
+ * @typedef {object} ListRow One interface in the `list` output.
+ * @property {string} name
+ * @property {string} package
+ * @property {string | undefined} version
+ * @property {string} description
+ * @property {string} source
+ */
+
+/**
+ * @returns {Map<string, PackageEntry>}
+ */
 function dmsHostsForListing() {
   const hosts = new Map(discoverDmsHosts());
   if (!OFFLINE) {
@@ -44,29 +66,45 @@ function dmsHostsForListing() {
   return hosts;
 }
 
+/**
+ * @returns {Map<string, ListRow>}
+ */
 function localRows() {
+  /** @type {Map<string, ListRow>} */
   const byKey = new Map();
   for (const { pkg } of discoverInterfaces().values()) {
-    byKey.set(pkg.name, {
-      name: shortName(pkg.name),
-      package: pkg.name,
-      version: pkg.version,
-      description: pkg.description ?? "",
+    const name = nameOf(pkg);
+    byKey.set(name, {
+      name: shortName(name),
+      package: name,
+      version: versionOf(pkg),
+      description: isText(pkg.description) ? pkg.description : "",
       source: "local",
     });
   }
   return byKey;
 }
 
+/**
+ * @param {Map<string, ListRow>} byKey
+ * @param {string} prefix
+ * @returns {void}
+ */
 function addNpmRows(byKey, prefix) {
-  for (const r of npm(["search", prefix])) {
-    if (!isText(r.name) || !r.name.startsWith(prefix) || byKey.has(r.name))
+  const results = npm(["search", prefix]);
+  for (const r of Array.isArray(results) ? results : []) {
+    if (
+      !isRecord(r) ||
+      !isText(r.name) ||
+      !r.name.startsWith(prefix) ||
+      byKey.has(r.name)
+    )
       continue;
     byKey.set(r.name, {
       name: shortName(r.name),
       package: r.name,
-      version: r.version ?? "",
-      description: r.description ?? "",
+      version: isText(r.version) ? r.version : "",
+      description: isText(r.description) ? r.description : "",
       source: "npm",
     });
   }
@@ -77,6 +115,8 @@ function addNpmRows(byKey, prefix) {
  * every discovered scope. The public search failing is warned about; a scope
  * whose registry does not support search is skipped, since local discovery is
  * then the only source.
+ * @param {Map<string, ListRow>} byKey
+ * @returns {void}
  */
 function addNpmListing(byKey) {
   try {
@@ -95,14 +135,18 @@ function addNpmListing(byKey) {
   }
 }
 
+/**
+ * @returns {ListRow[]}
+ */
 function hostRows() {
+  /** @type {ListRow[]} */
   const dms = [];
   for (const [host, entry] of dmsHostsForListing()) {
     for (const g of dmsGroups(entry)) {
       dms.push({
         name: `${host}/${g.sub}`,
         package: host,
-        version: entry.pkg.version,
+        version: versionOf(entry.pkg),
         description: `host interface (${g.name})`,
         source: "dms",
       });
@@ -111,6 +155,11 @@ function hostRows() {
   return dms;
 }
 
+/**
+ * @param {ListRow[]} rows
+ * @param {ListRow[]} dms
+ * @returns {void}
+ */
 function printRows(rows, dms) {
   for (const r of rows) {
     console.log(
@@ -123,6 +172,10 @@ function printRows(rows, dms) {
   }
 }
 
+/**
+ * @param {boolean} json
+ * @returns {void}
+ */
 export function cmdList(json) {
   const byKey = localRows();
   if (!OFFLINE) addNpmListing(byKey);
@@ -133,7 +186,11 @@ export function cmdList(json) {
   printRows(rows, dms);
 }
 
-/** The version listing of a target; empty when the lookup fails. */
+/**
+ * The version listing of a target; empty when the lookup fails.
+ * @param {Target} target
+ * @returns {{ versions: string[], latest: string | null }}
+ */
 function bestEffortVersions(target) {
   try {
     return listVersions(
@@ -145,7 +202,12 @@ function bestEffortVersions(target) {
   }
 }
 
-/** Shows an interface; its version listing is best-effort and left empty when it fails. */
+/**
+ * Shows an interface; its version listing is best-effort and left empty when it fails.
+ * @param {string} input
+ * @param {boolean} json
+ * @returns {void}
+ */
 export function cmdShow(input, json) {
   const target = resolveTarget(input);
   const subs = target.parts.map((s) => ({
@@ -155,8 +217,8 @@ export function cmdShow(input, json) {
   const versionInfo = bestEffortVersions(target);
   const data = {
     name: target.displayName,
-    package: target.entry.pkg.name,
-    version: target.entry.pkg.version,
+    package: nameOf(target.entry.pkg),
+    version: versionOf(target.entry.pkg),
     description: target.entry.pkg.description ?? "",
     source: target.entry.remote ? "npm" : "local",
     location: target.entry.dir,
@@ -191,6 +253,11 @@ export function cmdShow(input, json) {
   );
 }
 
+/**
+ * @param {string} input
+ * @param {string | undefined} subpath
+ * @returns {void}
+ */
 export function cmdContract(input, subpath) {
   const target = resolveTarget(input);
   const want = (subpath ?? target.defaultSubpath ?? ".").replace(/^\.\//, "");
@@ -207,9 +274,15 @@ export function cmdContract(input, subpath) {
   process.stdout.write(readFileSync(match.dts, "utf8"));
 }
 
+/**
+ * @param {string} input
+ * @returns {void}
+ */
 export function cmdVersions(input) {
   const dms = parseDmsSpec(input);
+  /** @type {string} */
   let fullName;
+  /** @type {PackageEntry | null} */
   let localEntry;
   if (dms) {
     fullName = splitSpec(dms.pkgSpec).rawName;
@@ -218,7 +291,7 @@ export function cmdVersions(input) {
     const { rawName } = splitSpec(input);
     localEntry = findLocalInterface(rawName);
     fullName = localEntry
-      ? localEntry.pkg.name
+      ? nameOf(localEntry.pkg)
       : candidateFullNames(rawName)[0];
     if (!localEntry) {
       const t = resolveTarget(input);
@@ -226,13 +299,14 @@ export function cmdVersions(input) {
       localEntry = t.entry.remote ? null : t.entry;
     }
   }
+  /** @type {{ versions: string[], latest: string | null }} */
   let info;
   try {
     info = listVersions(fullName, localEntry);
   } catch (e) {
     fail(`could not list versions for ${fullName}: ${npmErrText(e)}`);
   }
-  if (localEntry) console.log(`installed: v${localEntry.pkg.version}`);
+  if (localEntry) console.log(`installed: v${versionOf(localEntry.pkg)}`);
   if (info.latest) console.log(`latest:    v${info.latest}`);
   console.log(
     info.versions.length
@@ -241,7 +315,11 @@ export function cmdVersions(input) {
   );
 }
 
-/** The registry manifest of an interface, from the `main` branch, else `master`; null when neither can be fetched. */
+/**
+ * The registry manifest of an interface, from the `main` branch, else `master`; null when neither can be fetched.
+ * @param {string} name
+ * @returns {Promise<unknown>}
+ */
 async function fetchRegistryManifest(name) {
   for (const branch of ["main", "master"]) {
     const url = `https://raw.githubusercontent.com/AntelopeJS/interfaces/${branch}/interfaces/${name}/manifest.json`;
@@ -253,6 +331,10 @@ async function fetchRegistryManifest(name) {
   return null;
 }
 
+/**
+ * @param {string} input
+ * @returns {Promise<void>}
+ */
 export async function cmdImplementations(input) {
   if (parseDmsSpec(input)) {
     console.log(
@@ -268,7 +350,7 @@ export async function cmdImplementations(input) {
     for (const [, entry] of discoverDmsHosts()) {
       if (dmsGroups(entry).some((g) => g.name === rawName)) {
         console.log(
-          `'${input}' is a host-package interface (a subpath of ${entry.pkg.name}). Implementations are\n` +
+          `'${input}' is a host-package interface (a subpath of ${nameOf(entry.pkg)}). Implementations are\n` +
             `not tracked in the AntelopeJS interfaces registry — a host interface is provided by its\n` +
             `host module directly (antelopeJs.implements in that module's package.json).`,
         );
@@ -276,18 +358,25 @@ export async function cmdImplementations(input) {
       }
     }
   }
-  const name = shortName(local?.pkg.name ?? candidateFullNames(rawName)[0]);
+  const name = shortName(
+    local ? nameOf(local.pkg) : candidateFullNames(rawName)[0],
+  );
 
   if (local) {
     const manifest = join(local.dir, "manifest.json");
     if (existsSync(manifest)) {
       const m = readJson(manifest);
-      return console.log(JSON.stringify(m.modules ?? m, null, 2));
+      return console.log(
+        JSON.stringify((isRecord(m) ? m.modules : undefined) ?? m, null, 2),
+      );
     }
   }
   if (!OFFLINE) {
     const m = await fetchRegistryManifest(name);
-    if (m) return console.log(JSON.stringify(m.modules ?? m, null, 2));
+    if (m)
+      return console.log(
+        JSON.stringify((isRecord(m) ? m.modules : undefined) ?? m, null, 2),
+      );
   }
   console.log(
     `No manifest found for ${name}. Implementing modules are listed in the registry at\n` +

@@ -1,17 +1,26 @@
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
+import { isRecord, isText } from "../values.mjs";
 import {
   CACHE_ROOT,
   FORCE_REMOTE,
   OFFLINE,
-  readJson,
+  parseJson,
+  readManifest,
+  versionOf,
   warn,
 } from "./support.mjs";
 
 /**
+ * @typedef {import("./support.mjs").PackageEntry} PackageEntry
+ */
+
+/**
  * Run npm and parse its --json output. Throws on non-zero exit. npm honours the
  * user's .npmrc (registry, scope, auth, proxy), so private registries work.
+ * @param {string[]} args
+ * @returns {unknown}
  */
 export function npm(args) {
   const out = execFileSync("npm", [...args, "--json"], {
@@ -20,16 +29,20 @@ export function npm(args) {
     maxBuffer: 64 * 1024 * 1024,
     timeout: 90_000,
   });
-  return JSON.parse(out || "null");
+  return parseJson(out || "null");
 }
 
 /**
  * The cause of an npm failure: its first real `npm error` line, not the
  * trailing "complete log" pointer.
+ * @param {unknown} e
+ * @returns {string | undefined}
  */
 export function npmErrText(e) {
-  const lines = ((e && (e.stderr || e.message)) || "")
-    .toString()
+  const detail = isRecord(e) ? e.stderr || e.message : undefined;
+  const lines = (
+    isText(detail) ? detail : Buffer.isBuffer(detail) ? detail.toString() : ""
+  )
     .trim()
     .split("\n");
   const informative = lines.find(
@@ -42,19 +55,34 @@ export function npmErrText(e) {
   );
 }
 
+/**
+ * @param {string} fullName
+ * @returns {string[]}
+ */
 function remoteVersions(fullName) {
   const v = npm(["view", fullName, "versions"]);
-  return Array.isArray(v) ? v : v ? [v] : [];
+  return Array.isArray(v) ? v.filter(isText) : isText(v) ? [v] : [];
 }
 
+/**
+ * @param {string} fullName
+ * @returns {string | null}
+ */
 function remoteLatest(fullName) {
   try {
-    return npm(["view", fullName, "dist-tags"])?.latest ?? null;
+    const tags = npm(["view", fullName, "dist-tags"]);
+    const latest = isRecord(tags) ? tags.latest : undefined;
+    return isText(latest) ? latest : null;
   } catch {
     return null;
   }
 }
 
+/**
+ * @param {string} fullName
+ * @param {string | undefined} wanted
+ * @returns {string}
+ */
 export function resolveRemoteVersion(fullName, wanted) {
   if (wanted && wanted !== "latest") {
     const want = wanted.replace(/^v/, "");
@@ -77,6 +105,9 @@ export function resolveRemoteVersion(fullName, wanted) {
  * Download `<pkg>@<version>` and extract it under the cache. Returns the extracted
  * `package/` dir (a drop-in for a local package dir). Cached across runs. The
  * tarball stays in the cache when it cannot be removed.
+ * @param {string} fullName
+ * @param {string} version
+ * @returns {string}
  */
 export function fetchToCache(fullName, version) {
   const safe = fullName.replace(/^@/, "").replace(/\//g, "__");
@@ -92,9 +123,13 @@ export function fetchToCache(fullName, version) {
     dest,
   ]);
   const filename = Array.isArray(packed)
-    ? packed[0]?.filename
-    : packed?.filename;
-  if (!filename)
+    ? isRecord(packed[0])
+      ? packed[0].filename
+      : undefined
+    : isRecord(packed)
+      ? packed.filename
+      : undefined;
+  if (!isText(filename) || !filename)
     throw new Error(`npm pack gave no filename for ${fullName}@${version}`);
 
   execFileSync("tar", ["-xzf", join(dest, filename), "-C", dest], {
@@ -114,6 +149,10 @@ export function fetchToCache(fullName, version) {
 /**
  * Resolve any package (interface or host) by full name to a { dir, pkg } entry:
  * local copy when present and no version pinned / --remote off, else npm. Throws.
+ * @param {string} fullName
+ * @param {string | undefined} wanted
+ * @param {(name: string) => PackageEntry | null} localLookup
+ * @returns {PackageEntry}
  */
 export function resolvePackageEntry(fullName, wanted, localLookup) {
   if (!FORCE_REMOTE && !wanted) {
@@ -126,10 +165,10 @@ export function resolvePackageEntry(fullName, wanted, localLookup) {
       if (
         wanted &&
         wanted !== "latest" &&
-        hit.pkg.version !== wanted.replace(/^v/, "")
+        versionOf(hit.pkg) !== wanted.replace(/^v/, "")
       ) {
         throw new Error(
-          `${fullName}@${wanted} is not available locally (offline); local copy is v${hit.pkg.version}`,
+          `${fullName}@${wanted} is not available locally (offline); local copy is v${versionOf(hit.pkg)}`,
         );
       }
       return hit;
@@ -139,7 +178,7 @@ export function resolvePackageEntry(fullName, wanted, localLookup) {
   try {
     const version = resolveRemoteVersion(fullName, wanted);
     const dir = fetchToCache(fullName, version);
-    return { dir, pkg: readJson(join(dir, "package.json")), remote: true };
+    return { dir, pkg: readManifest(join(dir, "package.json")), remote: true };
   } catch (e) {
     if (!wanted) {
       const hit = localLookup(fullName);
@@ -157,6 +196,9 @@ export function resolvePackageEntry(fullName, wanted, localLookup) {
 /**
  * Published versions (newest-first) + dist-tag latest. Falls back to a local
  * clone's git tags when offline or the registry is unreachable.
+ * @param {string} fullName
+ * @param {PackageEntry | null} localEntry
+ * @returns {{ versions: string[], latest: string | null }}
  */
 export function listVersions(fullName, localEntry) {
   if (!OFFLINE) {
@@ -181,6 +223,8 @@ export function listVersions(fullName, localEntry) {
 /**
  * The tags of a checkout's own repository; none for a copy under node_modules,
  * where `git tag` would walk up to the enclosing project's repo.
+ * @param {string} dir
+ * @returns {string[]}
  */
 function gitTags(dir) {
   if (!existsSync(join(dir, ".git"))) return [];
