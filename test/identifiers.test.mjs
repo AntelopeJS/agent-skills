@@ -6,6 +6,10 @@ import { compareText } from "../scripts/lib/values.mjs";
 
 const fence = "```";
 
+/**
+ * @param {string} text
+ * @returns {[string, string[]][]}
+ */
 function importsOf(text) {
   return extractApiReferences(text).imports.map(({ specifier, names }) => [
     specifier,
@@ -13,6 +17,10 @@ function importsOf(text) {
   ]);
 }
 
+/**
+ * @param {string} text
+ * @returns {string[]}
+ */
 function referencesOf(text) {
   return extractApiReferences(text).references.map((r) => r.name);
 }
