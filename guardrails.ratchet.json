@@ -1,6 +1,11 @@
 {
+  "pack": "0.2.17",
   "rules": {
-    "anti-slop/no-runtime-typeof": 3
+    "anti-slop/no-runtime-typeof": 3,
+    "typescript/no-unsafe-argument": 153,
+    "typescript/no-unsafe-assignment": 1294,
+    "typescript/no-unsafe-return": 502,
+    "typescript/use-unknown-in-catch-callback-variable": 2
   },
   "oversizeFiles": {}
 }

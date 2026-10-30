@@ -17,6 +17,15 @@ jobs:
         pnpm check:plugin
         pnpm evals:check
         pnpm evals:baseline
+      docs-files: |
+        README.md
+      renovate-sync: false
+    permissions:
+      contents: read
+  renovate-sync:
+    if: >-
+      github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate/') && github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: write
       actions: write
+    uses: AntelopeJS/.github/.github/workflows/ci-renovate-sync.yml@v1
