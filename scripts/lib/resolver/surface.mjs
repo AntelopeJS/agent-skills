@@ -78,6 +78,8 @@ export function subpaths(entry) {
   }
 
   if (wildcardTypes) {
+    if (!isText(wildcardTypes))
+      throw new TypeError("the types of a wildcard export must be a string");
     const distDir = join(
       dir,
       wildcardTypes.replace(/\/[^/]*\*[^/]*$/, "").replace(/^\.\//, ""),
