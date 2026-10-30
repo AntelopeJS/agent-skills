@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { readJsonFile } from "./json.mjs";
 import { fieldOf } from "./safe-read.mjs";
+import { isText } from "./values.mjs";
 
 export const RUBRIC_ROOT = fileURLToPath(
   new URL("../../evals/commands", import.meta.url),
@@ -17,25 +18,45 @@ const MIN_TEXT = 10;
 const MAX_CRITERIA = 6;
 const MIN_CRITERIA = 3;
 
-const isText = (value) => String(value ?? "").length >= MIN_TEXT;
+const LESSON_RE = /^https:\/\/\S+$/;
 
 /**
+ * @param {RegExp} pattern
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+const matches = (pattern, value) => isText(value) && pattern.test(value);
+
+/**
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+const isSentence = (value) => isText(value) && value.length >= MIN_TEXT;
+
+/**
+ * @param {unknown} fixture
  * @param {string} suiteDir
  * @returns {string[]}
  */
 function fixtureErrors(fixture, suiteDir) {
-  if (fixture?.type === "skeleton")
-    return existsSync(join(suiteDir, String(fixture.dir)))
+  const type = fieldOf(fixture, "type");
+  if (type === "skeleton") {
+    const dir = fieldOf(fixture, "dir");
+    return isText(dir) && existsSync(join(suiteDir, dir))
       ? []
-      : [`fixture directory ${fixture.dir} does not exist`];
-  if (fixture?.type === "repo")
-    return REPO_RE.test(fixture.repo ?? "") && SHA_RE.test(fixture.sha ?? "")
+      : [`fixture directory ${String(dir)} does not exist`];
+  }
+  if (type === "repo")
+    return matches(REPO_RE, fieldOf(fixture, "repo")) &&
+      matches(SHA_RE, fieldOf(fixture, "sha"))
       ? []
       : ["a repo fixture needs repo (owner/name) and a 40-character sha"];
   return ["fixture must be a skeleton (dir) or a repo (repo, sha)"];
 }
 
 /**
+ * @param {unknown} rubric
+ * @param {unknown} lesson
  * @returns {string[]}
  */
 function rubricErrors(rubric, lesson) {
@@ -47,7 +68,9 @@ function rubricErrors(rubric, lesson) {
       ? [`rubric needs ${minimum} to ${MAX_CRITERIA} criteria`]
       : []),
     ...(rubric.every(
-      (item) => SLUG_RE.test(item?.id ?? "") && isText(item?.text),
+      (item) =>
+        matches(SLUG_RE, fieldOf(item, "id")) &&
+        isSentence(fieldOf(item, "text")),
     )
       ? []
       : ["each criterion needs a kebab-case id and a text"]),
@@ -56,20 +79,25 @@ function rubricErrors(rubric, lesson) {
 }
 
 /**
+ * @param {unknown} item
  * @param {string} suiteDir
  * @returns {string[]}
  */
 function caseErrors(item, suiteDir) {
-  const label = `case ${item?.id ?? "?"}`;
+  const id = fieldOf(item, "id");
+  const lesson = fieldOf(item, "lesson");
+  const label = `case ${isText(id) ? id : "?"}`;
   return [
-    ...(SLUG_RE.test(item?.id ?? "") ? [] : ["id must be kebab-case"]),
+    ...(matches(SLUG_RE, id) ? [] : ["id must be kebab-case"]),
     ...(HARNESSES.some((harness) => harness === fieldOf(item, "harness"))
       ? []
       : [`harness must be one of ${HARNESSES.join(", ")}`]),
-    ...(isText(item?.prompt) ? [] : ["prompt must be a sentence"]),
-    ...fixtureErrors(item?.fixture, suiteDir),
-    ...rubricErrors(item?.rubric, item?.lesson),
-    ...(item?.lesson === undefined || /^https:\/\/\S+$/.test(item.lesson)
+    ...(isSentence(fieldOf(item, "prompt"))
+      ? []
+      : ["prompt must be a sentence"]),
+    ...fixtureErrors(fieldOf(item, "fixture"), suiteDir),
+    ...rubricErrors(fieldOf(item, "rubric"), lesson),
+    ...(lesson === undefined || matches(LESSON_RE, lesson)
       ? []
       : ["lesson must be an https URL"]),
   ].map((error) => `${label}: ${error}`);
