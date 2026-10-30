@@ -168,7 +168,7 @@ export function resolvePackageEntry(fullName, wanted, localLookup) {
         versionOf(hit.pkg) !== wanted.replace(/^v/, "")
       ) {
         throw new Error(
-          `${fullName}@${wanted} is not available locally (offline); local copy is v${versionOf(hit.pkg)}`,
+          `${fullName}@${wanted} is not available locally (offline); local copy is v${String(versionOf(hit.pkg))}`,
         );
       }
       return hit;

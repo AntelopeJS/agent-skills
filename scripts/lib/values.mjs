@@ -17,6 +17,16 @@ export function isRecord(value) {
 }
 
 /**
+ * Prints a JSON value the way a template literal would, nothing for a falsy one.
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function textIfTruthy(value) {
+  const text = String(value);
+  return value ? text : "";
+}
+
+/**
  * Whether `value` is callable.
  * @param {unknown} value
  * @returns {value is (...args: never[]) => unknown}

@@ -56,7 +56,7 @@ import {
   readTextSafe,
   readdirSafe,
 } from "./lib/safe-read.mjs";
-import { compareText, isText } from "./lib/values.mjs";
+import { compareText, isText, textIfTruthy } from "./lib/values.mjs";
 import { declaresWorkspaces, workspacePackageDirs } from "./lib/workspaces.mjs";
 
 /**
@@ -562,10 +562,9 @@ function listStatus(status) {
  * @returns {(string | undefined)[]}
  */
 function listRow(skill, targets) {
-  const pkg =
-    isText(skill.version) && skill.version
-      ? `${skill.package}@${skill.version}`
-      : skill.package;
+  const pkg = skill.version
+    ? `${skill.package}@${textIfTruthy(skill.version)}`
+    : skill.package;
   const statuses = targets.map((t) => listStatus(skill.status[t.target]));
   return [
     skill.name,
