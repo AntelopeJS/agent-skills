@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { parseFrontmatter } from "./frontmatter.mjs";
 import { fetchPackage } from "./packages.mjs";
+import { parseJson } from "./json.mjs";
 import { fieldOf } from "./safe-read.mjs";
 import { isRecord, isText } from "./values.mjs";
 
@@ -97,14 +98,6 @@ function readSkill(skillDir, source) {
   const name = isText(data.name) && data.name ? data.name : basename(skillDir);
   const description = isText(data.description) ? data.description : "";
   return { name, description, path, dir: skillDir, source, content: body };
-}
-
-/**
- * @param {string} text
- * @returns {unknown}
- */
-function parseJson(text) {
-  return JSON.parse(text);
 }
 
 /**

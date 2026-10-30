@@ -1,5 +1,6 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { readJsonFile } from "../json.mjs";
 import { isRecord, isText } from "../values.mjs";
 import {
   candidateFullNames,
@@ -22,7 +23,6 @@ import {
   SHORT_PREFIX,
   fail,
   nameOf,
-  readJson,
   shortName,
   splitSpec,
   versionOf,
@@ -365,7 +365,7 @@ export async function cmdImplementations(input) {
   if (local) {
     const manifest = join(local.dir, "manifest.json");
     if (existsSync(manifest)) {
-      const m = readJson(manifest);
+      const m = readJsonFile(manifest);
       return console.log(
         JSON.stringify((isRecord(m) ? m.modules : undefined) ?? m, null, 2),
       );

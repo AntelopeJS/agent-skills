@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { makeTempDir, removeDir, writeFile, writeJson } from "./helpers.mjs";
-import { parseJson } from "./helpers/json.mjs";
+import { parseJson } from "../scripts/lib/json.mjs";
 import { fieldOf } from "../scripts/lib/safe-read.mjs";
 
 const BIN = join(

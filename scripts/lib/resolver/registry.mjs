@@ -1,12 +1,12 @@
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
+import { parseJson } from "../json.mjs";
 import { isRecord, isText } from "../values.mjs";
 import {
   CACHE_ROOT,
   FORCE_REMOTE,
   OFFLINE,
-  parseJson,
   readManifest,
   versionOf,
   warn,

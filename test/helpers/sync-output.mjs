@@ -1,5 +1,5 @@
 import { runScript } from "../helpers.mjs";
-import { parseJson } from "./json.mjs";
+import { parseJson } from "../../scripts/lib/json.mjs";
 import { isRecord, isText } from "../../scripts/lib/values.mjs";
 
 /**

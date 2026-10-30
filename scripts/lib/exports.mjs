@@ -12,7 +12,8 @@ import { execFileSync } from "node:child_process";
 import { isBuiltin } from "node:module";
 import { fileURLToPath } from "node:url";
 
-import { parseJson, readManifest } from "./resolver/support.mjs";
+import { parseJson } from "./json.mjs";
+import { readManifest } from "./resolver/support.mjs";
 import { isRecord, isText } from "./values.mjs";
 
 /**

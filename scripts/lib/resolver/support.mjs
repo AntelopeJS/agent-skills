@@ -1,6 +1,7 @@
-import { readFileSync, statSync } from "node:fs";
+import { statSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { readJsonFile } from "../json.mjs";
 import { isRecord, isText } from "../values.mjs";
 
 /**
@@ -55,40 +56,12 @@ export function isDirectorySafe(path) {
 }
 
 /**
- * @param {string} text
- * @returns {unknown}
- */
-export function parseJson(text) {
-  return JSON.parse(text);
-}
-
-/**
- * @param {string} path
- * @returns {unknown}
- */
-export function readJson(path) {
-  return parseJson(readFileSync(path, "utf8"));
-}
-
-/**
  * @param {string} path
  * @returns {PackageManifest} The parsed `package.json`, empty when its root is not an object.
  */
 export function readManifest(path) {
-  const parsed = readJson(path);
+  const parsed = readJsonFile(path);
   return isRecord(parsed) ? parsed : {};
-}
-
-/**
- * @param {string} path
- * @returns {unknown} The parsed JSON, or `null` when the file cannot be read or parsed.
- */
-export function readJsonSafe(path) {
-  try {
-    return readJson(path);
-  } catch {
-    return null;
-  }
 }
 
 /**

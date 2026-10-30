@@ -1,5 +1,6 @@
 import { readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { readJsonSafe } from "../safe-read.mjs";
 import { isRecord, isText } from "../values.mjs";
 import {
   DMS_DIRS,
@@ -9,7 +10,6 @@ import {
   entriesOf,
   isDirectorySafe,
   nameOf,
-  readJsonSafe,
   readManifest,
 } from "./support.mjs";
 
