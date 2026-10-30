@@ -6,6 +6,8 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { makeTempDir, removeDir, writeFile, writeJson } from "./helpers.mjs";
+import { parseJson } from "./helpers/json.mjs";
+import { fieldOf } from "../scripts/lib/safe-read.mjs";
 
 const BIN = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -14,8 +16,13 @@ const BIN = join(
   "agent-skills.mjs",
 );
 const fence = "```";
+/** @type {string} */
 let root;
 
+/**
+ * @param {string[]} args
+ * @param {{ input?: string, env?: Record<string, string> }} [options]
+ */
 function run(args, { input, env = {} } = {}) {
   const { ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, ...clean } = process.env;
   return spawnSync(process.execPath, [BIN, ...args], {
@@ -110,7 +117,7 @@ void test("verify reads a file, exits 0 when every name exists, and speaks JSON"
   const result = run(["verify", "answer.md", "--json", "--offline"]);
 
   assert.equal(result.status, 0);
-  assert.equal(JSON.parse(result.stdout).checked, 1);
+  assert.equal(fieldOf(parseJson(result.stdout), "checked"), 1);
 });
 
 const CORPUS = ["--skills", "skills", "--cases", "cases.json"];
@@ -159,10 +166,10 @@ void test("a backend module plugs into the trigger eval", () => {
     "stub-backend.mjs",
     "--json",
   ]);
-  const report = JSON.parse(result.stdout);
+  const report = parseJson(result.stdout);
 
   assert.equal(result.status, 0);
-  assert.equal(report.summary.recall, 1);
+  assert.equal(fieldOf(fieldOf(report, "summary"), "recall"), 1);
 });
 
 void test("the answers eval verifies each answer and fails over the invented threshold", () => {
@@ -270,10 +277,14 @@ void test("score --only limits the report to the named cases", () => {
     "--json",
   ]);
 
-  const { scored } = JSON.parse(score.stdout);
+  const cases = fieldOf(
+    fieldOf(fieldOf(parseJson(score.stdout), "scored"), "manifest"),
+    "cases",
+  );
 
+  assert.ok(Array.isArray(cases));
   assert.deepEqual(
-    scored.manifest.cases.map((item) => item.id),
+    cases.map((item) => fieldOf(item, "id")),
     ["kpi"],
   );
 });

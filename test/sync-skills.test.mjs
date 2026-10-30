@@ -12,12 +12,17 @@ import {
   link,
   writeSkillPackage,
   writeAntelopeConfig,
-  runJson,
   runScript,
 } from "./helpers.mjs";
 import { readText } from "./helpers/read.mjs";
+import { parseSyncOutput, runSyncJson } from "./helpers/sync-output.mjs";
+
+/**
+ * @typedef {import("./helpers/sync-output.mjs").SyncOutput} SyncOutput
+ */
 
 const SCRIPT = "sync-skills.mjs";
+/** @type {string} */
 let root;
 
 beforeEach(() => {
@@ -28,23 +33,43 @@ afterEach(() => {
   removeDir(root);
 });
 
+/** @type {Record<string, string[]>} */
 const TARGET_DIRS = {
   claude: [".claude", "skills"],
   codex: [".agents", "skills"],
 };
 
+/**
+ * @param {string} project
+ * @param {string} [target]
+ * @returns {string}
+ */
 function skillsDir(project, target = "claude") {
   return join(project, ...TARGET_DIRS[target]);
 }
 
+/**
+ * @param {SyncOutput} result
+ * @param {string} [target]
+ */
 function forTarget(result, target = "claude") {
-  return result.targets.find((t) => t.target === target);
+  const found = result.targets.find((t) => t.target === target);
+  assert.ok(found, `no ${target} result`);
+  return found;
 }
 
+/**
+ * @param {string} project
+ * @param {string[]} [args]
+ * @returns {SyncOutput}
+ */
 function sync(project, args = []) {
-  return runJson(SCRIPT, project, args);
+  return runSyncJson(SCRIPT, project, args);
 }
 
+/**
+ * @param {SyncOutput} result
+ */
 function byName(result) {
   return Object.fromEntries(result.skills.map((s) => [s.name, s]));
 }
@@ -287,7 +312,7 @@ void test("the agent-skills bin forwards sync to the sync script", () => {
     { cwd: root, encoding: "utf8" },
   );
 
-  assert.deepEqual(forTarget(JSON.parse(output), "codex").added, [
+  assert.deepEqual(forTarget(parseSyncOutput(output), "codex").added, [
     "mod-a--alpha",
   ]);
 });

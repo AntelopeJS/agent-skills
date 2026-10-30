@@ -12,8 +12,13 @@ const SCRIPT = join(
   "scripts",
   "check-plugin.mjs",
 );
+/** @type {string} */
 let root;
 
+/**
+ * @param {string} rootVariable
+ * @param {string} target
+ */
 function hooks(rootVariable, target) {
   const command = `node "${rootVariable}/scripts/sync-skills.mjs" --quiet ${target}`;
   return {
@@ -29,6 +34,11 @@ function hooks(rootVariable, target) {
   };
 }
 
+/**
+ * @param {string} name
+ * @param {string} body
+ * @param {string} [frontmatterName]
+ */
 function writeSkill(name, body, frontmatterName = name) {
   writeFile(
     join(root, "skills", name, "SKILL.md"),

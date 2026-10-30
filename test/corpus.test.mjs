@@ -14,6 +14,7 @@ import {
   link,
 } from "./helpers.mjs";
 
+/** @type {string} */
 let root;
 
 beforeEach(() => {
@@ -24,6 +25,11 @@ afterEach(() => {
   removeDir(root);
 });
 
+/**
+ * @param {string} dir
+ * @param {string} frontmatter
+ * @param {string} [body]
+ */
 function writeSkill(dir, frontmatter, body = "Body.\n") {
   writeFile(join(dir, "SKILL.md"), `---\n${frontmatter}\n---\n${body}`);
 }
@@ -75,6 +81,7 @@ void test("loads every SKILL.md under explicit directories, a skill dir or a par
     "lone",
   ]);
   const pages = corpus.skills.find((s) => s.name === "dms-pages");
+  assert.ok(pages);
   assert.equal(pages.description, "Builds pages.");
   assert.match(pages.content, /Body\./);
 });
@@ -124,10 +131,9 @@ void test("discovers package-shipped skills of a project like the sync does", ()
     "dms-mailing",
     "dms-pages",
   ]);
-  assert.equal(
-    corpus.skills.find((s) => s.name === "dms").source,
-    "@antelopejs/dms",
-  );
+  const dms = corpus.skills.find((s) => s.name === "dms");
+  assert.ok(dms);
+  assert.equal(dms.source, "@antelopejs/dms");
 });
 
 void test("a directory that is not an AntelopeJS project contributes nothing", () => {
@@ -139,6 +145,7 @@ void test("a directory that is not an AntelopeJS project contributes nothing", (
 void test("reads the skills a fetched package declares", () => {
   const fetched = join(root, "fetched", "package");
   writeSkillPackage(fetched, "@antelopejs/dms-media", ["dms-media"]);
+  /** @type {string[]} */
   const requested = [];
 
   const corpus = loadCorpus({
