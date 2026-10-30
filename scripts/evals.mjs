@@ -38,6 +38,7 @@ import {
 } from "./lib/answers.mjs";
 import { verifyText } from "./lib/verify.mjs";
 import { fieldOf } from "./lib/safe-read.mjs";
+import { isCallable, isRecord } from "./lib/values.mjs";
 import { seeded } from "./lib/seeded-command.mjs";
 
 /** @typedef {import("./lib/corpus.mjs").Skill} Skill */
@@ -95,11 +96,14 @@ async function loadBackend(name, model) {
     return createOpenAIBackend({ model: model ?? openaiModelFromEnv() });
   /** @type {unknown} */
   const module = await import(pathToFileURL(resolve(name)).href);
+  const fallback = fieldOf(module, "default");
+  /** @type {unknown} */
   const complete =
     fieldOf(module, "complete") ??
-    fieldOf(fieldOf(module, "default"), "complete");
-  if (typeof complete !== "function")
-    fail(`${name} exports no complete() function`);
+    ((isRecord(fallback) || isCallable(fallback)) && "complete" in fallback
+      ? fallback.complete
+      : undefined);
+  if (!isCallable(complete)) fail(`${name} exports no complete() function`);
   return { name, complete };
 }
 

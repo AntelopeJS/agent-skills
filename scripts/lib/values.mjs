@@ -17,6 +17,15 @@ export function isRecord(value) {
 }
 
 /**
+ * Whether `value` is callable.
+ * @param {unknown} value
+ * @returns {value is (...args: never[]) => unknown}
+ */
+export function isCallable(value) {
+  return typeof value === "function";
+}
+
+/**
  * Orders strings by UTF-16 code unit, the order `Array.prototype.sort` gives without a comparator.
  * @param {string} left
  * @param {string} right
