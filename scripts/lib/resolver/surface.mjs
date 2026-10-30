@@ -7,6 +7,7 @@ import {
   isDirectorySafe,
   nameOf,
   shortModuleName,
+  typesTarget,
 } from "./support.mjs";
 
 /**
@@ -58,12 +59,13 @@ export function subpaths(entry) {
     if (dts && !found.has(key)) found.set(key, dts);
   };
 
-  /** @type {unknown} */
+  /** @type {string | null} */
   let wildcardTypes = null;
   for (const [sub, target] of entriesOf(entry.pkg.exports)) {
     if (sub === "./package.json") continue;
     if (sub.includes("*")) {
-      if (isRecord(target) && target.types) wildcardTypes = target.types;
+      if (isRecord(target) && target.types)
+        wildcardTypes = typesTarget(target.types);
       continue;
     }
     add(sub, dtsForTarget(dir, target));
@@ -78,8 +80,6 @@ export function subpaths(entry) {
   }
 
   if (wildcardTypes) {
-    if (!isText(wildcardTypes))
-      throw new TypeError("the types of a wildcard export must be a string");
     const distDir = join(
       dir,
       wildcardTypes.replace(/\/[^/]*\*[^/]*$/, "").replace(/^\.\//, ""),
