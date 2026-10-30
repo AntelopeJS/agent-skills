@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { rubricErrorsOf, suiteErrors } from "../scripts/lib/rubric.mjs";
 import { makeTempDir, removeDir, writeFile, writeJson } from "./helpers.mjs";
 
+/** @type {string} */
 let root;
 
 beforeEach(() => {
@@ -20,6 +21,11 @@ const CRITERIA = ["first-rule", "second-rule", "third-rule"].map((id) => ({
   text: `The answer satisfies ${id} fully.`,
 }));
 
+/**
+ * @param {string} id
+ * @param {Record<string, unknown>} [extra] Fields that replace the valid ones.
+ * @returns {Record<string, unknown>}
+ */
 function rubricCase(id, extra = {}) {
   return {
     id,
@@ -31,6 +37,9 @@ function rubricCase(id, extra = {}) {
   };
 }
 
+/**
+ * @returns {string}
+ */
 function suiteDir() {
   const dir = join(root, "new-module");
   writeFile(join(dir, "fixtures", "empty", "package.json"), "{}\n");

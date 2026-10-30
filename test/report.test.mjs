@@ -5,20 +5,33 @@ import { computeLift, formatLift } from "../scripts/lib/lift.mjs";
 import { applyPassBar } from "../scripts/lib/passbar.mjs";
 import { formatEvalReport } from "../scripts/lib/report.mjs";
 import { MATRIX } from "../scripts/lib/matrix.mjs";
+import { caseOf } from "./helpers.mjs";
+
+/** @typedef {import("../scripts/lib/matrix.mjs").MatrixEntry} MatrixEntry */
+/** @typedef {import("../scripts/lib/run-score.mjs").ScoredRun} ScoredRun */
 
 const [OPUS, SONNET] = MATRIX;
 
+/**
+ * @param {MatrixEntry} model
+ * @param {boolean[]} passes
+ * @param {{ withSkills?: boolean }} [options]
+ * @returns {ScoredRun}
+ */
 function run(model, passes, { withSkills = true } = {}) {
   return {
     manifest: {
+      version: 1,
       withSkills,
       createdAt: "2026-10-28T00:00:00.000Z",
+      modes: ["trigger", "answers"],
       runs: { trigger: 1, answers: 2 },
-      corpus: [{ name: "dms-pages" }, { name: "dms-mailing" }],
-      cases: [
-        { id: "pages", expect: { skills: ["dms-pages"] } },
-        { id: "mail", expect: { skills: ["dms-mailing"] } },
+      models: [model],
+      corpus: [
+        { name: "dms-pages", source: "test" },
+        { name: "dms-mailing", source: "test" },
       ],
+      cases: [caseOf("pages", ["dms-pages"]), caseOf("mail", ["dms-mailing"])],
     },
     models: [
       {
@@ -31,6 +44,7 @@ function run(model, passes, { withSkills = true } = {}) {
             runs: [
               {
                 run: 1,
+                missing: false,
                 pass: passes[0],
                 invented: passes[0] ? 0 : 1,
                 checked: 3,
@@ -45,7 +59,15 @@ function run(model, passes, { withSkills = true } = {}) {
           {
             id: "mail",
             pass: passes[1],
-            runs: [{ run: 1, pass: passes[1], invented: 0, checked: 1 }],
+            runs: [
+              {
+                run: 1,
+                missing: false,
+                pass: passes[1],
+                invented: 0,
+                checked: 1,
+              },
+            ],
           },
         ],
       },
@@ -61,7 +83,15 @@ void test("the Eval report states the verdict, the executors and quotes each fai
     scored,
     bar,
     records: {
-      [OPUS.id]: { observedModels: ["claude-opus-5-5"], cli: "2.1.312" },
+      [OPUS.id]: {
+        executor: OPUS.executor,
+        requestedModel: OPUS.model,
+        effort: OPUS.effort,
+        observedModels: ["claude-opus-5-5"],
+        cli: "2.1.312",
+        sanitization: [],
+        at: "2026-10-28T00:00:00.000Z",
+      },
     },
   });
 

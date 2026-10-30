@@ -3,19 +3,36 @@ import assert from "node:assert/strict";
 
 import { MATRIX } from "../scripts/lib/matrix.mjs";
 import { applyPassBar } from "../scripts/lib/passbar.mjs";
+import { caseOf } from "./helpers.mjs";
+
+/** @typedef {import("../scripts/lib/dataset.mjs").EvalCase} EvalCase */
+/** @typedef {import("../scripts/lib/matrix.mjs").MatrixEntry} MatrixEntry */
+/** @typedef {import("../scripts/lib/requests.mjs").Manifest} Manifest */
+/** @typedef {import("../scripts/lib/run-score.mjs").AnswerCaseResult} AnswerCaseResult */
+/** @typedef {import("../scripts/lib/run-score.mjs").ScoredRun} ScoredRun */
+/** @typedef {import("../scripts/lib/run-score.mjs").TriggerResult} TriggerResult */
 
 const [OPUS, SONNET] = MATRIX;
 
+/**
+ * @param {string} id
+ * @param {{ expected: string[], predicted: string[], allowed?: string[] }} picks
+ * @returns {TriggerResult}
+ */
 function trigger(id, { expected, predicted, allowed = expected }) {
   const missed = expected.filter((name) => !predicted.includes(name));
   const extra = predicted.filter((name) => !allowed.includes(name));
   return {
     id,
+    style: "clean",
+    area: "dms",
     skipped: false,
     expected,
     predicted,
+    absent: [],
     missed,
     extra,
+    avoided: [],
     recall: (expected.length - missed.length) / expected.length,
     precision: predicted.length
       ? (predicted.length - extra.length) / predicted.length
@@ -24,6 +41,11 @@ function trigger(id, { expected, predicted, allowed = expected }) {
   };
 }
 
+/**
+ * @param {string} id
+ * @param {number} [invented]
+ * @returns {AnswerCaseResult}
+ */
 function answer(id, invented = 0) {
   const runs = [1, 2].map((run) => ({
     run,
@@ -35,15 +57,29 @@ function answer(id, invented = 0) {
   return { id, runs, pass: invented === 0 };
 }
 
+/**
+ * @param {EvalCase[]} cases
+ * @returns {Manifest}
+ */
 function manifestOf(cases) {
   return {
-    cases: cases.map(([id, skills, acceptable = []]) => ({
-      id,
-      expect: { skills, acceptable },
-    })),
+    version: 1,
+    createdAt: "2026-10-28T00:00:00.000Z",
+    withSkills: true,
+    modes: ["trigger", "answers"],
+    runs: { trigger: 1, answers: 2 },
+    models: [OPUS],
+    corpus: [],
+    cases,
   };
 }
 
+/**
+ * @param {MatrixEntry} model
+ * @param {EvalCase[]} cases
+ * @param {{ trigger?: TriggerResult[], answers?: AnswerCaseResult[] }} results
+ * @returns {ScoredRun}
+ */
 function scored(model, cases, results) {
   return {
     manifest: manifestOf(cases),
@@ -53,7 +89,7 @@ function scored(model, cases, results) {
   };
 }
 
-const PAGES = ["pages", ["dms-pages"]];
+const PAGES = caseOf("pages", ["dms-pages"]);
 
 void test("a case that passed on main and fails now is a regression on that model only", () => {
   const before = scored(OPUS, [PAGES], {
@@ -107,23 +143,22 @@ void test("every new case must pass, trigger and answers", () => {
 });
 
 void test("the trigger floors are 0.8 and 0.7, with 0.1 less for Sonnet only", () => {
-  const cases = [
-    ["a", ["dms-pages"]],
-    ["b", ["dms-pages"]],
-    ["c", ["dms-pages"]],
-    ["d", ["dms-pages"]],
-    ["e", ["dms-pages"]],
-  ];
+  const cases = ["a", "b", "c", "d", "e"].map((id) =>
+    caseOf(id, ["dms-pages"]),
+  );
+  /** @param {number} hits */
   const picks = (hits) =>
-    cases.map(([id], index) =>
+    cases.map(({ id }, index) =>
       trigger(id, {
         expected: ["dms-pages"],
         predicted: index < hits ? ["dms-pages"] : [],
       }),
     );
 
+  /** @param {MatrixEntry} model */
   const fourOfFive = (model) =>
     applyPassBar(scored(model, cases, { trigger: picks(4) }), {}).failures;
+  /** @param {MatrixEntry} model */
   const threeOfFive = (model) =>
     applyPassBar(scored(model, cases, { trigger: picks(3) }), {}).failures;
 
@@ -131,12 +166,11 @@ void test("the trigger floors are 0.8 and 0.7, with 0.1 less for Sonnet only", (
   assert.equal(threeOfFive(OPUS).length, 1);
   assert.equal(threeOfFive(SONNET).length, 1);
   assert.match(threeOfFive(SONNET)[0].message, /recall 0.60 is under 0.7/);
-  const sevenOfTen = Array.from({ length: 10 }, (_, index) => [
-    `c${index}`,
-    ["dms-pages"],
-  ]);
+  const sevenOfTen = Array.from({ length: 10 }, (_, index) =>
+    caseOf(`c${index}`, ["dms-pages"]),
+  );
   const result = scored(SONNET, sevenOfTen, {
-    trigger: sevenOfTen.map(([id], index) =>
+    trigger: sevenOfTen.map(({ id }, index) =>
       trigger(id, {
         expected: ["dms-pages"],
         predicted: index < 7 ? ["dms-pages"] : [],
@@ -147,10 +181,7 @@ void test("the trigger floors are 0.8 and 0.7, with 0.1 less for Sonnet only", (
 });
 
 void test("an extra pick outside the allowed skills lowers that skill's precision", () => {
-  const cases = [
-    ["a", ["dms-pages"]],
-    ["b", ["dms-mailing"]],
-  ];
+  const cases = [caseOf("a", ["dms-pages"]), caseOf("b", ["dms-mailing"])];
   const now = scored(OPUS, cases, {
     trigger: [
       trigger("a", { expected: ["dms-pages"], predicted: ["dms-pages"] }),
@@ -199,7 +230,8 @@ void test("a task with no answer file fails the run instead of passing silently"
 
 void test("the full-corpus means may fall by 2 points, not more", () => {
   const ids = Array.from({ length: 50 }, (_, index) => `c${index}`);
-  const cases = ids.map((id) => [id, ["dms-pages"]]);
+  const cases = ids.map((id) => caseOf(id, ["dms-pages"]));
+  /** @param {number} hits */
   const run = (hits) =>
     scored(OPUS, cases, {
       trigger: ids.map((id, index) =>
@@ -210,6 +242,7 @@ void test("the full-corpus means may fall by 2 points, not more", () => {
       ),
     });
 
+  /** @param {number} hits */
   const lose = (hits) =>
     applyPassBar(run(hits), {
       against: run(50),

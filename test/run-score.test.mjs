@@ -7,7 +7,10 @@ import { listTasks, writeAnswer, writeRun } from "../scripts/lib/requests.mjs";
 import { parsePicks, scoreRun } from "../scripts/lib/run-score.mjs";
 import { caseOf, makeTempDir, removeDir, skillOf } from "./helpers.mjs";
 
+/** @typedef {import("../scripts/lib/dataset.mjs").EvalCase} EvalCase */
+
 const [OPUS] = MATRIX;
+/** @type {string} */
 let dir;
 
 beforeEach(() => {
@@ -20,6 +23,10 @@ afterEach(() => {
 
 const verifyNone = async () => ({ checked: 2, findings: [] });
 
+/**
+ * @param {EvalCase[]} cases
+ * @returns {import("../scripts/lib/requests.mjs").Manifest}
+ */
 function prepared(cases) {
   return writeRun({
     dir,
@@ -108,6 +115,7 @@ void test("an extra pick leaves a trigger case passing, but picking an avoided s
   ]);
   const [task] = listTasks(manifest).filter((item) => item.mode === "trigger");
 
+  /** @param {string} reply */
   const score = async (reply) => {
     writeAnswer(dir, task, reply);
     return (await scoreRun(dir, manifest, verifyNone)).models[0].trigger[0];
