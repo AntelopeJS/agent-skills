@@ -3,8 +3,16 @@ import assert from "node:assert/strict";
 
 import { createOpenAIBackend, openaiParams } from "../scripts/lib/openai.mjs";
 
+/** @typedef {import("../scripts/lib/openai.mjs").OpenAIFetch} OpenAIFetch */
+
+/**
+ * @param {unknown} reply
+ * @param {{ ok?: boolean, status?: number }} [outcome]
+ */
 function fakeFetch(reply, { ok = true, status = 200 } = {}) {
+  /** @type {{ url: string, init: Parameters<OpenAIFetch>[1], body: unknown }[]} */
   const calls = [];
+  /** @type {OpenAIFetch} */
   const impl = async (url, init) => {
     calls.push({ url, init, body: JSON.parse(init.body) });
     return { ok, status, json: async () => reply };

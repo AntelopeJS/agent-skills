@@ -23,15 +23,26 @@ const SKILLS = [
   },
 ];
 
+/** @typedef {import("../scripts/lib/model.mjs").AnthropicParams} AnthropicParams */
+/** @typedef {import("../scripts/lib/model.mjs").AnthropicReply} AnthropicReply */
+/** @typedef {import("../scripts/lib/model.mjs").AnthropicClient} AnthropicClient */
+/** @typedef {import("../scripts/lib/model.mjs").ModelBackend} ModelBackend */
+
+/**
+ * @param {AnthropicReply} reply
+ * @returns {{ calls: AnthropicParams[], client: AnthropicClient }}
+ */
 function stubClient(reply) {
+  /** @type {AnthropicParams[]} */
   const calls = [];
-  const create = async (params) => {
+  const create = async (/** @type {AnthropicParams} */ params) => {
     calls.push(params);
     return reply;
   };
   return { calls, client: { beta: { messages: { create } } } };
 }
 
+/** @param {string} text */
 const textReply = (text) => ({
   stop_reason: "end_turn",
   model: DEFAULT_MODEL,
@@ -81,8 +92,8 @@ void test("the Anthropic backend sends structured output, low effort and the def
   assert.equal(text, '{"skills":[]}');
   const [params] = calls;
   assert.equal(params.model, DEFAULT_MODEL);
-  assert.equal(params.output_config.format.type, "json_schema");
-  assert.equal(params.output_config.effort, "low");
+  assert.equal(params.output_config?.format?.type, "json_schema");
+  assert.equal(params.output_config?.effort, "low");
   assert.equal(params.fallbacks, "default");
   assert.deepEqual(params.betas, ["server-side-fallback-2026-07-01"]);
   assert.deepEqual(params.messages, [{ role: "user", content: "hi" }]);
