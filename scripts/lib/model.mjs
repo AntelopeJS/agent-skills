@@ -5,6 +5,8 @@
  * loaded only when a model-backed eval actually runs.
  */
 
+import { parseJson } from "./json.mjs";
+import { fieldOf } from "./safe-read.mjs";
 import { isText } from "./values.mjs";
 
 /** @typedef {"low" | "medium" | "high" | "xhigh" | "max"} Effort */
@@ -193,8 +195,10 @@ export function answerRequest(skills, prompt) {
 export function createModelPicker(backend, skills) {
   return async (prompt) => {
     const text = await backend.complete(triggerRequest(skills, prompt));
-    const parsed = JSON.parse(text);
-    return Array.isArray(parsed.skills) ? parsed.skills.filter(isText) : [];
+    const parsed = parseJson(text);
+    if (parsed === null) throw new TypeError("the model reply is null");
+    const picked = fieldOf(parsed, "skills");
+    return Array.isArray(picked) ? picked.filter(isText) : [];
   };
 }
 

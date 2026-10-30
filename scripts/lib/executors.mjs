@@ -19,7 +19,8 @@ import {
   readRequest,
   writeAnswer,
 } from "./requests.mjs";
-import { parseJson } from "./json.mjs";
+import { parseJson, readJsonFile } from "./json.mjs";
+import { fieldOf } from "./safe-read.mjs";
 import { isRecord, isText } from "./values.mjs";
 
 /** @typedef {import("./matrix.mjs").MatrixEntry} MatrixEntry */
@@ -467,17 +468,27 @@ export async function pool(items, limit, worker) {
 }
 
 /**
+ * @param {unknown} model
+ * @returns {model is Record<string, unknown>}
+ */
+function isListedModel(model) {
+  return isRecord(model) && model.visibility === "list";
+}
+
+/**
  * @param {string} home
  * @returns {string[]}
  */
 function codexDefaultModel(home) {
   const file = join(home, "models_cache.json");
   if (!existsSync(file)) return [];
-  const listed = JSON.parse(readFileSync(file, "utf8")).models.filter(
-    (model) => model.visibility === "list",
+  const models = fieldOf(readJsonFile(file), "models");
+  if (!Array.isArray(models)) throw new TypeError(`${file} lists no models`);
+  const listed = models.filter(isListedModel);
+  const [first] = listed.sort(
+    (left, right) => Number(left.priority) - Number(right.priority),
   );
-  const [first] = listed.sort((left, right) => left.priority - right.priority);
-  return first ? [first.slug] : [];
+  return first && isText(first.slug) ? [first.slug] : [];
 }
 
 /**
