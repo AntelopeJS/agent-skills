@@ -12,7 +12,41 @@ import { execFileSync } from "node:child_process";
 import { isBuiltin } from "node:module";
 import { fileURLToPath } from "node:url";
 
+import { parseJson } from "./json.mjs";
+import { readManifest } from "./resolver/support.mjs";
 import { isRecord, isText } from "./values.mjs";
+
+/**
+ * @typedef {import("./resolver/support.mjs").PackageManifest} PackageManifest
+ */
+
+/**
+ * @typedef {object} FileNames
+ * @property {Set<string>} names
+ * @property {boolean} permissive
+ */
+
+/**
+ * @typedef {object} ModuleResolution
+ * @property {string} specifier
+ * @property {string} status
+ * @property {string} [source]
+ * @property {FileNames} [names]
+ */
+
+/**
+ * @typedef {object} PackageEntry
+ * @property {string} dir
+ * @property {PackageManifest} pkg
+ * @property {string} source
+ */
+
+/**
+ * @typedef {object} ResolverContext
+ * @property {string} project
+ * @property {boolean} offline
+ * @property {NodeJS.ProcessEnv} env
+ */
 
 const RESOLVER_SCRIPT = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -41,10 +75,10 @@ export const STATUS = {
   missingSubpath: "missing-subpath",
 };
 
-function readJson(path) {
-  return JSON.parse(readFileSync(path, "utf8"));
-}
-
+/**
+ * @param {string} specifier
+ * @returns {{ name: string, subpath: string }}
+ */
 export function splitSpecifier(specifier) {
   const parts = specifier.split("/");
   const size = specifier.startsWith("@") ? 2 : 1;
@@ -54,11 +88,20 @@ export function splitSpecifier(specifier) {
   };
 }
 
+/**
+ * @param {string} dir
+ * @returns {string[]}
+ */
 function ancestors(dir) {
   const parent = dirname(dir);
   return parent === dir ? [dir] : [dir, ...ancestors(parent)];
 }
 
+/**
+ * @param {string} project
+ * @param {string} name
+ * @returns {string | null}
+ */
 function localPackageDir(project, name) {
   const candidates = ancestors(resolve(project)).flatMap((dir) => [
     join(dir, "node_modules", name),
@@ -69,6 +112,11 @@ function localPackageDir(project, name) {
   );
 }
 
+/**
+ * @param {ResolverContext} context
+ * @param {string} name
+ * @returns {string | null}
+ */
 function resolverPackageDir(context, name) {
   if (!INTERFACE_PACKAGE_RE.test(name)) return null;
   const args = [
@@ -86,12 +134,17 @@ function resolverPackageDir(context, name) {
       stdio: ["ignore", "pipe", "ignore"],
       timeout: RESOLVER_TIMEOUT_MS,
     });
-    return JSON.parse(output).location ?? null;
+    const shown = parseJson(output);
+    return isRecord(shown) && isText(shown.location) ? shown.location : null;
   } catch {
     return null;
   }
 }
 
+/**
+ * @param {unknown} target
+ * @returns {string | null}
+ */
 function typesTarget(target) {
   if (isText(target) || target === null) return target;
   if (Array.isArray(target))
@@ -101,14 +154,25 @@ function typesTarget(target) {
   return condition ? typesTarget(target[condition]) : null;
 }
 
+/**
+ * @param {unknown} exports
+ * @returns {Record<string, unknown>}
+ */
 function exportsMap(exports) {
-  const isSubpathMap =
+  if (
     (exports === null || isRecord(exports)) &&
     !Array.isArray(exports) &&
-    Object.keys(exports).every((key) => key.startsWith("."));
-  return isSubpathMap ? exports : { ".": exports };
+    Object.keys(exports).every((key) => key.startsWith("."))
+  )
+    return exports;
+  return { ".": exports };
 }
 
+/**
+ * @param {Record<string, unknown>} map
+ * @param {string} key
+ * @returns {string | null | undefined}
+ */
 function matchPattern(map, key) {
   for (const [pattern, target] of Object.entries(map)) {
     const star = pattern.indexOf("*");
@@ -127,6 +191,10 @@ function matchPattern(map, key) {
   return undefined;
 }
 
+/**
+ * @param {string} path
+ * @returns {string[]}
+ */
 function dtsCandidates(path) {
   if (DTS_RE.test(path)) return [path];
   const base = path.replace(/\.[mc]?[jt]s$/, "");
@@ -138,13 +206,25 @@ function dtsCandidates(path) {
   ];
 }
 
+/**
+ * @param {string[]} paths
+ * @returns {string | null}
+ */
 function firstExisting(paths) {
   return paths.find((path) => existsSync(path)) ?? null;
 }
 
+/**
+ * @param {string} dir
+ * @param {PackageManifest} pkg
+ * @param {string} subpath
+ * @returns {string | null}
+ */
 function legacyEntry(dir, pkg, subpath) {
   if (subpath) {
-    const mapped = typesTarget(pkg.typesVersions?.["*"]?.[subpath]);
+    const typesVersions = pkg.typesVersions;
+    const star = isRecord(typesVersions) ? typesVersions["*"] : undefined;
+    const mapped = typesTarget(isRecord(star) ? star[subpath] : undefined);
     return firstExisting([
       ...(mapped ? dtsCandidates(join(dir, mapped)) : []),
       ...dtsCandidates(join(dir, subpath)),
@@ -154,6 +234,11 @@ function legacyEntry(dir, pkg, subpath) {
   return firstExisting(dtsCandidates(join(dir, declared)));
 }
 
+/**
+ * @param {string} dir
+ * @param {number} [depth]
+ * @returns {string[]}
+ */
 function filesUnder(dir, depth = PATTERN_SCAN_DEPTH) {
   if (depth === 0 || !existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true })
@@ -165,10 +250,20 @@ function filesUnder(dir, depth = PATTERN_SCAN_DEPTH) {
     );
 }
 
+/**
+ * @param {string} path
+ * @returns {string}
+ */
 function withDotSlash(path) {
   return path.startsWith("./") ? path : `./${path}`;
 }
 
+/**
+ * @param {string} dir
+ * @param {string} key
+ * @param {unknown} target
+ * @returns {string[]}
+ */
 function expandPattern(dir, key, target) {
   if (!isText(target) || !target.includes("*")) return [];
   const [targetPrefix, targetSuffix] = withDotSlash(target).split("*");
@@ -185,7 +280,13 @@ function expandPattern(dir, key, target) {
     );
 }
 
-/** `{ dts }` for the subpath, `{ dts: null }` when untyped, `{ missing: true }` when not exported. */
+/**
+ * `{ dts }` for the subpath, `{ dts: null }` when untyped, `{ missing: true }` when not exported.
+ * @param {string} dir
+ * @param {PackageManifest} pkg
+ * @param {string} subpath
+ * @returns {{ dts?: string | null, missing?: boolean }}
+ */
 export function entryDts(dir, pkg, subpath) {
   if (pkg.exports === undefined) return { dts: legacyEntry(dir, pkg, subpath) };
   const map = exportsMap(pkg.exports);
@@ -197,6 +298,10 @@ export function entryDts(dir, pkg, subpath) {
   return { dts: firstExisting(dtsCandidates(join(dir, target))) };
 }
 
+/**
+ * @param {string} text
+ * @returns {string[]}
+ */
 function exportedNames(text) {
   const named = [...text.matchAll(NAMED_EXPORT_RE)].flatMap((match) =>
     match[1]
@@ -218,24 +323,38 @@ function exportedNames(text) {
   ];
 }
 
+/** @type {FileNames} */
 const EMPTY = { names: new Set(), permissive: false };
 
 /** Resolves module specifiers against one project, with its own caches. */
 export class ModuleResolver {
+  /** @type {ResolverContext} */
   #context;
+  /** @type {Map<string, PackageEntry | null>} */
   #packages = new Map();
+  /** @type {Map<string, Promise<FileNames>>} */
   #files = new Map();
+  /** @type {Set<string>} */
   #visiting = new Set();
+  /** @type {Map<string, Promise<ModuleResolution>>} */
   #modules = new Map();
 
+  /**
+   * @param {{ project: string, offline?: boolean, env?: NodeJS.ProcessEnv }} options
+   */
   constructor({ project, offline = false, env = process.env }) {
     this.#context = { project: resolve(project), offline, env };
   }
 
+  /** @returns {string} */
   get project() {
     return this.#context.project;
   }
 
+  /**
+   * @param {string} name
+   * @returns {PackageEntry | null}
+   */
   #packageEntry(name) {
     if (!this.#packages.has(name)) {
       const local = localPackageDir(this.project, name);
@@ -245,7 +364,7 @@ export class ModuleResolver {
         dir
           ? {
               dir,
-              pkg: readJson(join(dir, "package.json")),
+              pkg: readManifest(join(dir, "package.json")),
               source: local ? "local" : "resolver",
             }
           : null,
@@ -254,6 +373,11 @@ export class ModuleResolver {
     return this.#packages.get(name);
   }
 
+  /**
+   * @param {string} specifier
+   * @param {string} fromFile
+   * @returns {Promise<FileNames>}
+   */
   async #starNames(specifier, fromFile) {
     if (!specifier.startsWith("."))
       return (
@@ -270,12 +394,20 @@ export class ModuleResolver {
       : EMPTY;
   }
 
+  /**
+   * @param {string} file
+   * @returns {Promise<FileNames>}
+   */
   #fileNames(file) {
     if (!this.#files.has(file))
       this.#files.set(file, this.#readFileNames(file));
     return this.#files.get(file);
   }
 
+  /**
+   * @param {string} file
+   * @returns {Promise<FileNames>}
+   */
   async #readFileNames(file) {
     this.#visiting.add(file);
     const text = readFileSync(file, "utf8").replace(COMMENT_RE, "");
@@ -290,16 +422,28 @@ export class ModuleResolver {
     return { names, permissive };
   }
 
+  /**
+   * @param {string} specifier
+   * @returns {Promise<ModuleResolution>}
+   */
   async #builtinModule(specifier) {
+    /** @type {unknown} */
     const runtime = await import(specifier);
     return {
       specifier,
       status: STATUS.builtin,
       source: "node",
-      names: { names: new Set(Object.keys(runtime)), permissive: false },
+      names: {
+        names: new Set(isRecord(runtime) ? Object.keys(runtime) : []),
+        permissive: false,
+      },
     };
   }
 
+  /**
+   * @param {string} specifier
+   * @returns {Promise<ModuleResolution>}
+   */
   async #packageModule(specifier) {
     const { name, subpath } = splitSpecifier(specifier);
     const entry = this.#packageEntry(name);
@@ -317,7 +461,11 @@ export class ModuleResolver {
     };
   }
 
-  /** `{ specifier, status, source?, names?: { names: Set, permissive } }` */
+  /**
+   * `{ specifier, status, source?, names?: { names: Set, permissive } }`
+   * @param {string} specifier
+   * @returns {Promise<ModuleResolution>}
+   */
   resolveModule(specifier) {
     if (!this.#modules.has(specifier)) {
       this.#modules.set(
@@ -330,7 +478,11 @@ export class ModuleResolver {
     return this.#modules.get(specifier);
   }
 
-  /** Every public subpath of an installed package, as specifiers; `*` patterns expanded from disk. */
+  /**
+   * Every public subpath of an installed package, as specifiers; `*` patterns expanded from disk.
+   * @param {string} name
+   * @returns {string[]}
+   */
   packageSpecifiers(name) {
     const entry = this.#packageEntry(name);
     if (!entry) return [];

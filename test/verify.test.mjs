@@ -7,9 +7,18 @@ import { compareText } from "../scripts/lib/values.mjs";
 import { makeTempDir, removeDir, writeFile, writeJson } from "./helpers.mjs";
 
 const fence = "```";
+/** @type {string} */
 let project;
+/** @type {string} */
 let interfacesDir;
 
+/**
+ * @param {string} base
+ * @param {string} name
+ * @param {Record<string, unknown>} manifest
+ * @param {Record<string, string>} files
+ * @returns {void}
+ */
 function writePackage(base, name, manifest, files) {
   const dir = join(base, "node_modules", ...name.split("/"));
   writeJson(join(dir, "package.json"), { name, version: "1.0.0", ...manifest });
@@ -77,6 +86,10 @@ after(() => {
   removeDir(interfacesDir);
 });
 
+/**
+ * @param {string} text
+ * @returns {Promise<import("../scripts/lib/verify.mjs").Report>}
+ */
 function verify(text) {
   return verifyText(text, {
     project,
@@ -85,11 +98,15 @@ function verify(text) {
   });
 }
 
+/**
+ * @param {import("../scripts/lib/verify.mjs").Report} report
+ * @returns {string[]}
+ */
 function unknownNames(report) {
   return report.findings.map((finding) => finding.name).sort();
 }
 
-test("accepts names exported through export *, aliases and directory indexes", async () => {
+void test("accepts names exported through export *, aliases and directory indexes", async () => {
   const report = await verify(
     `${fence}ts\nimport { KpiCard, TableView, Charts } from "@antelopejs/interface-dms/base";\nimport { RegisterPage, Controller } from "@antelopejs/interface-dms";\n${fence}`,
   );
@@ -98,7 +115,7 @@ test("accepts names exported through export *, aliases and directory indexes", a
   assert.equal(report.checked, 7);
 });
 
-test("reports a name the module does not export, ignoring commented-out declarations", async () => {
+void test("reports a name the module does not export, ignoring commented-out declarations", async () => {
   const report = await verify(
     `${fence}\nimport { NotReal, KpiCards } from "@antelopejs/interface-dms/base";\n${fence}`,
   );
@@ -108,7 +125,7 @@ test("reports a name the module does not export, ignoring commented-out declarat
   assert.equal(report.findings[0].line, 2);
 });
 
-test("reports a subpath the package does not export", async () => {
+void test("reports a subpath the package does not export", async () => {
   const report = await verify(
     `${fence}\nimport { KpiCard } from "@antelopejs/interface-dms/blocks";\n${fence}`,
   );
@@ -119,7 +136,7 @@ test("reports a subpath the package does not export", async () => {
   );
 });
 
-test("reads packages without an exports map from their types field", async () => {
+void test("reads packages without an exports map from their types field", async () => {
   const report = await verify(
     `${fence}\nimport { LegacyThing, Nope } from "@antelopejs/legacy";\n${fence}`,
   );
@@ -127,7 +144,7 @@ test("reads packages without an exports map from their types field", async () =>
   assert.deepEqual(unknownNames(report), ["Nope"]);
 });
 
-test("checks node built-ins against their runtime exports", async () => {
+void test("checks node built-ins against their runtime exports", async () => {
   const report = await verify(
     `${fence}\nimport { readFileSync, readEverything } from "node:fs";\n${fence}`,
   );
@@ -135,7 +152,7 @@ test("checks node built-ins against their runtime exports", async () => {
   assert.deepEqual(unknownNames(report), ["readEverything"]);
 });
 
-test("flags a missing AntelopeJS package and leaves other missing or untyped packages unchecked", async () => {
+void test("flags a missing AntelopeJS package and leaves other missing or untyped packages unchecked", async () => {
   const report = await verify(
     `${fence}\nconst { DatabaseService } = require("@antelopejs/core");\nimport { x } from "lodash";\nimport { y } from "untyped-lib";\n${fence}`,
   );
@@ -150,7 +167,7 @@ test("flags a missing AntelopeJS package and leaves other missing or untyped pac
   ]);
 });
 
-test("falls back to the interface resolver for an interface package that is not installed", async () => {
+void test("falls back to the interface resolver for an interface package that is not installed", async () => {
   const report = await verify(
     `${fence}\nimport { SendTemplate, SendMail } from "@antelopejs/interface-dms-mailing";\n${fence}`,
   );
@@ -164,7 +181,7 @@ test("falls back to the interface resolver for an interface package that is not 
   );
 });
 
-test("checks unimported API names of an answer against every installed AntelopeJS package", async () => {
+void test("checks unimported API names of an answer against every installed AntelopeJS package", async () => {
   const report = await verify(
     "Wrap it in `KpiCard` and call `DatabaseService.find()`.",
   );
@@ -173,7 +190,7 @@ test("checks unimported API names of an answer against every installed AntelopeJ
   assert.equal(report.findings[0].kind, "reference");
 });
 
-test("counts the invented rate over every checked name", async () => {
+void test("counts the invented rate over every checked name", async () => {
   const report = await verify(
     "`KpiCard`, `TableView`, `DatabaseService` and `RegisterPage`.",
   );
@@ -182,7 +199,7 @@ test("counts the invented rate over every checked name", async () => {
   assert.equal(report.inventedRate, 0.25);
 });
 
-test("names reachable only through a `*` exports pattern count as known", async () => {
+void test("names reachable only through a `*` exports pattern count as known", async () => {
   const dir = join(project, "node_modules", "@antelopejs", "interface-wild");
   writeJson(join(dir, "package.json"), {
     name: "@antelopejs/interface-wild",
@@ -206,7 +223,7 @@ test("names reachable only through a `*` exports pattern count as known", async 
   assert.deepEqual(referenced.findings, []);
 });
 
-test("survives export * cycles between declaration files", async () => {
+void test("survives export * cycles between declaration files", async () => {
   const dir = join(project, "node_modules", "@antelopejs", "interface-cycle");
   writeJson(join(dir, "package.json"), {
     name: "@antelopejs/interface-cycle",

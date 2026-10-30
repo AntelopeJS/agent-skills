@@ -1,3 +1,5 @@
+/** @typedef {{ name: string, description: string }} BaselineSkill */
+
 const STOP_WORDS = new Set(
   (
     "a an and any are as at be by can do does for from has have how i if in into is it its me my of on " +
@@ -10,6 +12,7 @@ const NAME_WEIGHT = 2;
 const MIN_SCORE = 1.5;
 const RELATIVE_CUTOFF = 0.6;
 const MAX_PICKS = 3;
+/** @type {[RegExp, string][]} */
 const STEM_RULES = [
   [/ies$/, "y"],
   [/(?<=[^s])s$/, ""],
@@ -19,12 +22,20 @@ const STEM_RULES = [
 ];
 const MIN_STEM_LENGTH = 4;
 
+/**
+ * @param {string} word
+ * @returns {string}
+ */
 function stem(word) {
   if (word.length < MIN_STEM_LENGTH) return word;
   const rule = STEM_RULES.find(([pattern]) => pattern.test(word));
   return rule ? word.replace(rule[0], rule[1]) : word;
 }
 
+/**
+ * @param {string} text
+ * @returns {string[]}
+ */
 export function tokenize(text) {
   return text
     .normalize("NFKD")
@@ -37,7 +48,12 @@ export function tokenize(text) {
     .map(stem);
 }
 
+/**
+ * @param {BaselineSkill} skill
+ * @returns {Map<string, number>}
+ */
 function weightedTerms(skill) {
+  /** @type {Map<string, number>} */
   const terms = new Map();
   for (const term of tokenize(skill.description)) terms.set(term, 1);
   for (const term of tokenize(skill.name.replace(/-/g, " ")))
@@ -45,7 +61,12 @@ function weightedTerms(skill) {
   return terms;
 }
 
+/**
+ * @param {Map<string, number>[]} documents
+ * @returns {(term: string) => number}
+ */
 function inverseDocumentFrequency(documents) {
+  /** @type {Map<string, number>} */
   const counts = new Map();
   for (const terms of documents)
     for (const term of terms.keys())
@@ -60,6 +81,8 @@ function inverseDocumentFrequency(documents) {
  * description, and keeps the skills close to the best score. It cannot read
  * intent, but it goes red when a description stops carrying its key terms.
  *
+ * @param {BaselineSkill[]} skills
+ * @returns {(prompt: string) => string[]}
  */
 export function createBaselinePicker(skills) {
   const documents = skills.map(weightedTerms);

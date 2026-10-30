@@ -10,7 +10,39 @@ import { fileURLToPath } from "node:url";
 
 import { parseFrontmatter } from "./frontmatter.mjs";
 import { fetchPackage } from "./packages.mjs";
-import { isText } from "./values.mjs";
+import { parseJson } from "./json.mjs";
+import { fieldOf } from "./safe-read.mjs";
+import { isRecord, isText } from "./values.mjs";
+
+/**
+ * @typedef {object} Skill
+ * @property {string} name
+ * @property {string} description
+ * @property {string} path
+ * @property {string} dir
+ * @property {unknown} source
+ * @property {string} content
+ */
+
+/**
+ * @typedef {object} SkillSource
+ * @property {string} dir
+ * @property {unknown} source
+ */
+
+/**
+ * @typedef {object} CorpusOptions
+ * @property {string} [project]
+ * @property {string[]} [dirs]
+ * @property {string[]} [packages]
+ * @property {(spec: string) => string} [fetch]
+ */
+
+/**
+ * @typedef {object} SyncedSkill
+ * @property {string} target
+ * @property {string} package
+ */
 
 const SKILL_FILE = "SKILL.md";
 const SCAN_DEPTH = 4;
@@ -20,6 +52,10 @@ const SYNC_SCRIPT = join(
   "sync-skills.mjs",
 );
 
+/**
+ * @param {string} path
+ * @returns {boolean}
+ */
 function isDirectory(path) {
   try {
     return statSync(path).isDirectory();
@@ -28,6 +64,10 @@ function isDirectory(path) {
   }
 }
 
+/**
+ * @param {string} dir
+ * @returns {string[]}
+ */
 function childDirs(dir) {
   return readdirSync(dir)
     .filter((entry) => !entry.startsWith(".") && entry !== "node_modules")
@@ -35,6 +75,11 @@ function childDirs(dir) {
     .filter(isDirectory);
 }
 
+/**
+ * @param {string} dir
+ * @param {number} [depth]
+ * @returns {string[]}
+ */
 function skillDirsUnder(dir, depth = SCAN_DEPTH) {
   if (!isDirectory(dir)) return [];
   if (existsSync(join(dir, SKILL_FILE))) return [dir];
@@ -42,6 +87,11 @@ function skillDirsUnder(dir, depth = SCAN_DEPTH) {
   return childDirs(dir).flatMap((child) => skillDirsUnder(child, depth - 1));
 }
 
+/**
+ * @param {string} skillDir
+ * @param {unknown} source
+ * @returns {Skill}
+ */
 function readSkill(skillDir, source) {
   const path = join(skillDir, SKILL_FILE);
   const { data, body } = parseFrontmatter(readFileSync(path, "utf8"));
@@ -50,6 +100,18 @@ function readSkill(skillDir, source) {
   return { name, description, path, dir: skillDir, source, content: body };
 }
 
+/**
+ * @param {unknown} value
+ * @returns {value is SyncedSkill}
+ */
+function isSyncedSkill(value) {
+  return isRecord(value) && isText(value.target) && isText(value.package);
+}
+
+/**
+ * @param {string} project
+ * @returns {SkillSource[]}
+ */
 function projectSkillDirs(project) {
   const output = execFileSync(
     process.execPath,
@@ -60,24 +122,33 @@ function projectSkillDirs(project) {
       stdio: ["ignore", "pipe", "ignore"],
     },
   );
-  const result = JSON.parse(output);
-  return result.skills.map((skill) => ({
-    dir: resolve(project, skill.target),
-    source: skill.package,
-  }));
+  const skills = fieldOf(parseJson(output), "skills");
+  return (Array.isArray(skills) ? skills : [])
+    .filter(isSyncedSkill)
+    .map((skill) => ({
+      dir: resolve(project, skill.target),
+      source: skill.package,
+    }));
 }
 
+/**
+ * @param {string} dir
+ * @returns {SkillSource[]}
+ */
 function packageSkillDirs(dir) {
-  const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
-  const declared = Array.isArray(pkg.antelopeJs?.skills)
-    ? pkg.antelopeJs.skills
-    : [];
+  const pkg = parseJson(readFileSync(join(dir, "package.json"), "utf8"));
+  const skills = fieldOf(fieldOf(pkg, "antelopeJs"), "skills");
+  const declared = Array.isArray(skills) ? skills : [];
   return declared
     .filter(isText)
     .flatMap((rel) => skillDirsUnder(resolve(dir, rel), 1))
-    .map((skillDir) => ({ dir: skillDir, source: pkg.name }));
+    .map((skillDir) => ({ dir: skillDir, source: fieldOf(pkg, "name") }));
 }
 
+/**
+ * @param {CorpusOptions} options
+ * @returns {SkillSource[]}
+ */
 function sourcesOf({
   project,
   dirs = [],
@@ -100,9 +171,13 @@ function sourcesOf({
  * Loads the corpus from any mix of directories, a project and npm package specs,
  * in that order. The first skill of a given name wins; later ones land in
  * `duplicates`, so explicit directories override what a project installs.
+ * @param {CorpusOptions} options
+ * @returns {{ skills: Skill[], duplicates: Skill[] }}
  */
 export function loadCorpus(options) {
+  /** @type {Map<string, Skill>} */
   const skills = new Map();
+  /** @type {Skill[]} */
   const duplicates = [];
   for (const { dir, source } of sourcesOf(options)) {
     const skill = readSkill(dir, source);

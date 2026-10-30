@@ -7,7 +7,12 @@ import {
   summarizeAnswers,
 } from "../scripts/lib/answers.mjs";
 
+/** @typedef {import("../scripts/lib/dataset.mjs").EvalCase} EvalCase */
+/** @typedef {import("../scripts/lib/model.mjs").ModelBackend} ModelBackend */
+/** @typedef {import("../scripts/lib/model.mjs").ModelRequest} ModelRequest */
+
 const fence = "```";
+/** @type {EvalCase} */
 const CASE = {
   id: "kanban-board",
   area: "dms",
@@ -21,7 +26,7 @@ const CASE = {
   },
 };
 
-test("mentions, forbidden names and the asks-first behaviour are checked on the answer text", () => {
+void test("mentions, forbidden names and the asks-first behaviour are checked on the answer text", () => {
   const good = checkAnswer(
     CASE,
     "There is no kanban block. Build it as a `CustomComponent`, or keep a TableView?\n",
@@ -43,7 +48,7 @@ test("mentions, forbidden names and the asks-first behaviour are checked on the 
   });
 });
 
-test("a case without expectations passes every check", () => {
+void test("a case without expectations passes every check", () => {
   const plain = { ...CASE, expect: { skills: ["dms-pages"] } };
 
   assert.deepEqual(checkAnswer(plain, "anything"), {
@@ -53,8 +58,10 @@ test("a case without expectations passes every check", () => {
   });
 });
 
-test("answers each case with its expected skills loaded, verifies it and summarizes the invented rate", async () => {
+void test("answers each case with its expected skills loaded, verifies it and summarizes the invented rate", async () => {
+  /** @type {ModelRequest[]} */
   const requests = [];
+  /** @type {ModelBackend} */
   const backend = {
     complete: async (request) => {
       requests.push(request);
@@ -81,19 +88,20 @@ test("answers each case with its expected skills loaded, verifies it and summari
 
   assert.match(requests[0].system, /RULES/);
   assert.doesNotMatch(requests[0].system, /PAGES/);
+  assert.ok(!results[0].skipped);
   assert.equal(results[0].invented, 1);
   assert.equal(summary.inventedRate, 0.25);
   assert.equal(summary.passed, false);
 });
 
-test("a case whose skills are all absent from the corpus is skipped", async () => {
+void test("a case whose skills are all absent from the corpus is skipped", async () => {
   const backend = { complete: async () => assert.fail("must not be called") };
 
   const results = await runAnswerEval({
     cases: [CASE],
     skills: [],
     backend,
-    verify: async () => ({}),
+    verify: async () => ({ checked: 0, findings: [] }),
   });
 
   assert.equal(results[0].skipped, true);

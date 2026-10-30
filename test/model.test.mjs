@@ -23,22 +23,33 @@ const SKILLS = [
   },
 ];
 
+/** @typedef {import("../scripts/lib/model.mjs").AnthropicParams} AnthropicParams */
+/** @typedef {import("../scripts/lib/model.mjs").AnthropicReply} AnthropicReply */
+/** @typedef {import("../scripts/lib/model.mjs").AnthropicClient} AnthropicClient */
+/** @typedef {import("../scripts/lib/model.mjs").ModelBackend} ModelBackend */
+
+/**
+ * @param {AnthropicReply} reply
+ * @returns {{ calls: AnthropicParams[], client: AnthropicClient }}
+ */
 function stubClient(reply) {
+  /** @type {AnthropicParams[]} */
   const calls = [];
-  const create = async (params) => {
+  const create = async (/** @type {AnthropicParams} */ params) => {
     calls.push(params);
     return reply;
   };
   return { calls, client: { beta: { messages: { create } } } };
 }
 
+/** @param {string} text */
 const textReply = (text) => ({
   stop_reason: "end_turn",
   model: DEFAULT_MODEL,
   content: [{ type: "text", text }],
 });
 
-test("the trigger request shows only skill names and descriptions, like the harness", () => {
+void test("the trigger request shows only skill names and descriptions, like the harness", () => {
   const { system, user, schema } = triggerRequest(
     SKILLS,
     "add an orders table",
@@ -53,14 +64,14 @@ test("the trigger request shows only skill names and descriptions, like the harn
   ]);
 });
 
-test("the answer request loads the full skill bodies", () => {
+void test("the answer request loads the full skill bodies", () => {
   const { system } = answerRequest([SKILLS[0]], "add an orders table");
 
   assert.match(system, /SECRET BODY OF DMS-PAGES/);
   assert.doesNotMatch(system, /DMS-MAILING/);
 });
 
-test("the model picker returns the skills the backend chose", async () => {
+void test("the model picker returns the skills the backend chose", async () => {
   const backend = { complete: async () => '{"skills":["dms-mailing"]}' };
 
   const pick = createModelPicker(backend, SKILLS);
@@ -68,7 +79,7 @@ test("the model picker returns the skills the backend chose", async () => {
   assert.deepEqual(await pick("send the welcome mail"), ["dms-mailing"]);
 });
 
-test("the Anthropic backend sends structured output, low effort and the default fallback", async () => {
+void test("the Anthropic backend sends structured output, low effort and the default fallback", async () => {
   const { calls, client } = stubClient(textReply('{"skills":[]}'));
   const backend = createAnthropicBackend({ model: DEFAULT_MODEL, client });
 
@@ -81,14 +92,14 @@ test("the Anthropic backend sends structured output, low effort and the default 
   assert.equal(text, '{"skills":[]}');
   const [params] = calls;
   assert.equal(params.model, DEFAULT_MODEL);
-  assert.equal(params.output_config.format.type, "json_schema");
-  assert.equal(params.output_config.effort, "low");
+  assert.equal(params.output_config?.format?.type, "json_schema");
+  assert.equal(params.output_config?.effort, "low");
   assert.equal(params.fallbacks, "default");
   assert.deepEqual(params.betas, ["server-side-fallback-2026-07-01"]);
   assert.deepEqual(params.messages, [{ role: "user", content: "hi" }]);
 });
 
-test("models without effort or server-side fallback get neither", async () => {
+void test("models without effort or server-side fallback get neither", async () => {
   const { calls, client } = stubClient(textReply("ok"));
   const backend = createAnthropicBackend({ model: "claude-haiku-4-5", client });
 
@@ -104,14 +115,14 @@ test("models without effort or server-side fallback get neither", async () => {
   assert.equal(calls[0].betas, undefined);
 });
 
-test("a refusal surfaces as an error", async () => {
+void test("a refusal surfaces as an error", async () => {
   const { client } = stubClient({ stop_reason: "refusal", content: [] });
   const backend = createAnthropicBackend({ model: DEFAULT_MODEL, client });
 
   await assert.rejects(backend.complete({ system: "s", user: "u" }), /refus/);
 });
 
-test("the model comes from EVAL_MODEL, else the default", () => {
+void test("the model comes from EVAL_MODEL, else the default", () => {
   assert.equal(modelFromEnv({}), DEFAULT_MODEL);
   assert.equal(
     modelFromEnv({ EVAL_MODEL: "claude-sonnet-5-5" }),

@@ -6,6 +6,8 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { makeTempDir, removeDir, writeFile, writeJson } from "./helpers.mjs";
+import { parseJson } from "../scripts/lib/json.mjs";
+import { fieldOf } from "../scripts/lib/safe-read.mjs";
 
 const BIN = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -14,8 +16,13 @@ const BIN = join(
   "agent-skills.mjs",
 );
 const fence = "```";
+/** @type {string} */
 let root;
 
+/**
+ * @param {string[]} args
+ * @param {{ input?: string, env?: Record<string, string> }} [options]
+ */
 function run(args, { input, env = {} } = {}) {
   const { ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, ...clean } = process.env;
   return spawnSync(process.execPath, [BIN, ...args], {
@@ -87,7 +94,7 @@ after(() => {
   removeDir(root);
 });
 
-test("the bin lists the verify and evals commands", () => {
+void test("the bin lists the verify and evals commands", () => {
   const result = run([]);
 
   assert.equal(result.status, 0);
@@ -95,7 +102,7 @@ test("the bin lists the verify and evals commands", () => {
   assert.match(result.stdout, /evals/);
 });
 
-test("verify reads stdin and exits 1 on an unknown name", () => {
+void test("verify reads stdin and exits 1 on an unknown name", () => {
   const result = run(["verify", "-"], {
     input: `${fence}\nimport { KpiCard, KpiRow } from "@antelopejs/interface-dms";\n${fence}\n`,
   });
@@ -104,18 +111,18 @@ test("verify reads stdin and exits 1 on an unknown name", () => {
   assert.match(result.stdout, /KpiRow/);
 });
 
-test("verify reads a file, exits 0 when every name exists, and speaks JSON", () => {
+void test("verify reads a file, exits 0 when every name exists, and speaks JSON", () => {
   writeFile(join(root, "answer.md"), "Use `KpiCard`.\n");
 
   const result = run(["verify", "answer.md", "--json", "--offline"]);
 
   assert.equal(result.status, 0);
-  assert.equal(JSON.parse(result.stdout).checked, 1);
+  assert.equal(fieldOf(parseJson(result.stdout), "checked"), 1);
 });
 
 const CORPUS = ["--skills", "skills", "--cases", "cases.json"];
 
-test("evals runs the baseline by default and prints the table", () => {
+void test("evals runs the baseline by default and prints the table", () => {
   const result = run(["evals", ...CORPUS]);
 
   assert.equal(result.status, 0);
@@ -123,21 +130,21 @@ test("evals runs the baseline by default and prints the table", () => {
   assert.match(result.stdout, /overall/);
 });
 
-test("evals exits 1 under the recall threshold", () => {
+void test("evals exits 1 under the recall threshold", () => {
   const result = run(["evals", ...CORPUS, "--min-recall", "1"]);
 
   assert.equal(result.status, 1);
   assert.match(result.stdout, /Below threshold/);
 });
 
-test("the anthropic backend is skipped cleanly without a key", () => {
+void test("the anthropic backend is skipped cleanly without a key", () => {
   const result = run(["evals", "trigger", ...CORPUS, "--backend", "anthropic"]);
 
   assert.equal(result.status, 0);
   assert.match(result.stdout, /ANTHROPIC_API_KEY is not set/);
 });
 
-test("dry-run prints the model prompt with names and descriptions only", () => {
+void test("dry-run prints the model prompt with names and descriptions only", () => {
   const result = run([
     "evals",
     ...CORPUS,
@@ -151,7 +158,7 @@ test("dry-run prints the model prompt with names and descriptions only", () => {
   assert.doesNotMatch(result.stdout, /Use `KpiCard`/);
 });
 
-test("a backend module plugs into the trigger eval", () => {
+void test("a backend module plugs into the trigger eval", () => {
   const result = run([
     "evals",
     ...CORPUS,
@@ -159,13 +166,13 @@ test("a backend module plugs into the trigger eval", () => {
     "stub-backend.mjs",
     "--json",
   ]);
-  const report = JSON.parse(result.stdout);
+  const report = parseJson(result.stdout);
 
   assert.equal(result.status, 0);
-  assert.equal(report.summary.recall, 1);
+  assert.equal(fieldOf(fieldOf(report, "summary"), "recall"), 1);
 });
 
-test("the answers eval verifies each answer and fails over the invented threshold", () => {
+void test("the answers eval verifies each answer and fails over the invented threshold", () => {
   const args = [
     "evals",
     "answers",
@@ -185,7 +192,7 @@ test("the answers eval verifies each answer and fails over the invented threshol
   assert.equal(strict.status, 1);
 });
 
-test("evals refuses an unknown mode", () => {
+void test("evals refuses an unknown mode", () => {
   assert.equal(run(["evals", "nonsense", ...CORPUS]).status, 2);
 });
 
@@ -193,7 +200,7 @@ function rubricDir() {
   return join(root, "prepared");
 }
 
-test("prepare writes requests, exec fills them, score reports and exits 1 on a failed bar", () => {
+void test("prepare writes requests, exec fills them, score reports and exits 1 on a failed bar", () => {
   const prepared = run([
     "evals",
     "prepare",
@@ -241,7 +248,7 @@ test("prepare writes requests, exec fills them, score reports and exits 1 on a f
   assert.match(score.stdout, /unknown names: KpiRow/);
 });
 
-test("check passes the committed case files and fails a skill below the minimum", () => {
+void test("check passes the committed case files and fails a skill below the minimum", () => {
   const schemaOnly = run(["evals", "check", "--cases", "cases.json"]);
   const minimum = run([
     "evals",
@@ -257,7 +264,7 @@ test("check passes the committed case files and fails a skill below the minimum"
   assert.match(minimum.stderr, /dms-pages lacks a casual should-trigger case/);
 });
 
-test("score --only limits the report to the named cases", () => {
+void test("score --only limits the report to the named cases", () => {
   const score = run([
     "evals",
     "score",
@@ -270,10 +277,14 @@ test("score --only limits the report to the named cases", () => {
     "--json",
   ]);
 
-  const { scored } = JSON.parse(score.stdout);
+  const cases = fieldOf(
+    fieldOf(fieldOf(parseJson(score.stdout), "scored"), "manifest"),
+    "cases",
+  );
 
+  assert.ok(Array.isArray(cases));
   assert.deepEqual(
-    scored.manifest.cases.map((item) => item.id),
+    cases.map((item) => fieldOf(item, "id")),
     ["kpi"],
   );
 });

@@ -1,5 +1,48 @@
+/** @typedef {import("./dataset.mjs").EvalCase} EvalCase */
+/** @typedef {import("./matrix.mjs").MatrixEntry} MatrixEntry */
+/** @typedef {import("./run-score.mjs").ScoredRun} ScoredRun */
+
+/**
+ * One model's answers: which of its cases passed, by case id.
+ * @typedef {object} Answered
+ * @property {MatrixEntry} model
+ * @property {Map<string, EvalCase>} byCase
+ * @property {Map<string, boolean>} results
+ */
+
+/**
+ * How many of a skill's cases pass with the skills loaded, without, and the case count.
+ * @typedef {object} Tally
+ * @property {number} now
+ * @property {number} base
+ * @property {number} total
+ */
+
+/**
+ * A skill's lift on one model.
+ * @typedef {object} ModelLift
+ * @property {string} model
+ * @property {number} withScore
+ * @property {number} withoutScore
+ * @property {number} lift
+ * @property {number} cases
+ */
+
+/**
+ * A skill's lift over the models.
+ * @typedef {object} SkillLift
+ * @property {string} skill
+ * @property {ModelLift[]} models
+ * @property {number} meanLift
+ * @property {boolean} noLift
+ */
+
 const PERCENT = 100;
 
+/**
+ * @param {ScoredRun} scored
+ * @returns {Answered[]}
+ */
 function answered(scored) {
   const byCase = new Map(scored.manifest.cases.map((item) => [item.id, item]));
   return scored.models.map(({ model, answers }) => ({
@@ -13,7 +56,14 @@ function answered(scored) {
   }));
 }
 
+/**
+ * @param {Map<string, boolean>} withResults
+ * @param {Map<string, boolean>} withoutResults
+ * @param {Map<string, EvalCase>} byCase
+ * @returns {Map<string, Tally>}
+ */
 function tally(withResults, withoutResults, byCase) {
+  /** @type {Map<string, Tally>} */
   const bySkill = new Map();
   for (const [id, passed] of withResults) {
     if (!withoutResults.has(id)) continue;
@@ -35,9 +85,13 @@ function tally(withResults, withoutResults, byCase) {
  * Cases missing an answer in either run are left out, and a skill left with
  * no case on a model has no entry for it. A skill has no lift when its mean
  * lift over the models that ran is not above zero.
+ * @param {ScoredRun} withSkills
+ * @param {ScoredRun} withoutSkills
+ * @returns {SkillLift[]}
  */
 export function computeLift(withSkills, withoutSkills) {
   const before = answered(withoutSkills);
+  /** @type {Map<string, ModelLift[]>} */
   const rows = new Map();
   answered(withSkills).forEach(({ model, byCase, results }, index) => {
     const bySkill = tally(results, before[index].results, byCase);
@@ -63,13 +117,24 @@ export function computeLift(withSkills, withoutSkills) {
     .sort((left, right) => left.skill.localeCompare(right.skill));
 }
 
+/**
+ * @param {number} value
+ * @returns {string}
+ */
 const pct = (value) => `${Math.round(value * PERCENT)}%`;
+/**
+ * @param {number} value
+ * @returns {string}
+ */
 const signed = (value) =>
   `${value > 0 ? "+" : ""}${Math.round(value * PERCENT)}`;
 
 /**
  * One Markdown table: skill, per-model cases / with / without / lift, mean
  * lift. A model with no case run for a skill reads "not run".
+ * @param {SkillLift[]} rows
+ * @param {string[]} [modelIds]
+ * @returns {string}
  */
 export function formatLift(rows, modelIds) {
   const ids = modelIds ?? [
@@ -80,6 +145,7 @@ export function formatLift(rows, modelIds) {
     ...ids.map((id) => `${id} (cases: with / without / lift)`),
     "Mean lift",
   ];
+  /** @param {string[]} cells */
   const line = (cells) => `| ${cells.join(" | ")} |`;
   return [
     line(header),

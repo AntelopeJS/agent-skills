@@ -14,6 +14,7 @@ import {
   link,
 } from "./helpers.mjs";
 
+/** @type {string} */
 let root;
 
 beforeEach(() => {
@@ -24,11 +25,16 @@ afterEach(() => {
   removeDir(root);
 });
 
+/**
+ * @param {string} dir
+ * @param {string} frontmatter
+ * @param {string} [body]
+ */
 function writeSkill(dir, frontmatter, body = "Body.\n") {
   writeFile(join(dir, "SKILL.md"), `---\n${frontmatter}\n---\n${body}`);
 }
 
-test("frontmatter keeps plain, quoted, folded and list values", () => {
+void test("frontmatter keeps plain, quoted, folded and list values", () => {
   const text = [
     "---",
     "name: dms-pages",
@@ -50,11 +56,11 @@ test("frontmatter keeps plain, quoted, folded and list values", () => {
   assert.equal(body, "# Body");
 });
 
-test("a file without frontmatter yields no data", () => {
+void test("a file without frontmatter yields no data", () => {
   assert.deepEqual(parseFrontmatter("# Title\n").data, {});
 });
 
-test("loads every SKILL.md under explicit directories, a skill dir or a parent of skill dirs", () => {
+void test("loads every SKILL.md under explicit directories, a skill dir or a parent of skill dirs", () => {
   writeSkill(
     join(root, "pack", "skills", "dms-pages"),
     "name: dms-pages\ndescription: Builds pages.",
@@ -75,11 +81,12 @@ test("loads every SKILL.md under explicit directories, a skill dir or a parent o
     "lone",
   ]);
   const pages = corpus.skills.find((s) => s.name === "dms-pages");
+  assert.ok(pages);
   assert.equal(pages.description, "Builds pages.");
   assert.match(pages.content, /Body\./);
 });
 
-test("falls back to the directory name when the frontmatter has no name", () => {
+void test("falls back to the directory name when the frontmatter has no name", () => {
   writeSkill(join(root, "skills", "unnamed"), "description: No name.");
 
   const corpus = loadCorpus({ dirs: [join(root, "skills")] });
@@ -87,7 +94,7 @@ test("falls back to the directory name when the frontmatter has no name", () => 
   assert.equal(corpus.skills[0].name, "unnamed");
 });
 
-test("keeps the first skill of a name and reports the duplicate", () => {
+void test("keeps the first skill of a name and reports the duplicate", () => {
   writeSkill(join(root, "a", "dms"), "name: dms\ndescription: First.");
   writeSkill(join(root, "b", "dms"), "name: dms\ndescription: Second.");
 
@@ -98,7 +105,7 @@ test("keeps the first skill of a name and reports the duplicate", () => {
   assert.equal(corpus.duplicates.length, 1);
 });
 
-test("discovers package-shipped skills of a project like the sync does", () => {
+void test("discovers package-shipped skills of a project like the sync does", () => {
   writeAntelopeConfig(root);
   const store = join(
     root,
@@ -124,21 +131,21 @@ test("discovers package-shipped skills of a project like the sync does", () => {
     "dms-mailing",
     "dms-pages",
   ]);
-  assert.equal(
-    corpus.skills.find((s) => s.name === "dms").source,
-    "@antelopejs/dms",
-  );
+  const dms = corpus.skills.find((s) => s.name === "dms");
+  assert.ok(dms);
+  assert.equal(dms.source, "@antelopejs/dms");
 });
 
-test("a directory that is not an AntelopeJS project contributes nothing", () => {
+void test("a directory that is not an AntelopeJS project contributes nothing", () => {
   const corpus = loadCorpus({ project: root });
 
   assert.deepEqual(corpus.skills, []);
 });
 
-test("reads the skills a fetched package declares", () => {
+void test("reads the skills a fetched package declares", () => {
   const fetched = join(root, "fetched", "package");
   writeSkillPackage(fetched, "@antelopejs/dms-media", ["dms-media"]);
+  /** @type {string[]} */
   const requested = [];
 
   const corpus = loadCorpus({

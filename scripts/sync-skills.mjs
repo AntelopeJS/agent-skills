@@ -39,11 +39,7 @@
  */
 
 import {
-  readFileSync,
-  readdirSync,
   existsSync,
-  lstatSync,
-  statSync,
   mkdirSync,
   symlinkSync,
   unlinkSync,
@@ -52,7 +48,62 @@ import {
 } from "node:fs";
 import { join, relative, resolve, dirname, isAbsolute } from "node:path";
 
-import { compareText, isText } from "./lib/values.mjs";
+import {
+  fieldOf,
+  isDirectorySafe,
+  lstatSafe,
+  readJsonSafe,
+  readTextSafe,
+  readdirSafe,
+} from "./lib/safe-read.mjs";
+import { compareText, isText, textIfTruthy } from "./lib/values.mjs";
+import { declaresWorkspaces, workspacePackageDirs } from "./lib/workspaces.mjs";
+
+/**
+ * @typedef {object} Target
+ * @property {string} name
+ * @property {string} label
+ * @property {string} dir
+ */
+
+/**
+ * @typedef {object} SkillInfo
+ * @property {string} target
+ * @property {string} package
+ * @property {unknown} version
+ * @property {string} origin
+ * @property {string} skill
+ */
+
+/**
+ * @typedef {object} SyncState
+ * @property {Target} target
+ * @property {Map<string, SkillInfo>} desired
+ * @property {Set<string>} managed
+ * @property {string[]} removed
+ * @property {string[]} warnings
+ */
+
+/**
+ * @typedef {object} TargetResult
+ * @property {string} target
+ * @property {string} dir
+ * @property {string[]} added
+ * @property {string[]} removed
+ * @property {string[]} kept
+ * @property {Map<string, string>} statuses
+ */
+
+/**
+ * @typedef {SkillInfo & { name: string, status: Record<string, string | undefined> }} ListedSkill
+ */
+
+/**
+ * @typedef {object} SyncResult
+ * @property {Omit<TargetResult, "statuses">[]} targets
+ * @property {string[]} warnings
+ * @property {ListedSkill[]} skills
+ */
 
 const args = process.argv.slice(2);
 const argv = new Set(args);
@@ -67,6 +118,7 @@ const GITIGNORE_FILE = ".gitignore";
 const TARGET_FLAG = "--target";
 const ALL_TARGETS = "all";
 const USAGE_EXIT_CODE = 2;
+/** @type {Record<string, Target>} */
 const TARGETS = {
   claude: {
     name: "claude",
@@ -92,63 +144,30 @@ const DEPENDENCY_FIELDS = [
   "devDependencies",
   "optionalDependencies",
 ];
-const WORKSPACE_FILE = "pnpm-workspace.yaml";
 const ORIGIN = {
   workspace: "workspace",
   nodeModules: "node_modules",
   cache: "antelope-cache",
 };
 const STATUS = { linked: "linked", added: "added", skipped: "skipped" };
-const RECURSIVE_GLOB_DEPTH = 3;
 
+/**
+ * @param {string} msg
+ */
 function log(msg) {
   if (!QUIET && !JSON_OUT) console.log(msg);
 }
 
+/**
+ * @param {string} msg
+ */
 function warn(msg) {
   if (!QUIET) process.stderr.write(`warning: ${msg}\n`);
 }
 
-function readJsonSafe(path) {
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
-}
-
-function readTextSafe(path) {
-  try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return "";
-  }
-}
-
-function lstatSafe(path) {
-  try {
-    return lstatSync(path);
-  } catch {
-    return null;
-  }
-}
-
-function isDirectorySafe(path) {
-  try {
-    return statSync(path).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-function readdirSafe(path) {
-  try {
-    return readdirSync(path);
-  } catch {
-    return [];
-  }
-}
-
+/**
+ * @returns {string | undefined}
+ */
 function targetFlagValue() {
   const inline = args.find((arg) => arg.startsWith(`${TARGET_FLAG}=`));
   if (inline) return inline.slice(TARGET_FLAG.length + 1);
@@ -156,30 +175,43 @@ function targetFlagValue() {
   return index < 0 ? ALL_TARGETS : args[index + 1];
 }
 
+/**
+ * @returns {Target[]}
+ */
 function selectedTargets() {
   const value = targetFlagValue();
   if (value === ALL_TARGETS) return Object.values(TARGETS);
-  if (Object.hasOwn(TARGETS, value ?? "")) return [TARGETS[value]];
+  if (value !== undefined && Object.hasOwn(TARGETS, value))
+    return [TARGETS[value]];
   process.stderr.write(
     `error: ${TARGET_FLAG} expects one of ${[...Object.keys(TARGETS), ALL_TARGETS].join(", ")}.\n`,
   );
   process.exit(USAGE_EXIT_CODE);
 }
 
+/**
+ * @param {unknown} pkg
+ * @returns {boolean}
+ */
 function dependsOnCore(pkg) {
-  return DEPENDENCY_FIELDS.some((field) => pkg?.[field]?.[CORE_PACKAGE]);
+  return DEPENDENCY_FIELDS.some((field) =>
+    Boolean(fieldOf(fieldOf(pkg, field), CORE_PACKAGE)),
+  );
 }
 
+/**
+ * @param {string} dir
+ * @returns {boolean}
+ */
 function isAntelopeProject(dir) {
   if (CONFIG_VARIANTS.some((f) => existsSync(join(dir, f)))) return true;
   return dependsOnCore(readJsonSafe(join(dir, "package.json")));
 }
 
-function declaresWorkspaces(dir) {
-  if (existsSync(join(dir, WORKSPACE_FILE))) return true;
-  return Boolean(readJsonSafe(join(dir, "package.json"))?.workspaces);
-}
-
+/**
+ * @param {string} dir
+ * @returns {boolean}
+ */
 function isBoundary(dir) {
   return existsSync(join(dir, ".git")) || declaresWorkspaces(dir);
 }
@@ -187,6 +219,7 @@ function isBoundary(dir) {
 /**
  * The cwd and its ancestors up to the nearest repository or workspace root;
  * only the cwd when no such root exists.
+ * @returns {string[]}
  */
 function ancestorDirs() {
   const dirs = [];
@@ -197,60 +230,13 @@ function ancestorDirs() {
   }
 }
 
-function pnpmWorkspaceGlobs(root) {
-  const lines = readTextSafe(join(root, WORKSPACE_FILE)).split("\n");
-  const start = lines.findIndex((line) => /^packages:\s*$/.test(line));
-  if (start < 0) return [];
-  const globs = [];
-  for (const line of lines.slice(start + 1)) {
-    if (/^\S/.test(line)) break;
-    const match = line.match(/^\s*-\s*["']?([^"'#]+?)["']?\s*(#.*)?$/);
-    if (match) globs.push(match[1]);
-  }
-  return globs;
-}
-
-function packageJsonWorkspaceGlobs(root) {
-  const workspaces = readJsonSafe(join(root, "package.json"))?.workspaces;
-  const globs = Array.isArray(workspaces) ? workspaces : workspaces?.packages;
-  return Array.isArray(globs) ? globs.filter(isText) : [];
-}
-
-function childDirs(dir) {
-  return readdirSafe(dir)
-    .filter((entry) => !entry.startsWith(".") && entry !== "node_modules")
-    .map((entry) => join(dir, entry))
-    .filter(isDirectorySafe);
-}
-
-function descendantDirs(dir, depth) {
-  if (depth === 0) return [];
-  return childDirs(dir).flatMap((child) => [
-    child,
-    ...descendantDirs(child, depth - 1),
-  ]);
-}
-
-/** Supports the glob forms workspaces use in practice: `dir`, `dir/*`, `dir/**`. */
-function expandWorkspaceGlob(root, glob) {
-  if (glob.startsWith("!")) return [];
-  const clean = glob.replace(/^\.\//, "").replace(/\/$/, "");
-  if (clean.endsWith("/**"))
-    return descendantDirs(join(root, clean.slice(0, -3)), RECURSIVE_GLOB_DEPTH);
-  if (clean.endsWith("/*")) return childDirs(join(root, clean.slice(0, -2)));
-  return [join(root, clean)];
-}
-
-function workspacePackageDirs(root) {
-  const globs = [
-    ...pnpmWorkspaceGlobs(root),
-    ...packageJsonWorkspaceGlobs(root),
-  ];
-  return globs.flatMap((glob) => expandWorkspaceGlob(root, glob));
-}
-
-/** Direct children of a package root: <root>/<pkg> and <root>/@scope/<pkg>. */
+/**
+ * Direct children of a package root: <root>/<pkg> and <root>/@scope/<pkg>.
+ * @param {string} base
+ * @returns {string[]}
+ */
 function packagesIn(base) {
+  /** @type {string[]} */
   const dirs = [];
   for (const entry of readdirSafe(base)) {
     if (entry.startsWith(".")) continue;
@@ -266,6 +252,9 @@ function packagesIn(base) {
   return dirs;
 }
 
+/**
+ * @returns {{ dir: string, origin: string }[]}
+ */
 function candidatePackages() {
   const ancestors = ancestorDirs();
   const root = ancestors[ancestors.length - 1];
@@ -286,26 +275,45 @@ function candidatePackages() {
 /**
  * Every skill declared by the discovered packages.
  * Returns Map<entryName, { target, package, version, origin, skill }>.
+ * @param {string[]} warnings
+ * @returns {Map<string, SkillInfo>}
  */
 function discoverSkills(warnings) {
+  /** @type {Map<string, SkillInfo>} */
   const skills = new Map();
   const seenPackages = new Set();
   for (const { dir, origin } of candidatePackages()) {
     const pkg = readJsonSafe(join(dir, "package.json"));
-    if (!isText(pkg?.name) || seenPackages.has(pkg.name)) continue;
-    const declared = pkg.antelopeJs?.skills;
+    const name = fieldOf(pkg, "name");
+    if (!isText(name) || seenPackages.has(name)) continue;
+    const declared = fieldOf(fieldOf(pkg, "antelopeJs"), "skills");
     if (!Array.isArray(declared) || !declared.length) continue;
-    seenPackages.add(pkg.name);
-    collectPackageSkills({ pkg, dir, origin }, declared, skills, warnings);
+    seenPackages.add(name);
+    collectPackageSkills(
+      { pkg: { name, version: fieldOf(pkg, "version") }, dir, origin },
+      declared,
+      skills,
+      warnings,
+    );
   }
   return skills;
 }
 
+/**
+ * @param {string} pkgDir
+ * @param {string} dir
+ * @returns {boolean}
+ */
 function escapesPackage(pkgDir, dir) {
   const relToPkg = relative(pkgDir, dir);
   return relToPkg.startsWith("..") || isAbsolute(relToPkg);
 }
 
+/**
+ * @param {string} skillDir
+ * @param {string} fallback
+ * @returns {string}
+ */
 function skillName(skillDir, fallback) {
   const frontmatter = readTextSafe(join(skillDir, "SKILL.md")).match(
     /^---\r?\n([\s\S]*?)\r?\n---/,
@@ -314,6 +322,12 @@ function skillName(skillDir, fallback) {
   return name ? name[1] : fallback;
 }
 
+/**
+ * @param {{ pkg: { name: string, version: unknown }, dir: string, origin: string }} source
+ * @param {unknown[]} declaredDirs
+ * @param {Map<string, SkillInfo>} skills
+ * @param {string[]} warnings
+ */
 function collectPackageSkills(source, declaredDirs, skills, warnings) {
   const { pkg, dir: pkgDir, origin } = source;
   const moduleShort = pkg.name.slice(pkg.name.lastIndexOf("/") + 1);
@@ -349,11 +363,20 @@ function collectPackageSkills(source, declaredDirs, skills, warnings) {
   }
 }
 
+/**
+ * @param {Target} target
+ * @returns {string[]}
+ */
 function loadManifest(target) {
   const data = readJsonSafe(join(target.dir, MANIFEST_FILE));
-  return Array.isArray(data?.entries) ? data.entries.filter(isText) : [];
+  const entries = fieldOf(data, "entries");
+  return Array.isArray(entries) ? entries.filter(isText) : [];
 }
 
+/**
+ * @param {Target} target
+ * @param {Iterable<string>} entries
+ */
 function saveManifest(target, entries) {
   writeFileSync(
     join(target.dir, MANIFEST_FILE),
@@ -361,6 +384,10 @@ function saveManifest(target, entries) {
   );
 }
 
+/**
+ * @param {Target} target
+ * @param {Iterable<string>} entries
+ */
 function writeGitignore(target, entries) {
   const path = join(target.dir, GITIGNORE_FILE);
   const lines = [
@@ -374,6 +401,11 @@ function writeGitignore(target, entries) {
   writeFileSync(path, content);
 }
 
+/**
+ * @param {string} linkPath
+ * @param {string} target
+ * @returns {boolean}
+ */
 function symlinkPointsTo(linkPath, target) {
   const st = lstatSafe(linkPath);
   if (!st?.isSymbolicLink()) return false;
@@ -389,6 +421,7 @@ function symlinkPointsTo(linkPath, target) {
 /**
  * Drops managed entries that are no longer desired. A managed entry the user
  * replaced with a real file or directory becomes theirs and leaves the manifest.
+ * @param {SyncState} state
  */
 function pruneManaged(state) {
   const { target, desired, managed, removed, warnings } = state;
@@ -412,6 +445,12 @@ function pruneManaged(state) {
   }
 }
 
+/**
+ * @param {string} name
+ * @param {string} skillDir
+ * @param {SyncState} state
+ * @returns {string}
+ */
 function linkSkill(name, skillDir, state) {
   const { target } = state;
   const linkPath = join(target.dir, name);
@@ -432,6 +471,10 @@ function linkSkill(name, skillDir, state) {
   return STATUS.added;
 }
 
+/**
+ * @param {Target} target
+ * @param {Set<string>} managed
+ */
 function persist(target, managed) {
   if (
     DRY_RUN ||
@@ -443,7 +486,14 @@ function persist(target, managed) {
   writeGitignore(target, managed);
 }
 
+/**
+ * @param {Target} target
+ * @param {Map<string, SkillInfo>} desired
+ * @param {string[]} warnings
+ * @returns {TargetResult}
+ */
 function syncTarget(target, desired, warnings) {
+  /** @type {SyncState} */
   const state = {
     target,
     desired,
@@ -459,6 +509,7 @@ function syncTarget(target, desired, warnings) {
     ]),
   );
   persist(target, state.managed);
+  /** @param {string} status */
   const named = (status) =>
     [...statuses].filter(([, s]) => s === status).map(([name]) => name);
   return {
@@ -471,12 +522,18 @@ function syncTarget(target, desired, warnings) {
   };
 }
 
+/**
+ * @param {Target[]} targets
+ * @returns {SyncResult}
+ */
 function sync(targets) {
+  /** @type {string[]} */
   const warnings = [];
   const desired = discoverSkills(warnings);
   const results = targets.map((target) =>
     syncTarget(target, desired, warnings),
   );
+  /** @param {string} name */
   const statusOf = (name) =>
     Object.fromEntries(results.map((r) => [r.target, r.statuses.get(name)]));
   const skills = [...desired].map(([name, info]) => ({
@@ -491,13 +548,22 @@ function sync(targets) {
   };
 }
 
+/**
+ * @param {string | undefined} status
+ * @returns {string | undefined}
+ */
 function listStatus(status) {
   return DRY_RUN && status === STATUS.added ? "not synced yet" : status;
 }
 
+/**
+ * @param {ListedSkill} skill
+ * @param {SyncResult["targets"]} targets
+ * @returns {(string | undefined)[]}
+ */
 function listRow(skill, targets) {
   const pkg = skill.version
-    ? `${skill.package}@${skill.version}`
+    ? `${skill.package}@${textIfTruthy(skill.version)}`
     : skill.package;
   const statuses = targets.map((t) => listStatus(skill.status[t.target]));
   return [
@@ -510,6 +576,9 @@ function listRow(skill, targets) {
   ];
 }
 
+/**
+ * @param {string[][]} rows
+ */
 function printTable(rows) {
   const widths = rows[0].map((_, i) =>
     Math.max(...rows.map((row) => row[i].length)),
@@ -523,6 +592,9 @@ function printTable(rows) {
     );
 }
 
+/**
+ * @param {SyncResult} result
+ */
 function printList(result) {
   if (!result.skills.length) {
     log(
@@ -550,6 +622,9 @@ function printList(result) {
   }
 }
 
+/**
+ * @param {SyncResult} result
+ */
 function printChanges(result) {
   const verb = DRY_RUN ? "would add" : "add";
   const verbRm = DRY_RUN ? "would remove" : "remove";
@@ -562,6 +637,9 @@ function printChanges(result) {
   }
 }
 
+/**
+ * @param {SyncResult} result
+ */
 function printJson(result) {
   const skills = result.skills.map(({ target, ...rest }) => ({
     ...rest,

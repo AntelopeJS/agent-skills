@@ -53,7 +53,7 @@ function optionsOf(run, extra = {}) {
   };
 }
 
-test("the stop command runs in the scratch checkout with the case's runs folder", async () => {
+void test("the stop command runs in the scratch checkout with the case's runs folder", async () => {
   work = makeTempDir();
 
   const outcome = await runTeardown({
@@ -67,7 +67,7 @@ test("the stop command runs in the scratch checkout with the case's runs folder"
   assert.equal(readText(join(work, "seen.txt")), `/runs/here ${work}\n`);
 });
 
-test("a stop command that fails is reported and does not throw", async () => {
+void test("a stop command that fails is reported and does not throw", async () => {
   const outcome = await runTeardown({
     command: "echo broken >&2; exit 4",
     cwd: process.cwd(),
@@ -82,7 +82,7 @@ test("a stop command that fails is reported and does not throw", async () => {
   });
 });
 
-test("a process of the case that is still alive is listed, one that ended is not", async () => {
+void test("a process of the case that is still alive is listed, one that ended is not", async () => {
   const marker = `/tmp/seeded-leak-${process.pid}`;
   const child = sleeper(marker);
   await new Promise((resolve) => setTimeout(resolve, 100));
@@ -96,12 +96,12 @@ test("a process of the case that is still alive is listed, one that ended is not
   assert.deepEqual(leakedProcesses(["/nowhere/at/all"]), []);
 });
 
-test("the known harnesses stop their runs through their own command", () => {
+void test("the known harnesses stop their runs through their own command", () => {
   assert.match(TEARDOWNS["verify-dms"], /dms-control\.mjs down/);
   assert.match(TEARDOWNS["verify-antelopejs"], /verify-ajs\.mts clean/);
 });
 
-test("every case stops its runs after the agent, even when the agent died, and a leftover process fails the case record", async () => {
+void test("every case stops its runs after the agent, even when the agent died, and a leftover process fails the case record", async () => {
   repo = makeSeededRepo();
   work = makeTempDir();
   const log = join(work, "teardown.log");
@@ -135,7 +135,7 @@ test("every case stops its runs after the agent, even when the agent died, and a
   assert.equal(exists(join(work, "out", "break-alpha", "result.json")), true);
 });
 
-test("a stop command that really stops the process leaves no leak and the folders are removed", async () => {
+void test("a stop command that really stops the process leaves no leak and the folders are removed", async () => {
   repo = makeSeededRepo();
   work = makeTempDir();
   const cases = discoverCases(repo, "verify-demo").filter(

@@ -9,9 +9,14 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { execFileSync } from "node:child_process";
 
+import { isRecord, isText } from "./values.mjs";
+
 const NPM_TIMEOUT_MS = 90_000;
 const MAX_BUFFER_BYTES = 16 * 1024 * 1024;
 
+/**
+ * @returns {string}
+ */
 export function packageCacheRoot() {
   return (
     process.env.AJS_EVALS_CACHE ||
@@ -19,6 +24,10 @@ export function packageCacheRoot() {
   );
 }
 
+/**
+ * @param {string[]} args
+ * @returns {unknown}
+ */
 function npmJson(args) {
   const output = execFileSync("npm", [...args, "--json"], {
     encoding: "utf8",
@@ -29,17 +38,32 @@ function npmJson(args) {
   return JSON.parse(output || "null");
 }
 
+/**
+ * @param {string} spec
+ * @returns {string}
+ */
 function resolveVersion(spec) {
-  const version = npmJson(["view", spec, "version"]);
-  return Array.isArray(version) ? version[version.length - 1] : version;
+  const output = npmJson(["view", spec, "version"]);
+  const version = [output].flat().at(-1);
+  if (!isText(version)) throw new Error(`npm view gave no version for ${spec}`);
+  return version;
 }
 
+/**
+ * @param {string} spec
+ * @returns {string}
+ */
 function packageName(spec) {
   const at = spec.indexOf("@", 1);
   return at > 0 ? spec.slice(0, at) : spec;
 }
 
-/** Returns the extracted `package/` directory of `spec` (e.g. `@antelopejs/dms@latest`). */
+/**
+ * Returns the extracted `package/` directory of `spec` (e.g. `@antelopejs/dms@latest`).
+ * @param {string} spec
+ * @param {string} [cacheRoot]
+ * @returns {string}
+ */
 export function fetchPackage(spec, cacheRoot = packageCacheRoot()) {
   const name = packageName(spec);
   const version = resolveVersion(spec);
@@ -57,8 +81,9 @@ export function fetchPackage(spec, cacheRoot = packageCacheRoot()) {
     "--pack-destination",
     dest,
   ]);
-  const filename = (Array.isArray(packed) ? packed[0] : packed)?.filename;
-  if (!filename)
+  const packedFile = [packed].flat()[0];
+  const filename = isRecord(packedFile) ? packedFile.filename : undefined;
+  if (!isText(filename) || !filename)
     throw new Error(`npm pack gave no file for ${name}@${version}`);
   const archive = join(dest, filename);
   execFileSync("tar", ["-xzf", archive, "-C", dest], { stdio: "ignore" });

@@ -1,10 +1,70 @@
 import { floorTolerance } from "./matrix.mjs";
 import { summarize } from "./scoring.mjs";
 
+/** @typedef {import("./dataset.mjs").EvalCase} EvalCase */
+/** @typedef {import("./matrix.mjs").MatrixEntry} MatrixEntry */
+/** @typedef {import("./run-score.mjs").AnswerCaseResult} AnswerCaseResult */
+/** @typedef {import("./run-score.mjs").ModelResult} ModelResult */
+/** @typedef {import("./run-score.mjs").ScoredRun} ScoredRun */
+/** @typedef {import("./run-score.mjs").TriggerResult} TriggerResult */
+
+/**
+ * The figures of one skill on one model. Recall and precision are `undefined`
+ * when no case backs them.
+ * @typedef {object} SkillStat
+ * @property {number | undefined} recall
+ * @property {number | undefined} precision
+ * @property {number} expectedCases
+ * @property {number} pickedCases
+ * @property {number} invented
+ */
+
+/**
+ * The stats of every skill a model met, by skill name.
+ * @typedef {Record<string, SkillStat>} SkillStats
+ */
+
+/**
+ * What the bar reads of a scored case.
+ * @typedef {object} Outcome
+ * @property {boolean} pass
+ * @property {boolean} [skipped]
+ */
+
+/**
+ * One reason a run fails the pass bar.
+ * @typedef {object} Failure
+ * @property {string} rule
+ * @property {string} model
+ * @property {string} [id]
+ * @property {string} [skill]
+ * @property {string} message
+ */
+
+/**
+ * @typedef {object} PassBarOptions
+ * @property {ScoredRun} [against] The run of `main`'s skills.
+ * @property {Set<string>} [touched] The skills the floors apply to; all when unset.
+ * @property {Set<string>} [newCases] The cases that must pass on every model.
+ */
+
+/**
+ * @typedef {object} PassBar
+ * @property {Failure[]} failures
+ * @property {{ model: MatrixEntry, skills: SkillStats }[]} perModel
+ * @property {boolean} passed
+ */
+
 export const FLOORS = { recall: 0.8, precision: 0.7 };
 export const MAX_CORPUS_DROP = 0.02;
 const EPSILON = 1e-9;
+/** @type {("recall" | "precision")[]} */
+const METRICS = ["recall", "precision"];
 
+/**
+ * @param {EvalCase} evalCase
+ * @returns {Set<string>}
+ */
 function allowedOf(evalCase) {
   return new Set([
     ...evalCase.expect.skills,
@@ -12,6 +72,11 @@ function allowedOf(evalCase) {
   ]);
 }
 
+/**
+ * @param {number} part
+ * @param {number} whole
+ * @returns {number | undefined}
+ */
 function ratio(part, whole) {
   return whole === 0 ? undefined : part / whole;
 }
@@ -19,6 +84,9 @@ function ratio(part, whole) {
 /**
  * Per skill: recall over the cases that expect it, precision over the cases
  * where the model picked it, and the invented API names in its answers cases.
+ * @param {ModelResult} result
+ * @param {EvalCase[]} cases
+ * @returns {SkillStats}
  */
 export function skillStats(result, cases) {
   const byId = new Map(cases.map((item) => [item.id, item]));
@@ -59,6 +127,10 @@ export function skillStats(result, cases) {
   );
 }
 
+/**
+ * @param {ModelResult} result
+ * @returns {Failure[]}
+ */
 function missingFailures(result) {
   const model = result.model.id;
   const absent = [
@@ -87,13 +159,23 @@ function missingFailures(result) {
   ];
 }
 
+/**
+ * @param {ModelResult} result
+ * @returns {Map<string, Outcome>}
+ */
 function passes(result) {
-  return new Map([
-    ...result.trigger.map((item) => [`trigger:${item.id}`, item]),
-    ...result.answers.map((item) => [`answers:${item.id}`, item]),
-  ]);
+  /** @type {Map<string, Outcome>} */
+  const outcomes = new Map();
+  for (const item of result.trigger) outcomes.set(`trigger:${item.id}`, item);
+  for (const item of result.answers) outcomes.set(`answers:${item.id}`, item);
+  return outcomes;
 }
 
+/**
+ * @param {ModelResult} current
+ * @param {ModelResult} against
+ * @returns {Failure[]}
+ */
 function regressionFailures(current, against) {
   const before = passes(against);
   return [...passes(current)]
@@ -106,6 +188,11 @@ function regressionFailures(current, against) {
     }));
 }
 
+/**
+ * @param {ModelResult} current
+ * @param {Set<string>} newCases
+ * @returns {Failure[]}
+ */
 function newCaseFailures(current, newCases) {
   return [...passes(current)]
     .filter(
@@ -120,6 +207,12 @@ function newCaseFailures(current, newCases) {
     }));
 }
 
+/**
+ * @param {MatrixEntry} model
+ * @param {SkillStats} stats
+ * @param {Set<string> | undefined} touched
+ * @returns {Failure[]}
+ */
 function floorFailures(model, stats, touched) {
   const tolerance = floorTolerance(model);
   const minRecall = FLOORS.recall - tolerance;
@@ -151,24 +244,32 @@ function floorFailures(model, stats, touched) {
     );
 }
 
+/**
+ * @param {ModelResult} result
+ * @param {Set<string>} ids
+ * @returns {import("./scoring.mjs").ScoreSummary}
+ */
 function commonSummary(result, ids) {
   const scores = result.trigger.filter((item) => ids.has(item.id));
   return summarize(scores);
 }
 
+/**
+ * @param {ModelResult} current
+ * @param {ModelResult} against
+ * @returns {Failure[]}
+ */
 function corpusFailures(current, against) {
   const ids = new Set(against.trigger.map((item) => item.id));
   const now = commonSummary(current, ids);
   const before = commonSummary(against, ids);
-  return ["recall", "precision"]
-    .filter(
-      (metric) => before[metric] - now[metric] > MAX_CORPUS_DROP + EPSILON,
-    )
-    .map((metric) => ({
-      rule: "corpus-drop",
-      model: current.model.id,
-      message: `full-corpus ${metric} fell from ${before[metric].toFixed(2)} to ${now[metric].toFixed(2)}`,
-    }));
+  return METRICS.filter(
+    (metric) => before[metric] - now[metric] > MAX_CORPUS_DROP + EPSILON,
+  ).map((metric) => ({
+    rule: "corpus-drop",
+    model: current.model.id,
+    message: `full-corpus ${metric} fell from ${before[metric].toFixed(2)} to ${now[metric].toFixed(2)}`,
+  }));
 }
 
 /**
@@ -176,9 +277,13 @@ function corpusFailures(current, against) {
  * no regression against `main`'s run, every new case passing on every model,
  * the per-skill floors and invented-name rule for the touched skills, and at
  * most a 2-point drop of the full-corpus means.
+ * @param {ScoredRun} current
+ * @param {PassBarOptions} [options]
+ * @returns {PassBar}
  */
 export function applyPassBar(current, options = {}) {
   const { against, touched, newCases = new Set() } = options;
+  /** @param {ModelResult} model */
   const comparable = (model) =>
     against?.models.find((item) => item.model.id === model.model.id);
   const perModel = current.models.map((result) => ({

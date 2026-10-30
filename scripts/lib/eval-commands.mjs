@@ -29,6 +29,11 @@ import {
   selectCases,
 } from "./eval-options.mjs";
 
+/** @typedef {import("./eval-options.mjs").EvalValues} EvalValues */
+/** @typedef {import("./matrix.mjs").MatrixEntry} MatrixEntry */
+/** @typedef {import("./requests.mjs").Manifest} Manifest */
+/** @typedef {import("./run-score.mjs").RunVerifier} RunVerifier */
+
 const PLUGIN_SKILLS_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -38,20 +43,34 @@ const PLUGIN_SKILLS_DIR = join(
 const DEFAULT_TIMEOUT_SECONDS = 300;
 const MILLISECONDS = 1000;
 
+/**
+ * @param {string[]} positionals
+ * @param {number} index
+ * @param {string} what
+ * @returns {string}
+ */
 function requireDir(positionals, index, what) {
   const dir = positionals[index];
   if (!dir) fail(`expected ${what}`);
   return resolve(dir);
 }
 
+/**
+ * @param {string | undefined} value
+ * @returns {MatrixEntry[]}
+ */
 function modelList(value) {
   try {
     return parseModels(value);
   } catch (error) {
-    return fail(error.message);
+    return fail(error instanceof Error ? error.message : String(error));
   }
 }
 
+/**
+ * @param {EvalValues} values
+ * @returns {number}
+ */
 export function prepare(values) {
   if (!values.out) fail("prepare needs --out <dir>");
   const modes = listOption(values.modes);
@@ -77,6 +96,11 @@ export function prepare(values) {
   return EXIT.ok;
 }
 
+/**
+ * @param {EvalValues} values
+ * @param {string[]} positionals
+ * @returns {Promise<number>}
+ */
 export async function exec(values, positionals) {
   const dir = requireDir(positionals, 1, "the run directory");
   const { failed } = await execRun({
@@ -100,6 +124,10 @@ export async function exec(values, positionals) {
   return failed.length ? EXIT.failed : EXIT.ok;
 }
 
+/**
+ * @param {Manifest} manifest
+ * @returns {string[]}
+ */
 function attentionOf(manifest) {
   const covered = new Set(listTasks(manifest).map((task) => task.caseId));
   const skipped = manifest.cases.filter((item) => !covered.has(item.id));
@@ -110,12 +138,18 @@ function attentionOf(manifest) {
     : [];
 }
 
+/**
+ * @param {EvalValues} values
+ * @param {string[]} positionals
+ * @returns {Promise<number>}
+ */
 export async function score(values, positionals) {
   const dir = requireDir(positionals, 1, "the run directory");
   const verifyOptions = {
     project: resolve(values.project ?? process.cwd()),
     offline: Boolean(values.offline),
   };
+  /** @type {RunVerifier} */
   const verify = (answer) => verifyText(answer, verifyOptions);
   const only = new Set(listOption(values.only));
   const whole = readManifest(dir);
@@ -152,6 +186,11 @@ export async function score(values, positionals) {
   return bar.passed ? EXIT.ok : EXIT.failed;
 }
 
+/**
+ * @param {EvalValues} values
+ * @param {string[]} positionals
+ * @returns {Promise<number>}
+ */
 export async function lift(values, positionals) {
   const [withDir, withoutDir] = [1, 2].map((index) =>
     requireDir(positionals, index, "the with-skills and without-skills runs"),
@@ -160,6 +199,7 @@ export async function lift(values, positionals) {
     project: resolve(values.project ?? process.cwd()),
     offline: Boolean(values.offline),
   };
+  /** @type {RunVerifier} */
   const verify = (answer) => verifyText(answer, verifyOptions);
   const rows = computeLift(
     await scoreRun(withDir, readManifest(withDir), verify),
@@ -178,13 +218,18 @@ export async function lift(values, positionals) {
   return EXIT.ok;
 }
 
+/**
+ * @param {EvalValues} values
+ * @returns {number}
+ */
 export function check(values) {
+  /** @type {string[]} */
   const problems = [];
   for (const file of values.cases ? [resolve(values.cases)] : CENTRAL_FILES)
     try {
       loadDataset(file);
     } catch (error) {
-      problems.push(error.message);
+      problems.push(error instanceof Error ? error.message : String(error));
     }
   problems.push(
     ...rubricErrorsOf(
@@ -203,7 +248,7 @@ export function check(values) {
       for (const gap of minimumGaps(cases, skills))
         problems.push(`${gap.skill} lacks ${gap.missing.join("; ")}`);
     } catch (error) {
-      problems.push(error.message);
+      problems.push(error instanceof Error ? error.message : String(error));
     }
   }
   for (const problem of problems) process.stderr.write(`${problem}\n`);

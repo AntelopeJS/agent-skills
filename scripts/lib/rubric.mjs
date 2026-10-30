@@ -1,6 +1,9 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { readJsonFile } from "./json.mjs";
+import { fieldOf } from "./safe-read.mjs";
 
 export const RUBRIC_ROOT = fileURLToPath(
   new URL("../../evals/commands", import.meta.url),
@@ -16,6 +19,10 @@ const MIN_CRITERIA = 3;
 
 const isText = (value) => String(value ?? "").length >= MIN_TEXT;
 
+/**
+ * @param {string} suiteDir
+ * @returns {string[]}
+ */
 function fixtureErrors(fixture, suiteDir) {
   if (fixture?.type === "skeleton")
     return existsSync(join(suiteDir, String(fixture.dir)))
@@ -28,10 +35,13 @@ function fixtureErrors(fixture, suiteDir) {
   return ["fixture must be a skeleton (dir) or a repo (repo, sha)"];
 }
 
+/**
+ * @returns {string[]}
+ */
 function rubricErrors(rubric, lesson) {
   if (!Array.isArray(rubric)) return ["rubric must be a list"];
   const minimum = lesson ? 1 : MIN_CRITERIA;
-  const ids = rubric.map((item) => item?.id);
+  const ids = rubric.map((item) => fieldOf(item, "id"));
   return [
     ...(rubric.length < minimum || rubric.length > MAX_CRITERIA
       ? [`rubric needs ${minimum} to ${MAX_CRITERIA} criteria`]
@@ -45,11 +55,15 @@ function rubricErrors(rubric, lesson) {
   ];
 }
 
+/**
+ * @param {string} suiteDir
+ * @returns {string[]}
+ */
 function caseErrors(item, suiteDir) {
   const label = `case ${item?.id ?? "?"}`;
   return [
     ...(SLUG_RE.test(item?.id ?? "") ? [] : ["id must be kebab-case"]),
-    ...(HARNESSES.includes(item?.harness)
+    ...(HARNESSES.some((harness) => harness === fieldOf(item, "harness"))
       ? []
       : [`harness must be one of ${HARNESSES.join(", ")}`]),
     ...(isText(item?.prompt) ? [] : ["prompt must be a sentence"]),
@@ -61,14 +75,20 @@ function caseErrors(item, suiteDir) {
   ].map((error) => `${label}: ${error}`);
 }
 
-/** Problems of one rubric suite (`evals/commands/<skill>/cases.json`). */
+/**
+ * Problems of one rubric suite (`evals/commands/<skill>/cases.json`).
+ * @param {unknown} suite
+ * @param {string} suiteDir
+ * @returns {string[]}
+ */
 export function suiteErrors(suite, suiteDir) {
-  if (!Array.isArray(suite?.cases)) return ["cases must be a list"];
-  const ids = suite.cases.map((item) => item?.id);
+  const cases = fieldOf(suite, "cases");
+  if (!Array.isArray(cases)) return ["cases must be a list"];
+  const ids = cases.map((item) => fieldOf(item, "id"));
   return [
-    ...suite.cases.flatMap((item) => caseErrors(item, suiteDir)),
+    ...cases.flatMap((item) => caseErrors(item, suiteDir)),
     ...(new Set(ids).size === ids.length ? [] : ["case ids repeat"]),
-    ...(suite.cases.length >= MIN_RUBRIC_CASES
+    ...(cases.length >= MIN_RUBRIC_CASES
       ? []
       : [`needs at least ${MIN_RUBRIC_CASES} behaviour cases`]),
   ];
@@ -77,6 +97,9 @@ export function suiteErrors(suite, suiteDir) {
 /**
  * Reads every rubric suite and returns the problems, prefixed by suite. A
  * suite directory must be named after a skill of the plugin.
+ * @param {string[]} pluginSkills
+ * @param {string} [root]
+ * @returns {string[]}
  */
 export function rubricErrorsOf(pluginSkills, root = RUBRIC_ROOT) {
   if (!existsSync(root)) return [];
@@ -89,7 +112,7 @@ export function rubricErrorsOf(pluginSkills, root = RUBRIC_ROOT) {
         return [`evals/commands/${entry.name}: not a skill of the plugin`];
       if (!existsSync(file))
         return [`evals/commands/${entry.name}: cases.json is missing`];
-      return suiteErrors(JSON.parse(readFileSync(file, "utf8")), suiteDir).map(
+      return suiteErrors(readJsonFile(file), suiteDir).map(
         (error) => `evals/commands/${entry.name}: ${error}`,
       );
     });
