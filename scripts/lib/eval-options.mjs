@@ -1,12 +1,17 @@
-import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { DEFAULT_JOBS } from "./executors.mjs";
 import { MATRIX } from "./matrix.mjs";
 import { loadCases } from "./cases.mjs";
 import { loadCorpus } from "./corpus.mjs";
+import { readJsonFile } from "./json.mjs";
 import { modelFromEnv } from "./model.mjs";
 import { openaiModelFromEnv } from "./openai.mjs";
+import { fieldOf } from "./safe-read.mjs";
+import { isText } from "./values.mjs";
+
+/** @typedef {import("./cases.mjs").SourcedCase} SourcedCase */
+/** @typedef {import("./corpus.mjs").Skill} Skill */
 
 const PUBLISHED_FILE = new URL("../../evals/packages.json", import.meta.url);
 export const EXIT = { ok: 0, failed: 1, usage: 2 };
@@ -17,52 +22,74 @@ export const BACKENDS = {
 };
 export const DIRECT_MODES = ["trigger", "answers"];
 
+/** @type {{ type: "string" }} */
+const TEXT = { type: "string" };
+/** @type {{ type: "string", multiple: true }} */
+const TEXTS = { type: "string", multiple: true };
+/** @type {{ type: "boolean" }} */
+const FLAG = { type: "boolean" };
+/** @type {{ type: "boolean", short: "h" }} */
+const HELP = { type: "boolean", short: "h" };
+
 export const OPTIONS = {
-  backend: { type: "string" },
-  project: { type: "string" },
-  skills: { type: "string", multiple: true },
-  packages: { type: "string" },
-  published: { type: "boolean" },
-  cases: { type: "string" },
-  only: { type: "string" },
-  area: { type: "string" },
-  "min-recall": { type: "string" },
-  "min-precision": { type: "string" },
-  "max-invented": { type: "string" },
-  model: { type: "string" },
-  models: { type: "string" },
-  out: { type: "string" },
-  offline: { type: "boolean" },
-  "dry-run": { type: "boolean" },
-  json: { type: "boolean" },
-  "no-skills": { type: "boolean" },
-  modes: { type: "string" },
-  runs: { type: "string" },
-  jobs: { type: "string" },
-  timeout: { type: "string" },
-  "claude-bin": { type: "string" },
-  "codex-bin": { type: "string" },
-  against: { type: "string" },
-  touched: { type: "string" },
-  "new-cases": { type: "string" },
-  report: { type: "boolean" },
-  repo: { type: "string" },
-  skill: { type: "string" },
-  ref: { type: "string" },
-  effort: { type: "string" },
-  setup: { type: "string" },
-  scratch: { type: "string" },
-  "keep-scratch": { type: "boolean" },
-  resume: { type: "boolean" },
-  "pass-env": { type: "string" },
-  "cache-home": { type: "string" },
-  teardown: { type: "string" },
-  "max-budget": { type: "string" },
-  "min-catch": { type: "string" },
-  "min-door-catch": { type: "string" },
-  "min-clean": { type: "string" },
-  help: { type: "boolean", short: "h" },
+  backend: TEXT,
+  project: TEXT,
+  skills: TEXTS,
+  packages: TEXT,
+  published: FLAG,
+  cases: TEXT,
+  only: TEXT,
+  area: TEXT,
+  "min-recall": TEXT,
+  "min-precision": TEXT,
+  "max-invented": TEXT,
+  model: TEXT,
+  models: TEXT,
+  out: TEXT,
+  offline: FLAG,
+  "dry-run": FLAG,
+  json: FLAG,
+  "no-skills": FLAG,
+  modes: TEXT,
+  runs: TEXT,
+  jobs: TEXT,
+  timeout: TEXT,
+  "claude-bin": TEXT,
+  "codex-bin": TEXT,
+  against: TEXT,
+  touched: TEXT,
+  "new-cases": TEXT,
+  report: FLAG,
+  repo: TEXT,
+  skill: TEXT,
+  ref: TEXT,
+  effort: TEXT,
+  setup: TEXT,
+  scratch: TEXT,
+  "keep-scratch": FLAG,
+  resume: FLAG,
+  "pass-env": TEXT,
+  "cache-home": TEXT,
+  teardown: TEXT,
+  "max-budget": TEXT,
+  "min-catch": TEXT,
+  "min-door-catch": TEXT,
+  "min-clean": TEXT,
+  help: HELP,
 };
+
+/**
+ * The options a command line gives, as `parseArgs` reads them with `OPTIONS`.
+ * @typedef {ReturnType<typeof import("node:util").parseArgs<{ options: typeof OPTIONS }>>["values"]} EvalValues
+ */
+
+/**
+ * Where the skills of a run come from.
+ * @typedef {object} CorpusSelection
+ * @property {string | undefined} project
+ * @property {string[]} dirs
+ * @property {string[]} packages
+ */
 
 export const USAGE = `Usage: evals [trigger|answers] [options]
        evals prepare --out <dir> [options]
@@ -154,11 +181,20 @@ seeded: a headless verifier must catch the repo's seeded breaks and doors (see t
 check: validates every case file and, for the skills of the selected corpus, the case minimum
 `;
 
+/**
+ * @param {string} message
+ * @returns {never}
+ */
 export function fail(message) {
   process.stderr.write(`error: ${message}\n`);
   process.exit(EXIT.usage);
 }
 
+/**
+ * @param {string | undefined} value
+ * @param {string} name
+ * @returns {number | undefined}
+ */
 export function parseRatio(value, name) {
   if (value === undefined) return undefined;
   const ratio = Number(value);
@@ -167,6 +203,13 @@ export function parseRatio(value, name) {
   return ratio;
 }
 
+/**
+ * @template {number | undefined} Fallback
+ * @param {string | undefined} value
+ * @param {string} name
+ * @param {Fallback} fallback
+ * @returns {number | Fallback}
+ */
 export function parseCount(value, name, fallback) {
   if (value === undefined) return fallback;
   const count = Number(value);
@@ -175,6 +218,10 @@ export function parseCount(value, name, fallback) {
   return count;
 }
 
+/**
+ * @param {string | undefined} value
+ * @returns {string[]}
+ */
 export function listOption(value) {
   return value
     ? value
@@ -184,6 +231,10 @@ export function listOption(value) {
     : [];
 }
 
+/**
+ * @param {EvalValues} values
+ * @returns {boolean}
+ */
 export function hasCorpusOption(values) {
   return Boolean(
     values.project ||
@@ -193,10 +244,19 @@ export function hasCorpusOption(values) {
   );
 }
 
+/**
+ * @param {EvalValues} values
+ * @param {{ defaultProject?: boolean }} [options]
+ * @returns {CorpusSelection}
+ */
 export function corpusOptions(values, { defaultProject = true } = {}) {
   const published = values.published
-    ? JSON.parse(readFileSync(PUBLISHED_FILE, "utf8")).packages
+    ? fieldOf(readJsonFile(PUBLISHED_FILE), "packages")
     : [];
+  if (!Array.isArray(published) || !published.every(isText))
+    throw new TypeError(
+      "evals/packages.json must hold a list of package names",
+    );
   const packages = [...listOption(values.packages), ...published];
   const dirs = values.skills ?? [];
   const project =
@@ -207,6 +267,11 @@ export function corpusOptions(values, { defaultProject = true } = {}) {
   return { project, dirs, packages };
 }
 
+/**
+ * @param {EvalValues} values
+ * @param {{ name: string, dir: string }[]} skills
+ * @returns {{ selected: SourcedCase[], shadowed: SourcedCase[] }}
+ */
 export function selectCases(values, skills) {
   const only = new Set(listOption(values.only));
   const areas = new Set(listOption(values.area));
@@ -222,6 +287,11 @@ export function selectCases(values, skills) {
   return { selected, shadowed };
 }
 
+/**
+ * @param {EvalValues} values
+ * @param {{ defaultProject?: boolean }} [options]
+ * @returns {Skill[]}
+ */
 export function loadSkills(values, options) {
   const { skills, duplicates } = loadCorpus(corpusOptions(values, options));
   if (!skills.length)
