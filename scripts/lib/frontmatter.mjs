@@ -4,11 +4,19 @@ const BLOCK_SCALAR_RE = /^[>|][+-]?$/;
 const INLINE_LIST_RE = /^\[(.*)\]$/;
 const QUOTED_RE = /^(["'])([\s\S]*)\1$/;
 
+/**
+ * @param {string} value
+ * @returns {string}
+ */
 function unquote(value) {
   const quoted = value.match(QUOTED_RE);
   return quoted ? quoted[2] : value;
 }
 
+/**
+ * @param {string} raw
+ * @returns {string | string[]}
+ */
 function parseScalar(raw) {
   const value = raw.trim();
   const list = value.match(INLINE_LIST_RE);
@@ -19,10 +27,19 @@ function parseScalar(raw) {
     .filter(Boolean);
 }
 
+/**
+ * @param {string} line
+ * @returns {boolean}
+ */
 function isIndented(line) {
   return line === "" || /^\s/.test(line);
 }
 
+/**
+ * @param {string} indicator
+ * @param {string[]} lines
+ * @returns {string}
+ */
 function blockScalar(indicator, lines) {
   const parts = lines.map((line) => line.trim());
   if (indicator.startsWith("|")) return parts.join("\n").trim();
@@ -32,11 +49,14 @@ function blockScalar(indicator, lines) {
 /**
  * Minimal YAML frontmatter reader for SKILL.md files: scalar keys, quoted
  * strings, inline lists and block scalars (`>`, `|`). No dependency.
+ * @param {string} text
+ * @returns {{ data: Record<string, string | string[]>, body: string }}
  */
 export function parseFrontmatter(text) {
   const match = text.match(FRONTMATTER_RE);
   if (!match) return { data: {}, body: text };
   const lines = match[1].split(/\r?\n/);
+  /** @type {Record<string, string | string[]>} */
   const data = {};
   for (let index = 0; index < lines.length; index += 1) {
     const key = lines[index].match(KEY_RE);
