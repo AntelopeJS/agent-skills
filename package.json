@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@antelopejs/tooling-configs": "^0.2.17",
+    "@types/node": "^24",
     "knip": "^6.43.0",
     "lefthook": "^2.2.2",
     "oxfmt": "^0.66.0",
