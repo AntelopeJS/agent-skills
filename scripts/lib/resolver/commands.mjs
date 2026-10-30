@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { readJsonFile } from "../json.mjs";
-import { isRecord, isText } from "../values.mjs";
+import { isRecord, isText, textIfTruthy } from "../values.mjs";
 import {
   candidateFullNames,
   candidateScopes,
@@ -43,8 +43,8 @@ import { parseDmsSpec, resolveTarget } from "./targets.mjs";
  * @typedef {object} ListRow One interface in the `list` output.
  * @property {string} name
  * @property {string} package
- * @property {string | undefined} version
- * @property {string} description
+ * @property {unknown} version
+ * @property {unknown} description
  * @property {string} source
  */
 
@@ -78,7 +78,7 @@ function localRows() {
       name: shortName(name),
       package: name,
       version: versionOf(pkg),
-      description: isText(pkg.description) ? pkg.description : "",
+      description: pkg.description ?? "",
       source: "local",
     });
   }
@@ -165,12 +165,13 @@ function hostRows() {
 function printRows(rows, dms) {
   for (const r of rows) {
     console.log(
-      `${r.name.padEnd(26)} ${(r.version ? `v${r.version}` : "").padEnd(9)} ${r.description}`,
+      `${r.name.padEnd(26)} ${(r.version ? `v${textIfTruthy(r.version)}` : "").padEnd(9)} ${String(r.description)}`,
     );
   }
   if (dms.length) {
     console.log("\nHost-package interfaces (import path):");
-    for (const r of dms) console.log(`  ${r.name.padEnd(52)} ${r.description}`);
+    for (const r of dms)
+      console.log(`  ${r.name.padEnd(52)} ${String(r.description)}`);
   }
 }
 
@@ -231,7 +232,7 @@ export function cmdShow(input, json) {
   if (json) return console.log(JSON.stringify(data, null, 2));
 
   console.log(
-    `${data.name}  (${data.package} v${data.version}${data.source === "npm" ? ", npm" : ""})`,
+    `${data.name}  (${data.package} v${String(data.version)}${data.source === "npm" ? ", npm" : ""})`,
   );
   if (data.description) console.log(data.description);
   console.log(
@@ -308,7 +309,8 @@ export function cmdVersions(input) {
   } catch (e) {
     fail(`could not list versions for ${fullName}: ${npmErrText(e)}`);
   }
-  if (localEntry) console.log(`installed: v${versionOf(localEntry.pkg)}`);
+  if (localEntry)
+    console.log(`installed: v${String(versionOf(localEntry.pkg))}`);
   if (info.latest) console.log(`latest:    v${info.latest}`);
   console.log(
     info.versions.length

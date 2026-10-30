@@ -213,7 +213,7 @@ export function resolveTarget(input) {
         version && version !== "latest" ? version.replace(/^v/, "") : null;
       if (!pinned || local.pkg.version === pinned) return pkgTarget(local);
       fail(
-        `'${input}' is not available locally (offline); local copy is v${versionOf(local.pkg)}.`,
+        `'${input}' is not available locally (offline); local copy is v${String(versionOf(local.pkg))}.`,
       );
     }
     const dmsHit = resolveDmsBare(rawName, version);

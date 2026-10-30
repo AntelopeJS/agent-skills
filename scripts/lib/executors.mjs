@@ -336,7 +336,7 @@ function parseClaude(stdout) {
   const result = parseJson(stdout);
   if (!isRecord(result)) throw new Error("claude printed no JSON object");
   if (result.is_error)
-    throw new Error("claude reported an error: " + result.result);
+    throw new Error(`claude reported an error: ${String(result.result)}`);
   if (!isText(result.result)) throw new Error("claude gave no result text");
   return {
     text: result.result,
@@ -580,7 +580,7 @@ export async function execRun({ dir, models, options = {} }) {
         rmSync(errorFile(dir, task), { force: true });
         observed.set(entry.id, [...(observed.get(entry.id) ?? []), ...seen]);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "" + error;
+        const message = error instanceof Error ? error.message : String(error);
         writeFileSync(errorFile(dir, task), `${message}\n`);
         failed.push({ task, error: message });
       }

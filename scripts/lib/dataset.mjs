@@ -188,10 +188,11 @@ function expectErrors(expect) {
     ...checkFields(expect, EXPECT_FIELDS, "expect."),
     ...unknownKeys(expect, EXPECT_KEYS, "expect."),
     ...overlap.map(
-      (name) => "expect.acceptable repeats the expected skill " + name,
+      (name) => `expect.acceptable repeats the expected skill ${String(name)}`,
     ),
     ...contradiction.map(
-      (name) => "expect.avoid lists " + name + ", which the case also allows",
+      (name) =>
+        `expect.avoid lists ${String(name)}, which the case also allows`,
     ),
   ];
 }
@@ -222,7 +223,9 @@ function duplicateIds(cases) {
   const duplicates = cases
     .map((item) => (isRecord(item) ? item.id : undefined))
     .filter((id) => seen.has(id) || !seen.add(id));
-  return [...new Set(duplicates)].map((id) => "duplicate case id " + id);
+  return [...new Set(duplicates)].map(
+    (id) => `duplicate case id ${String(id)}`,
+  );
 }
 
 /**

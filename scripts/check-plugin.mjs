@@ -99,7 +99,7 @@ function checkManifests(root, failures) {
       .filter(([, data]) => data)
       .map(([path, data]) => {
         const version = fieldOf(data, "version");
-        return `${path} ${isText(version) ? version : JSON.stringify(version)}`;
+        return `${path} ${String(version)}`;
       });
     failures.push(
       `version differs across manifests (${listed.join(", ")}); installed copies update only when it changes.`,
@@ -177,14 +177,15 @@ function checkSkills(root, failures) {
  * @returns {ComparableHook | null}
  */
 function comparableHook(hook, { root, target }) {
-  if (!isRecord(hook)) return null;
-  if (hook.command !== undefined && !isText(hook.command)) return null;
+  if (hook === null) return null;
+  if (!isRecord(hook))
+    return { type: undefined, timeout: null, command: undefined };
+  const command = hook.command ?? undefined;
+  if (command !== undefined && !isText(command)) return null;
   return {
     type: hook.type,
     timeout: hook.timeout ?? null,
-    command: hook.command
-      ?.replaceAll(root, "<root>")
-      .replaceAll(target, "<target>"),
+    command: command?.replaceAll(root, "<root>").replaceAll(target, "<target>"),
   };
 }
 
@@ -212,10 +213,12 @@ function comparableGroup(group, spec) {
  */
 function comparableHooks(config, tool) {
   const events = fieldOf(config, "hooks") ?? {};
-  if (!isRecord(events)) return null;
+  if (isText(events) && events !== "") return null;
   /** @type {[string, ComparableGroup[]][]} */
   const entries = [];
-  for (const [event, groups] of Object.entries(events)) {
+  for (const [event, groups] of isRecord(events)
+    ? Object.entries(events)
+    : []) {
     if (!Array.isArray(groups)) return null;
     /** @type {ComparableGroup[]} */
     const comparable = [];

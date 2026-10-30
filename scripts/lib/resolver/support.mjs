@@ -121,10 +121,10 @@ export function nameOf(pkg) {
 
 /**
  * @param {PackageManifest} pkg
- * @returns {string | undefined} The manifest's `version`, `undefined` when it is not text.
+ * @returns {unknown} The manifest's `version`, whatever JSON value it holds.
  */
 export function versionOf(pkg) {
-  return isText(pkg.version) ? pkg.version : undefined;
+  return pkg.version;
 }
 
 /**
