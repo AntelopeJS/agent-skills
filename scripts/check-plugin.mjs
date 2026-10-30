@@ -5,6 +5,15 @@ import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { parseFrontmatter } from "./lib/frontmatter.mjs";
+import { fieldOf } from "./lib/safe-read.mjs";
+import { isText } from "./lib/values.mjs";
+
+/**
+ * @typedef {object} HookSpec
+ * @property {string} file
+ * @property {string} root
+ * @property {string} target
+ */
 
 const EXIT = { ok: 0, failed: 1, usage: 2 };
 const ROOT_MANIFEST = "plugin.json";
@@ -22,6 +31,7 @@ const PLUGIN_SKILLS = [
   "skills",
   "sync-skills",
 ];
+/** @type {Record<string, HookSpec>} */
 const HOOKS = {
   claude: {
     file: "hooks/hooks.json",
@@ -41,43 +51,67 @@ Checks that the plugin in dir (default: cwd) loads the same way in Claude Code
 and Codex. Prints each failure and exits 1 when there is one.
 `;
 
+/**
+ * @param {string} root
+ * @param {string} path
+ * @param {string[]} failures
+ * @returns {unknown}
+ */
 function readJson(root, path, failures) {
   try {
     return JSON.parse(readFileSync(join(root, path), "utf8"));
   } catch (error) {
-    failures.push(`${path}: cannot read it as JSON (${error.message})`);
+    failures.push(
+      `${path}: cannot read it as JSON (${error instanceof Error ? error.message : "unreadable"})`,
+    );
     return null;
   }
 }
 
+/**
+ * @param {string} root
+ * @param {string[]} failures
+ */
 function checkManifests(root, failures) {
   if (existsSync(join(root, ROOT_MANIFEST))) {
     failures.push(
       `${ROOT_MANIFEST}: Codex reads a root manifest before ${CODEX_MANIFEST}; with the agent-plugins.org $schema it loads no hooks, without it Codex falls back to ${CLAUDE_MANIFEST}. Delete it.`,
     );
   }
+  /** @type {[string, unknown][]} */
   const manifests = [CLAUDE_MANIFEST, CODEX_MANIFEST, PACKAGE_MANIFEST].map(
     (path) => [path, readJson(root, path, failures)],
   );
   const codex = manifests[1][1];
-  if (codex && codex.hooks !== CODEX_HOOKS_PATH) {
+  const codexHooks = fieldOf(codex, "hooks");
+  if (codex && codexHooks !== CODEX_HOOKS_PATH) {
     failures.push(
-      `${CODEX_MANIFEST}: "hooks" must be "${CODEX_HOOKS_PATH}", not ${JSON.stringify(codex.hooks)}.`,
+      `${CODEX_MANIFEST}: "hooks" must be "${CODEX_HOOKS_PATH}", not ${JSON.stringify(codexHooks)}.`,
     );
   }
   const versions = new Set(
-    manifests.filter(([, data]) => data).map(([, data]) => data.version),
+    manifests
+      .filter(([, data]) => data)
+      .map(([, data]) => fieldOf(data, "version")),
   );
   if (versions.size > 1) {
     const listed = manifests
       .filter(([, data]) => data)
-      .map(([path, data]) => `${path} ${data.version}`);
+      .map(([path, data]) => {
+        const version = fieldOf(data, "version");
+        return `${path} ${isText(version) ? version : JSON.stringify(version)}`;
+      });
     failures.push(
       `version differs across manifests (${listed.join(", ")}); installed copies update only when it changes.`,
     );
   }
 }
 
+/**
+ * @param {string} root
+ * @param {string} name
+ * @param {string[]} failures
+ */
 function checkSkill(root, name, failures) {
   const path = join(SKILLS_DIR, name, SKILL_FILE);
   if (!existsSync(join(root, path))) {
@@ -101,6 +135,10 @@ function checkSkill(root, name, failures) {
   }
 }
 
+/**
+ * @param {string} root
+ * @param {string[]} failures
+ */
 function checkSkills(root, failures) {
   if (existsSync(join(root, COMMANDS_DIR))) {
     failures.push(
@@ -120,6 +158,9 @@ function checkSkills(root, failures) {
   for (const name of PLUGIN_SKILLS) checkSkill(root, name, failures);
 }
 
+/**
+ * @param {string} tool
+ */
 function comparableHooks(config, tool) {
   const { root, target } = HOOKS[tool];
   return Object.entries(config.hooks ?? {}).map(([event, groups]) => [
@@ -137,6 +178,10 @@ function comparableHooks(config, tool) {
   ]);
 }
 
+/**
+ * @param {string} root
+ * @param {string[]} failures
+ */
 function checkHooks(root, failures) {
   const [claude, codex] = ["claude", "codex"].map((tool) =>
     readJson(root, HOOKS[tool].file, failures),
@@ -153,6 +198,9 @@ function checkHooks(root, failures) {
   }
 }
 
+/**
+ * @returns {number}
+ */
 function main() {
   const { values, positionals } = parseArgs({
     options: { help: { type: "boolean", short: "h" } },
@@ -163,6 +211,7 @@ function main() {
     return values.help ? EXIT.ok : EXIT.usage;
   }
   const root = resolve(positionals[0] ?? process.cwd());
+  /** @type {string[]} */
   const failures = [];
   checkManifests(root, failures);
   checkSkills(root, failures);
