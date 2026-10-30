@@ -7,9 +7,18 @@ import { compareText } from "../scripts/lib/values.mjs";
 import { makeTempDir, removeDir, writeFile, writeJson } from "./helpers.mjs";
 
 const fence = "```";
+/** @type {string} */
 let project;
+/** @type {string} */
 let interfacesDir;
 
+/**
+ * @param {string} base
+ * @param {string} name
+ * @param {Record<string, unknown>} manifest
+ * @param {Record<string, string>} files
+ * @returns {void}
+ */
 function writePackage(base, name, manifest, files) {
   const dir = join(base, "node_modules", ...name.split("/"));
   writeJson(join(dir, "package.json"), { name, version: "1.0.0", ...manifest });
@@ -77,6 +86,10 @@ after(() => {
   removeDir(interfacesDir);
 });
 
+/**
+ * @param {string} text
+ * @returns {Promise<import("../scripts/lib/verify.mjs").Report>}
+ */
 function verify(text) {
   return verifyText(text, {
     project,
@@ -85,6 +98,10 @@ function verify(text) {
   });
 }
 
+/**
+ * @param {import("../scripts/lib/verify.mjs").Report} report
+ * @returns {string[]}
+ */
 function unknownNames(report) {
   return report.findings.map((finding) => finding.name).sort();
 }

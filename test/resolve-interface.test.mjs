@@ -7,13 +7,22 @@ import {
   removeDir,
   writeFile,
   writeJson,
-  runJson,
   runScript,
 } from "./helpers.mjs";
+import { isRecord } from "../scripts/lib/values.mjs";
 
 const SCRIPT = "resolve-interface.mjs";
 const OFFLINE = ["--offline"];
+/** @type {string} */
 let project;
+
+/**
+ * @param {string[]} args
+ * @returns {unknown}
+ */
+function resolverJson(args) {
+  return JSON.parse(runScript(SCRIPT, project, [...args, "--json"]));
+}
 
 before(() => {
   project = makeTempDir();
@@ -49,12 +58,14 @@ after(() => {
 });
 
 void test("show resolves a bare name against a scope discovered from the project", () => {
-  const result = runJson(SCRIPT, project, ["show", "payments", ...OFFLINE]);
+  const result = resolverJson(["show", "payments", ...OFFLINE]);
 
+  if (!isRecord(result) || !Array.isArray(result.subpaths))
+    assert.fail("show printed no subpaths");
   assert.equal(result.package, "@acme/interface-payments");
   assert.equal(result.version, "1.2.0");
   assert.deepEqual(
-    result.subpaths.map((s) => s.import),
+    result.subpaths.map((s) => (isRecord(s) ? s.import : undefined)),
     ["@acme/interface-payments", "@acme/interface-payments/refunds"],
   );
 });
@@ -71,12 +82,15 @@ void test("contract prints the .d.ts of a subpath", () => {
 });
 
 void test("list includes locally installed interfaces when offline", () => {
-  const rows = runJson(SCRIPT, project, ["list", ...OFFLINE]);
+  const rows = resolverJson(["list", ...OFFLINE]);
 
   assert.ok(
-    rows.some(
-      (row) =>
-        row.package === "@acme/interface-payments" && row.source === "local",
-    ),
+    Array.isArray(rows) &&
+      rows.some(
+        (row) =>
+          isRecord(row) &&
+          row.package === "@acme/interface-payments" &&
+          row.source === "local",
+      ),
   );
 });
