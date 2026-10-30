@@ -4,8 +4,14 @@ import { join } from "node:path";
 
 import { makeTempDir, writeFile } from "../helpers.mjs";
 
+/** @type {string[]} */
 const AUTHOR = ["-c", "user.name=t", "-c", "user.email=t@invalid"];
 
+/**
+ * @param {string} cwd
+ * @param {string[]} args
+ * @returns {string}
+ */
 function git(cwd, args) {
   return execFileSync("git", [...AUTHOR, ...args], {
     cwd,
@@ -13,6 +19,12 @@ function git(cwd, args) {
   }).trim();
 }
 
+/**
+ * @param {string} dir
+ * @param {string} file
+ * @param {string} content
+ * @returns {string}
+ */
 function patchOf(dir, file, content) {
   writeFile(join(dir, file), content);
   const patch = git(dir, ["diff"]);
@@ -24,6 +36,7 @@ function patchOf(dir, file, content) {
  * A git checkout with a verification skill `verify-demo` that holds one seeded
  * break (`alpha`, changing src/alpha.txt) and one seeded door (`data`, changing
  * src/data.txt), committed on `main`.
+ * @returns {string} The checkout's folder.
  */
 export function makeSeededRepo() {
   const dir = makeTempDir();
@@ -51,7 +64,12 @@ export function makeSeededRepo() {
   return dir;
 }
 
-/** Runs git in `dir`. */
+/**
+ * Runs git in `dir`.
+ * @param {string} dir
+ * @param {string[]} args
+ * @returns {string}
+ */
 export function gitIn(dir, args) {
   return git(dir, args);
 }
@@ -60,6 +78,9 @@ export function gitIn(dir, args) {
  * An executable that stands for `claude`: it prints `reply` as the JSON the
  * CLI prints, and records its arguments, working directory and HOME in
  * `calls.log` beside it.
+ * @param {string} dir
+ * @param {unknown} reply
+ * @returns {string} The executable's path.
  */
 export function makeFakeClaude(dir, reply) {
   const bin = join(dir, "fake-claude.mjs");
