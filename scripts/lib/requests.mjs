@@ -206,7 +206,7 @@ export function writeRun({ dir, cases, skills, models, options = {} }) {
 export function readManifest(dir) {
   const file = join(dir, MANIFEST_FILE);
   if (!existsSync(file)) throw new Error(`${dir} holds no ${MANIFEST_FILE}`);
-  // SAFETY: the file is written only by `prepareRun` as the `JSON.stringify` of the `Manifest` it returns; the `version` check on the next line refuses a file from another layout.
+  // SAFETY: the file is written only by `writeRun` (called by the `prepare` command) as the `JSON.stringify` of the `Manifest` it returns; the `version` check on the next line refuses a file from another layout.
   const manifest = /** @type {Manifest} */ (
     JSON.parse(readFileSync(file, "utf8"))
   );
@@ -221,7 +221,7 @@ export function readManifest(dir) {
  * @returns {TaskRequest}
  */
 export function readRequest(dir, task) {
-  // SAFETY: each request file is written only by `prepareRun` as the `JSON.stringify` of `buildRequest(...)`, a `TaskRequest`.
+  // SAFETY: each request file is written only by `writeRun` (called by the `prepare` command) as the `JSON.stringify` of `buildRequest(...)`, a `TaskRequest`.
   return /** @type {TaskRequest} */ (
     JSON.parse(readFileSync(requestFile(dir, task), "utf8"))
   );
