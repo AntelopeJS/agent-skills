@@ -23,6 +23,23 @@ export const CACHE_ROOT =
   process.env.AJS_RESOLVER_CACHE ||
   join(homedir(), ".cache", "ajs-interface-resolver");
 
+const TYPE_CONDITIONS = ["types", "import", "require", "node", "default"];
+
+/**
+ * The declaration path an `exports` target names, taking the first condition of
+ * `types`, `import`, `require`, `node`, `default` that the target holds.
+ * @param {unknown} target
+ * @returns {string | null}
+ */
+export function typesTarget(target) {
+  if (isText(target) || target === null) return target;
+  if (Array.isArray(target))
+    return target.map(typesTarget).find(isText) ?? null;
+  if (!isRecord(target)) return null;
+  const condition = TYPE_CONDITIONS.find((key) => target[key] !== undefined);
+  return condition ? typesTarget(target[condition]) : null;
+}
+
 /**
  * Host packages named explicitly via env — package names whose interface
  * subpaths should resolve even when the host is not discoverable from the

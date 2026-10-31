@@ -13,7 +13,7 @@ import { isBuiltin } from "node:module";
 import { fileURLToPath } from "node:url";
 
 import { parseJson } from "./json.mjs";
-import { readManifest } from "./resolver/support.mjs";
+import { readManifest, typesTarget } from "./resolver/support.mjs";
 import { isRecord, isText } from "./values.mjs";
 
 /**
@@ -56,7 +56,6 @@ const RESOLVER_SCRIPT = join(
 const INTERFACE_PACKAGE_RE = /^@[^/]+\/interface-/;
 const RESOLVER_TIMEOUT_MS = 120_000;
 const PATTERN_SCAN_DEPTH = 6;
-const TYPE_CONDITIONS = ["types", "import", "require", "node", "default"];
 const DTS_RE = /\.d\.[mc]?ts$/;
 const COMMENT_RE = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
 const DECLARATION_RE =
@@ -139,19 +138,6 @@ function resolverPackageDir(context, name) {
   } catch {
     return null;
   }
-}
-
-/**
- * @param {unknown} target
- * @returns {string | null}
- */
-function typesTarget(target) {
-  if (isText(target) || target === null) return target;
-  if (Array.isArray(target))
-    return target.map(typesTarget).find(isText) ?? null;
-  if (!isRecord(target)) return null;
-  const condition = TYPE_CONDITIONS.find((key) => target[key] !== undefined);
-  return condition ? typesTarget(target[condition]) : null;
 }
 
 /**
