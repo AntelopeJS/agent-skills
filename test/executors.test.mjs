@@ -7,6 +7,7 @@ import {
   codexInvocation,
   codexPrompt,
   execRun,
+  readExecutorRecords,
 } from "../scripts/lib/executors.mjs";
 import { MATRIX } from "../scripts/lib/matrix.mjs";
 import { listTasks, readAnswer, writeRun } from "../scripts/lib/requests.mjs";
@@ -212,4 +213,67 @@ void test("the codex call gets a home with only the auth link and reads the repl
   assert.deepEqual(failed, []);
   assert.equal(homes[0].includes("codex-home"), true);
   assert.equal(exists(homes[0]), false);
+});
+
+void test("an executor.json written by hand keeps its well-typed fields and drops the others", () => {
+  prepared();
+  writeFile(
+    join(dir, OPUS.id, "executor.json"),
+    JSON.stringify({
+      executor: "amp",
+      requestedModel: "claude-opus-5-5",
+      effort: 3,
+      observedModels: "claude-opus-5-5",
+      cli: ["amp"],
+      sanitization: ["no-settings", 4],
+    }),
+  );
+  writeFile(
+    join(dir, SONNET.id, "executor.json"),
+    JSON.stringify({ observedModels: ["claude-sonnet-5-5", 7], cli: "amp" }),
+  );
+
+  const records = readExecutorRecords(dir, [OPUS, SONNET, CODEX]);
+
+  assert.deepEqual(records[OPUS.id], {
+    executor: "amp",
+    requestedModel: "claude-opus-5-5",
+    sanitization: ["no-settings"],
+  });
+  assert.deepEqual(records[SONNET.id], {
+    observedModels: ["claude-sonnet-5-5"],
+    cli: "amp",
+  });
+  assert.deepEqual(records[CODEX.id], {});
+});
+
+void test("an executor.json that is not an object reads as no record", () => {
+  prepared();
+  writeFile(join(dir, OPUS.id, "executor.json"), '["amp"]');
+  writeFile(join(dir, SONNET.id, "executor.json"), "not json");
+
+  const records = readExecutorRecords(dir, [OPUS, SONNET]);
+
+  assert.deepEqual(records, { [OPUS.id]: {}, [SONNET.id]: {} });
+});
+
+void test("a run resumed over a hand-written executor.json keeps the observed models that are texts", async () => {
+  prepared();
+  writeFile(
+    join(dir, OPUS.id, "executor.json"),
+    JSON.stringify({ observedModels: "claude-opus-5-5" }),
+  );
+  /** @type {SpawnCall[]} */
+  const calls = [];
+
+  await execRun({
+    dir,
+    models: [OPUS.id],
+    options: { run: fakeRun(calls) },
+  });
+
+  assert.deepEqual(
+    readJson(join(dir, OPUS.id, "executor.json")).observedModels,
+    ["claude-opus-5-5"],
+  );
 });
