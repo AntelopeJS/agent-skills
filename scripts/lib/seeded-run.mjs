@@ -73,7 +73,10 @@ const RESULT_FILE = "result.json";
 function readFinished(dir) {
   const file = join(dir, RESULT_FILE);
   if (!existsSync(file)) return undefined;
-  const record = JSON.parse(readFileSync(file, "utf8"));
+  // SAFETY: `result.json` is written only by `runSeeded` as the `JSON.stringify` of the `CaseResult` it also returns.
+  const record = /** @type {CaseResult} */ (
+    JSON.parse(readFileSync(file, "utf8"))
+  );
   return record.status === "error" || record.status === "interrupted"
     ? undefined
     : record;

@@ -498,7 +498,12 @@ function codexDefaultModel(home) {
  */
 function readExecutorRecord(dir, entry) {
   const file = join(dir, entry.id, EXECUTOR_FILE);
-  return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
+  // SAFETY: `executor.json` is written only by `writeExecutorRecord` as the `JSON.stringify` of its `StoredExecutorRecord`, and a missing file reads as `{}`.
+  return existsSync(file)
+    ? /** @type {StoredExecutorRecord} */ (
+        JSON.parse(readFileSync(file, "utf8"))
+      )
+    : {};
 }
 
 /**
