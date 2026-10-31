@@ -9,6 +9,7 @@ import {
   writeJson,
   runScript,
 } from "./helpers.mjs";
+import { parseJson } from "../scripts/lib/json.mjs";
 import { isRecord } from "../scripts/lib/values.mjs";
 
 const SCRIPT = "resolve-interface.mjs";
@@ -92,5 +93,65 @@ void test("list includes locally installed interfaces when offline", () => {
           row.package === "@acme/interface-payments" &&
           row.source === "local",
       ),
+  );
+});
+
+/**
+ * @param {string} wildcard The `./*` export of an installed interface package.
+ * @returns {string[]} The import paths `show` lists for it.
+ */
+function showWildcardPackage(wildcard) {
+  const root = makeTempDir();
+  try {
+    writeJson(join(root, "package.json"), {
+      name: "consumer",
+      dependencies: { "@acme/interface-wild": "^1.0.0" },
+    });
+    const pkg = join(root, "node_modules", "@acme", "interface-wild");
+    writeJson(join(pkg, "package.json"), {
+      name: "@acme/interface-wild",
+      version: "1.0.0",
+      exports: {
+        ".": { types: "./dist/index.d.ts" },
+        "./*": wildcard,
+      },
+    });
+    writeFile(
+      join(pkg, "dist", "index.d.ts"),
+      "export declare const a: number;\n",
+    );
+    writeFile(
+      join(pkg, "dist", "extras.d.ts"),
+      "export declare const b: number;\n",
+    );
+    const shown = parseJson(
+      runScript(SCRIPT, root, [
+        "show",
+        "@acme/interface-wild",
+        ...OFFLINE,
+        "--json",
+      ]),
+    );
+    if (!isRecord(shown) || !Array.isArray(shown.subpaths))
+      assert.fail("show printed no subpaths");
+    return shown.subpaths.map((s) => (isRecord(s) ? String(s.import) : ""));
+  } finally {
+    removeDir(root);
+  }
+}
+
+void test("show lists the files behind a wildcard export whose types is a string", () => {
+  assert.deepEqual(showWildcardPackage({ types: "./dist/*.d.ts" }), [
+    "@acme/interface-wild",
+    "@acme/interface-wild/extras",
+  ]);
+});
+
+void test("show reads a wildcard export whose types is a conditions object", () => {
+  assert.deepEqual(
+    showWildcardPackage({
+      types: { import: "./dist/*.d.mts", require: "./dist/*.d.cts" },
+    }),
+    ["@acme/interface-wild", "@acme/interface-wild/extras"],
   );
 });
