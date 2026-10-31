@@ -3,7 +3,7 @@
   <h1>AntelopeJS agent skills</h1>
   <p><strong>The AntelopeJS and DMS skills, synced into Claude Code and Codex.</strong></p>
 
-<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
+<a href="https://discord.gg/kxzZMWqdFU"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
 <a href="https://dms.antelopejs.com/docs/ai-and-claude-code/overview"><img alt="Docs" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
 
 </div>
