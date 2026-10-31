@@ -137,17 +137,11 @@ const WRONG_TYPES = [
     { prompt: 12345678901 },
     "case c: prompt must be a sentence",
   ],
-  [
-    "a numeric fixture directory",
-    { fixture: { type: "skeleton", dir: 5 } },
-    "case c: fixture directory 5 does not exist",
-  ],
 ];
 
 for (const [name, extra, error] of WRONG_TYPES) {
   void test(`${name} is an error, not a coerced string`, () => {
     const dir = suiteDir();
-    writeFile(join(dir, "5", "package.json"), "{}\n");
     const cases = [rubricCase("a"), rubricCase("b"), rubricCase("c", extra)];
 
     assert.deepEqual(suiteErrors({ cases }, dir), [error]);

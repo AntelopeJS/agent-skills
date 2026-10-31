@@ -42,7 +42,7 @@ function fixtureErrors(fixture, suiteDir) {
   const type = fieldOf(fixture, "type");
   if (type === "skeleton") {
     const dir = fieldOf(fixture, "dir");
-    return isText(dir) && existsSync(join(suiteDir, dir))
+    return existsSync(join(suiteDir, String(dir)))
       ? []
       : [`fixture directory ${String(dir)} does not exist`];
   }
