@@ -1,8 +1,0 @@
-{
-  "pack": "0.2.17",
-  "rules": {
-    "typescript/no-unsafe-assignment": 2,
-    "typescript/no-unsafe-return": 3
-  },
-  "oversizeFiles": {}
-}
