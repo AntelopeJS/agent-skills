@@ -20,7 +20,7 @@ import {
   writeAnswer,
 } from "./requests.mjs";
 import { parseJson, readJsonFile } from "./json.mjs";
-import { fieldOf } from "./safe-read.mjs";
+import { fieldOf, readJsonSafe } from "./safe-read.mjs";
 import { isRecord, isText } from "./values.mjs";
 
 /** @typedef {import("./matrix.mjs").MatrixEntry} MatrixEntry */
@@ -123,8 +123,10 @@ import { isRecord, isText } from "./values.mjs";
  */
 
 /**
- * The record of a model, or an empty one when no run wrote it yet.
- * @typedef {ExecutorRecord | Record<string, never>} StoredExecutorRecord
+ * The record of a model as read back: only the fields that hold what they
+ * should (a run writes all of them, a hand-written file may hold some), and
+ * nothing when no run wrote it yet.
+ * @typedef {Partial<ExecutorRecord>} StoredExecutorRecord
  */
 
 export const DEFAULT_JOBS = 4;
@@ -498,12 +500,27 @@ function codexDefaultModel(home) {
  */
 function readExecutorRecord(dir, entry) {
   const file = join(dir, entry.id, EXECUTOR_FILE);
-  // SAFETY: `executor.json` is written only by `writeExecutorRecord` as the `JSON.stringify` of its `StoredExecutorRecord`, and a missing file reads as `{}`.
-  return existsSync(file)
-    ? /** @type {StoredExecutorRecord} */ (
-        JSON.parse(readFileSync(file, "utf8"))
-      )
-    : {};
+  const data = existsSync(file) ? readJsonSafe(file) : null;
+  /** @type {StoredExecutorRecord} */
+  const record = {};
+  const executor = fieldOf(data, "executor");
+  if (isText(executor)) record.executor = executor;
+  const requestedModel = fieldOf(data, "requestedModel");
+  if (isText(requestedModel) || requestedModel === null)
+    record.requestedModel = requestedModel;
+  const effort = fieldOf(data, "effort");
+  if (isText(effort) || effort === null) record.effort = effort;
+  const observedModels = fieldOf(data, "observedModels");
+  if (Array.isArray(observedModels))
+    record.observedModels = observedModels.filter(isText);
+  const cli = fieldOf(data, "cli");
+  if (isText(cli)) record.cli = cli;
+  const sanitization = fieldOf(data, "sanitization");
+  if (Array.isArray(sanitization))
+    record.sanitization = sanitization.filter(isText);
+  const at = fieldOf(data, "at");
+  if (isText(at)) record.at = at;
+  return record;
 }
 
 /**
