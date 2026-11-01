@@ -9,16 +9,6 @@
  *   claude — `.claude/skills/` (Claude Code)
  *   codex  — `.agents/skills/` (OpenAI Codex)
  *
- * Packages are discovered, first hit per package name wins, in:
- *   1. workspace  — the cwd, its ancestors up to the repository/workspace root,
- *                   and the packages listed by that root's pnpm-workspace.yaml
- *                   or package.json `workspaces` (source checkouts, playgrounds).
- *   2. node_modules — `node_modules` of the cwd and of that root (direct and
- *                   hoisted dependencies). pnpm symlinks into `.pnpm` are
- *                   followed; the link keeps the `node_modules/<pkg>` path so
- *                   it survives version bumps.
- *   3. antelope-cache — `.antelope/cache`, where `ajs` installs project modules.
- *
  * A directory is an AntelopeJS project when it holds `antelope.config.*`, or
  * when its package.json depends on `@antelopejs/core` (embedded runtime, e.g.
  * the AdonisJS template). Anywhere else the script exits 0 and does nothing.

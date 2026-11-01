@@ -1,4 +1,10 @@
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  statSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 
 import { isText } from "./values.mjs";
@@ -9,7 +15,9 @@ const ORIGIN = {
   workspace: "workspace",
   nodeModules: "node_modules",
   cache: "antelope-cache",
+  dependency: "dependency",
 };
+const MODULE_DEPENDENCY_FIELDS = ["dependencies", "optionalDependencies"];
 
 export function readJsonSafe(path) {
   try {
@@ -19,6 +27,7 @@ export function readJsonSafe(path) {
   }
 }
 
+/** @returns {string} */
 export function readTextSafe(path) {
   try {
     return readFileSync(path, "utf8");
@@ -27,6 +36,7 @@ export function readTextSafe(path) {
   }
 }
 
+/** @returns {boolean} */
 export function isDirectorySafe(path) {
   try {
     return statSync(path).isDirectory();
@@ -35,6 +45,7 @@ export function isDirectorySafe(path) {
   }
 }
 
+/** @returns {string[]} */
 export function readdirSafe(path) {
   try {
     return readdirSync(path);
@@ -55,8 +66,10 @@ function isBoundary(dir) {
 /**
  * The cwd and its ancestors up to the nearest repository or workspace root;
  * only the cwd when no such root exists.
+ * @returns {string[]}
  */
 function ancestorDirs(cwd) {
+  /** @type {string[]} */
   const dirs = [];
   for (let dir = cwd; ; dir = dirname(dir)) {
     dirs.push(dir);
@@ -117,8 +130,12 @@ function workspacePackageDirs(root) {
   return globs.flatMap((glob) => expandWorkspaceGlob(root, glob));
 }
 
-/** Direct children of a package root: <root>/<pkg> and <root>/@scope/<pkg>. */
+/**
+ * Direct children of a package root: <root>/<pkg> and <root>/@scope/<pkg>.
+ * @returns {string[]}
+ */
 function packagesIn(base) {
+  /** @type {string[]} */
   const dirs = [];
   for (const entry of readdirSafe(base)) {
     if (entry.startsWith(".")) continue;
@@ -134,19 +151,55 @@ function packagesIn(base) {
   return dirs;
 }
 
+function realpathSafe(path) {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
+  }
+}
+
+/** @returns {string | null} */
+function resolveDependencyDir(fromDir, dep) {
+  for (let dir = realpathSafe(fromDir); ; dir = dirname(dir)) {
+    const candidate = join(dir, "node_modules", dep);
+    if (existsSync(join(candidate, "package.json"))) return candidate;
+    if (dirname(dir) === dir) return null;
+  }
+}
+
+/** @returns {string[]} */
+function dependencyDirs(moduleDir) {
+  /** @type {Record<string, Record<string, unknown> | undefined> | null} */
+  const pkg = readJsonSafe(join(moduleDir, "package.json"));
+  /** @type {string[]} */
+  const dirs = [];
+  for (const field of MODULE_DEPENDENCY_FIELDS) {
+    for (const dep of Object.keys(pkg?.[field] ?? {})) {
+      const dir = resolveDependencyDir(moduleDir, dep);
+      if (dir !== null) dirs.push(dir);
+    }
+  }
+  return dirs;
+}
+
 export function candidatePackages(cwd) {
   const ancestors = ancestorDirs(cwd);
   const root = ancestors[ancestors.length - 1];
   const workspace = [...ancestors, ...workspacePackageDirs(root)];
+  const cache = packagesIn(join(cwd, ".antelope", "cache"));
   const nodeModules = [...new Set([cwd, root])].flatMap((dir) =>
     packagesIn(join(dir, "node_modules")),
   );
   return [
     ...workspace.map((dir) => ({ dir, origin: ORIGIN.workspace })),
+    ...cache.map((dir) => ({ dir, origin: ORIGIN.cache })),
+    ...[...workspace, ...cache].flatMap((dir) =>
+      dependencyDirs(dir).map((dep) => ({
+        dir: dep,
+        origin: ORIGIN.dependency,
+      })),
+    ),
     ...nodeModules.map((dir) => ({ dir, origin: ORIGIN.nodeModules })),
-    ...packagesIn(join(cwd, ".antelope", "cache")).map((dir) => ({
-      dir,
-      origin: ORIGIN.cache,
-    })),
   ];
 }

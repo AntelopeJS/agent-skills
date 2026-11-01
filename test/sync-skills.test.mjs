@@ -104,6 +104,45 @@ test("links skills of modules installed by ajs in .antelope/cache", () => {
   assert.equal(skills["local-mod--local-mod"].package, "local-mod");
 });
 
+test("links the skills of a cached module's own dependencies", () => {
+  writeAntelopeConfig(root);
+  writeJson(join(root, ".antelope/cache/@antelopejs/mongodb/package.json"), {
+    name: "@antelopejs/mongodb",
+    dependencies: { "@antelopejs/interface-mongodb": "^1.0.0" },
+  });
+  writeSkillPackage(
+    join(
+      root,
+      ".antelope/cache/@antelopejs/mongodb/node_modules/@antelopejs/interface-mongodb",
+    ),
+    "@antelopejs/interface-mongodb",
+    ["mongodb-interface"],
+  );
+
+  assert.equal(
+    byName(sync(root))["interface-mongodb--mongodb-interface"].origin,
+    "dependency",
+  );
+});
+
+test("prefers the module ajs runs from .antelope/cache over the project's installed copy", () => {
+  writeAntelopeConfig(root);
+  writeSkillPackage(
+    join(root, ".antelope", "cache", "@antelopejs", "dms"),
+    "@antelopejs/dms",
+    ["dms"],
+    "2.0.0",
+  );
+  writeSkillPackage(
+    join(root, "node_modules", "@antelopejs", "dms"),
+    "@antelopejs/dms",
+    ["dms"],
+    "1.0.0",
+  );
+
+  assert.equal(byName(sync(root))["dms--dms"].version, "2.0.0");
+});
+
 test("detects an embedded runtime project without antelope.config", () => {
   writeJson(join(root, "package.json"), {
     name: "adonis-app",
