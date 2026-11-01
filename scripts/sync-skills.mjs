@@ -9,16 +9,6 @@
  *   claude — `.claude/skills/` (Claude Code)
  *   codex  — `.agents/skills/` (OpenAI Codex)
  *
- * Packages are discovered, first hit per package name wins, in:
- *   1. workspace  — the cwd, its ancestors up to the repository/workspace root,
- *                   and the packages listed by that root's pnpm-workspace.yaml
- *                   or package.json `workspaces` (source checkouts, playgrounds).
- *   2. node_modules — `node_modules` of the cwd and of that root (direct and
- *                   hoisted dependencies). pnpm symlinks into `.pnpm` are
- *                   followed; the link keeps the `node_modules/<pkg>` path so
- *                   it survives version bumps.
- *   3. antelope-cache — `.antelope/cache`, where `ajs` installs project modules.
- *
  * A directory is an AntelopeJS project when it holds `antelope.config.*`, or
  * when its package.json depends on `@antelopejs/core` (embedded runtime, e.g.
  * the AdonisJS template). Anywhere else the script exits 0 and does nothing.
@@ -39,11 +29,8 @@
  */
 
 import {
-  readFileSync,
-  readdirSync,
   existsSync,
   lstatSync,
-  statSync,
   mkdirSync,
   symlinkSync,
   unlinkSync,
@@ -52,6 +39,13 @@ import {
 } from "node:fs";
 import { join, relative, resolve, dirname, isAbsolute } from "node:path";
 
+import {
+  candidatePackages,
+  isDirectorySafe,
+  readJsonSafe,
+  readTextSafe,
+  readdirSafe,
+} from "./lib/skill-packages.mjs";
 import { compareText, isText } from "./lib/values.mjs";
 
 const args = process.argv.slice(2);
@@ -92,14 +86,7 @@ const DEPENDENCY_FIELDS = [
   "devDependencies",
   "optionalDependencies",
 ];
-const WORKSPACE_FILE = "pnpm-workspace.yaml";
-const ORIGIN = {
-  workspace: "workspace",
-  nodeModules: "node_modules",
-  cache: "antelope-cache",
-};
 const STATUS = { linked: "linked", added: "added", skipped: "skipped" };
-const RECURSIVE_GLOB_DEPTH = 3;
 
 function log(msg) {
   if (!QUIET && !JSON_OUT) console.log(msg);
@@ -109,43 +96,11 @@ function warn(msg) {
   if (!QUIET) process.stderr.write(`warning: ${msg}\n`);
 }
 
-function readJsonSafe(path) {
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
-}
-
-function readTextSafe(path) {
-  try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return "";
-  }
-}
-
 function lstatSafe(path) {
   try {
     return lstatSync(path);
   } catch {
     return null;
-  }
-}
-
-function isDirectorySafe(path) {
-  try {
-    return statSync(path).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-function readdirSafe(path) {
-  try {
-    return readdirSync(path);
-  } catch {
-    return [];
   }
 }
 
@@ -175,114 +130,6 @@ function isAntelopeProject(dir) {
   return dependsOnCore(readJsonSafe(join(dir, "package.json")));
 }
 
-function declaresWorkspaces(dir) {
-  if (existsSync(join(dir, WORKSPACE_FILE))) return true;
-  return Boolean(readJsonSafe(join(dir, "package.json"))?.workspaces);
-}
-
-function isBoundary(dir) {
-  return existsSync(join(dir, ".git")) || declaresWorkspaces(dir);
-}
-
-/**
- * The cwd and its ancestors up to the nearest repository or workspace root;
- * only the cwd when no such root exists.
- */
-function ancestorDirs() {
-  const dirs = [];
-  for (let dir = cwd; ; dir = dirname(dir)) {
-    dirs.push(dir);
-    if (isBoundary(dir)) return dirs;
-    if (dirname(dir) === dir) return [cwd];
-  }
-}
-
-function pnpmWorkspaceGlobs(root) {
-  const lines = readTextSafe(join(root, WORKSPACE_FILE)).split("\n");
-  const start = lines.findIndex((line) => /^packages:\s*$/.test(line));
-  if (start < 0) return [];
-  const globs = [];
-  for (const line of lines.slice(start + 1)) {
-    if (/^\S/.test(line)) break;
-    const match = line.match(/^\s*-\s*["']?([^"'#]+?)["']?\s*(#.*)?$/);
-    if (match) globs.push(match[1]);
-  }
-  return globs;
-}
-
-function packageJsonWorkspaceGlobs(root) {
-  const workspaces = readJsonSafe(join(root, "package.json"))?.workspaces;
-  const globs = Array.isArray(workspaces) ? workspaces : workspaces?.packages;
-  return Array.isArray(globs) ? globs.filter(isText) : [];
-}
-
-function childDirs(dir) {
-  return readdirSafe(dir)
-    .filter((entry) => !entry.startsWith(".") && entry !== "node_modules")
-    .map((entry) => join(dir, entry))
-    .filter(isDirectorySafe);
-}
-
-function descendantDirs(dir, depth) {
-  if (depth === 0) return [];
-  return childDirs(dir).flatMap((child) => [
-    child,
-    ...descendantDirs(child, depth - 1),
-  ]);
-}
-
-/** Supports the glob forms workspaces use in practice: `dir`, `dir/*`, `dir/**`. */
-function expandWorkspaceGlob(root, glob) {
-  if (glob.startsWith("!")) return [];
-  const clean = glob.replace(/^\.\//, "").replace(/\/$/, "");
-  if (clean.endsWith("/**"))
-    return descendantDirs(join(root, clean.slice(0, -3)), RECURSIVE_GLOB_DEPTH);
-  if (clean.endsWith("/*")) return childDirs(join(root, clean.slice(0, -2)));
-  return [join(root, clean)];
-}
-
-function workspacePackageDirs(root) {
-  const globs = [
-    ...pnpmWorkspaceGlobs(root),
-    ...packageJsonWorkspaceGlobs(root),
-  ];
-  return globs.flatMap((glob) => expandWorkspaceGlob(root, glob));
-}
-
-/** Direct children of a package root: <root>/<pkg> and <root>/@scope/<pkg>. */
-function packagesIn(base) {
-  const dirs = [];
-  for (const entry of readdirSafe(base)) {
-    if (entry.startsWith(".")) continue;
-    const path = join(base, entry);
-    if (!entry.startsWith("@")) dirs.push(path);
-    else
-      dirs.push(
-        ...readdirSafe(path)
-          .filter((e) => !e.startsWith("."))
-          .map((e) => join(path, e)),
-      );
-  }
-  return dirs;
-}
-
-function candidatePackages() {
-  const ancestors = ancestorDirs();
-  const root = ancestors[ancestors.length - 1];
-  const workspace = [...ancestors, ...workspacePackageDirs(root)];
-  const nodeModules = [...new Set([cwd, root])].flatMap((dir) =>
-    packagesIn(join(dir, "node_modules")),
-  );
-  return [
-    ...workspace.map((dir) => ({ dir, origin: ORIGIN.workspace })),
-    ...nodeModules.map((dir) => ({ dir, origin: ORIGIN.nodeModules })),
-    ...packagesIn(join(cwd, ".antelope", "cache")).map((dir) => ({
-      dir,
-      origin: ORIGIN.cache,
-    })),
-  ];
-}
-
 /**
  * Every skill declared by the discovered packages.
  * Returns Map<entryName, { target, package, version, origin, skill }>.
@@ -290,7 +137,7 @@ function candidatePackages() {
 function discoverSkills(warnings) {
   const skills = new Map();
   const seenPackages = new Set();
-  for (const { dir, origin } of candidatePackages()) {
+  for (const { dir, origin } of candidatePackages(cwd)) {
     const pkg = readJsonSafe(join(dir, "package.json"));
     if (!isText(pkg?.name) || seenPackages.has(pkg.name)) continue;
     const declared = pkg.antelopeJs?.skills;
