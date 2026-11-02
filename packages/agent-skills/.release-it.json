@@ -1,0 +1,23 @@
+{
+  "git": {
+    "commitMessage": "chore(release): @antelopejs/agent-skills v${version}",
+    "tagName": "agent-skills-v${version}",
+    "requireCommits": true,
+    "commitsPath": "."
+  },
+  "github": {
+    "release": true,
+    "releaseName": "@antelopejs/agent-skills v${version}"
+  },
+  "hooks": {
+    "after:bump": "git add CHANGELOG.md"
+  },
+  "plugins": {
+    "release-it-changelogen": {
+      "disableVersion": true
+    }
+  },
+  "npm": {
+    "skipChecks": true
+  }
+}

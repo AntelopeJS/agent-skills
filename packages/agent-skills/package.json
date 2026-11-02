@@ -1,0 +1,55 @@
+{
+  "name": "@antelopejs/agent-skills",
+  "version": "0.1.0",
+  "description": "Finds the agent skills that AntelopeJS packages ship, so every tool that loads them sees the same ones.",
+  "keywords": [
+    "agent-skills",
+    "antelopejs",
+    "claude-code",
+    "codex"
+  ],
+  "homepage": "https://github.com/AntelopeJS/agent-skills/tree/main/packages/agent-skills#readme",
+  "bugs": {
+    "url": "https://github.com/AntelopeJS/agent-skills/issues"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AntelopeJS/agent-skills.git",
+    "directory": "packages/agent-skills"
+  },
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "LICENSE",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "index.mjs",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "release": "release-it"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "release-it": "^19.2.4",
+    "release-it-changelogen": "^0.1.0",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}
