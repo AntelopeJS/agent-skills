@@ -37,7 +37,7 @@ import {
   writeFileSync,
   readlinkSync,
 } from "node:fs";
-import { join, relative, resolve, dirname, isAbsolute } from "node:path";
+import { join, relative, resolve, dirname } from "node:path";
 
 import {
   candidatePackages,
@@ -136,21 +136,11 @@ function isAntelopeProject(dir) {
  */
 function discoverSkills(warnings) {
   const skills = new Map();
-  const seenPackages = new Set();
-  for (const { dir, origin } of candidatePackages(cwd)) {
-    const pkg = readJsonSafe(join(dir, "package.json"));
-    if (!isText(pkg?.name) || seenPackages.has(pkg.name)) continue;
-    const declared = pkg.antelopeJs?.skills;
-    if (!Array.isArray(declared) || !declared.length) continue;
-    seenPackages.add(pkg.name);
-    collectPackageSkills({ pkg, dir, origin }, declared, skills, warnings);
-  }
+  for (const source of candidatePackages(cwd, (message) =>
+    warnings.push(message),
+  ))
+    collectPackageSkills(source, skills, warnings);
   return skills;
-}
-
-function escapesPackage(pkgDir, dir) {
-  const relToPkg = relative(pkgDir, dir);
-  return relToPkg.startsWith("..") || isAbsolute(relToPkg);
 }
 
 function skillName(skillDir, fallback) {
@@ -161,34 +151,27 @@ function skillName(skillDir, fallback) {
   return name ? name[1] : fallback;
 }
 
-function collectPackageSkills(source, declaredDirs, skills, warnings) {
-  const { pkg, dir: pkgDir, origin } = source;
-  const moduleShort = pkg.name.slice(pkg.name.lastIndexOf("/") + 1);
-  for (const rel of declaredDirs.filter(isText)) {
-    const dir = resolve(pkgDir, rel);
-    if (escapesPackage(pkgDir, dir)) {
-      warnings.push(
-        `${pkg.name}: skills dir '${rel}' escapes the package — skipped.`,
-      );
-      continue;
-    }
+function collectPackageSkills(source, skills, warnings) {
+  const { name: pkgName, version, skillDirs, origin } = source;
+  const moduleShort = pkgName.slice(pkgName.lastIndexOf("/") + 1);
+  for (const dir of skillDirs) {
     for (const sub of readdirSafe(dir)) {
       const skillDir = join(dir, sub);
       if (!isDirectorySafe(skillDir) || !existsSync(join(skillDir, "SKILL.md")))
         continue;
       const entryName = `${moduleShort}--${sub}`;
       const existing = skills.get(entryName);
-      if (existing && existing.package !== pkg.name) {
+      if (existing && existing.package !== pkgName) {
         warnings.push(
-          `${entryName}: also provided by ${pkg.name} — keeping the one from ${existing.package}.`,
+          `${entryName}: also provided by ${pkgName} — keeping the one from ${existing.package}.`,
         );
       }
       if (existing) continue;
       const skill = skillName(skillDir, sub);
       skills.set(entryName, {
         target: skillDir,
-        package: pkg.name,
-        version: pkg.version ?? null,
+        package: pkgName,
+        version,
         origin,
         skill,
       });
