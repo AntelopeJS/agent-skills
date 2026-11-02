@@ -19,6 +19,7 @@ jobs:
         pnpm evals:baseline
       docs-files: |
         README.md
+        packages/agent-skills/README.md
       renovate-sync: false
     permissions:
       contents: read
