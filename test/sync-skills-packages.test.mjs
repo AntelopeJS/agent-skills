@@ -58,6 +58,35 @@ void test("a cached module that ships no skills hides the skills of the installe
   assert.doesNotMatch(output, /dms--dms/);
 });
 
+void test("reads the dependencies of an installed module, not those of any installed package", () => {
+  writeAntelopeConfig(root);
+  const modules = join(root, "node_modules");
+  writeJson(join(modules, "a-module", "package.json"), {
+    name: "a-module",
+    antelopeJs: { implements: ["@acme/interface"] },
+    dependencies: { "module-interface": "1" },
+  });
+  writeJson(join(modules, "a-library", "package.json"), {
+    name: "a-library",
+    dependencies: { "library-interface": "1" },
+  });
+  writeSkillPackage(
+    join(modules, "a-module", "node_modules", "module-interface"),
+    "module-interface",
+    ["alpha"],
+  );
+  writeSkillPackage(
+    join(modules, "a-library", "node_modules", "library-interface"),
+    "library-interface",
+    ["beta"],
+  );
+
+  const output = list(join(import.meta.dirname, ".."), root);
+
+  assert.match(output, /module-interface--alpha/);
+  assert.doesNotMatch(output, /library-interface--beta/);
+});
+
 void test("runs from a plugin checkout with no node_modules", () => {
   const checkout = join(root, "plugin");
   for (const dir of ["scripts", "packages"]) {

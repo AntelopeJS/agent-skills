@@ -31,13 +31,12 @@ const KIND = {
  */
 
 /**
- * Whether `value` is a string. A JSON value equals its own template coercion
- * only when it is one.
+ * Whether `value` is a string.
  * @param {unknown} value
  * @returns {value is string}
  */
 function isText(value) {
-  return `${String(value)}` === value;
+  return String(value) === value;
 }
 
 /**

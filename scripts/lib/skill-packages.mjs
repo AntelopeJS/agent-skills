@@ -149,10 +149,17 @@ function packagesIn(base) {
  * Where a skill package was found, in the words the plugin's output uses: a
  * module is a workspace package unless it came from `.antelope/cache`.
  */
-function originOf(skillPackage, workspace) {
+function originOf(skillPackage, workspace, cache) {
   if (skillPackage.kind === "dependency") return ORIGIN.dependency;
-  if (skillPackage.kind === "installed") return ORIGIN.nodeModules;
-  return workspace.has(skillPackage.dir) ? ORIGIN.workspace : ORIGIN.cache;
+  if (workspace.has(skillPackage.dir)) return ORIGIN.workspace;
+  return cache.has(skillPackage.dir) ? ORIGIN.cache : ORIGIN.nodeModules;
+}
+
+/** An installed package that implements an interface is a module `ajs` can run. */
+function isInstalledModule(dir) {
+  return Boolean(
+    readJsonSafe(join(dir, "package.json"))?.antelopeJs?.implements,
+  );
 }
 
 /**
@@ -169,12 +176,17 @@ export function candidatePackages(cwd, onWarning) {
     packagesIn(join(dir, "node_modules")),
   );
   const workspaceDirs = new Set(workspace);
+  const cacheDirs = new Set(cache);
   return collectSkillPackages({
-    modules: [...workspace, ...cache].map((dir) => ({ dir })),
+    modules: [
+      ...workspace,
+      ...cache,
+      ...installed.filter(isInstalledModule),
+    ].map((dir) => ({ dir })),
     installed,
     onWarning,
   }).map((skillPackage) => ({
     ...skillPackage,
-    origin: originOf(skillPackage, workspaceDirs),
+    origin: originOf(skillPackage, workspaceDirs, cacheDirs),
   }));
 }
