@@ -3,8 +3,8 @@
   "rules": {
     "anti-slop/no-runtime-typeof": 3,
     "typescript/no-unsafe-argument": 153,
-    "typescript/no-unsafe-assignment": 1289,
-    "typescript/no-unsafe-return": 501,
+    "typescript/no-unsafe-assignment": 1280,
+    "typescript/no-unsafe-return": 498,
     "typescript/use-unknown-in-catch-callback-variable": 2
   },
   "oversizeFiles": {}

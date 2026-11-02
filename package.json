@@ -23,7 +23,7 @@
     "sync": "antelopejs-sync",
     "ratchet:update": "antelopejs-ratchet --update",
     "sync:check": "antelopejs-sync --check",
-    "typecheck": "echo \"Plain JavaScript: there is no type check.\"",
+    "typecheck": "pnpm --filter @antelopejs/agent-skills typecheck",
     "lint": "oxlint",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",

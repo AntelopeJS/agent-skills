@@ -1,12 +1,7 @@
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-  realpathSync,
-  statSync,
-} from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import { collectSkillPackages } from "../../packages/agent-skills/index.mjs";
 import { isText } from "./values.mjs";
 
 const WORKSPACE_FILE = "pnpm-workspace.yaml";
@@ -17,7 +12,6 @@ const ORIGIN = {
   cache: "antelope-cache",
   dependency: "dependency",
 };
-const MODULE_DEPENDENCY_FIELDS = ["dependencies", "optionalDependencies"];
 
 export function readJsonSafe(path) {
   try {
@@ -151,55 +145,48 @@ function packagesIn(base) {
   return dirs;
 }
 
-function realpathSafe(path) {
-  try {
-    return realpathSync(path);
-  } catch {
-    return path;
-  }
+/**
+ * Where a skill package was found, in the words the plugin's output uses: a
+ * module is a workspace package unless it came from `.antelope/cache`.
+ */
+function originOf(skillPackage, workspace, cache) {
+  if (skillPackage.kind === "dependency") return ORIGIN.dependency;
+  if (workspace.has(skillPackage.dir)) return ORIGIN.workspace;
+  return cache.has(skillPackage.dir) ? ORIGIN.cache : ORIGIN.nodeModules;
 }
 
-/** @returns {string | null} */
-function resolveDependencyDir(fromDir, dep) {
-  for (let dir = realpathSafe(fromDir); ; dir = dirname(dir)) {
-    const candidate = join(dir, "node_modules", dep);
-    if (existsSync(join(candidate, "package.json"))) return candidate;
-    if (dirname(dir) === dir) return null;
-  }
+/** An installed package that implements an interface is a module `ajs` can run. */
+function isInstalledModule(dir) {
+  return Boolean(
+    readJsonSafe(join(dir, "package.json"))?.antelopeJs?.implements,
+  );
 }
 
-/** @returns {string[]} */
-function dependencyDirs(moduleDir) {
-  /** @type {Record<string, Record<string, unknown> | undefined> | null} */
-  const pkg = readJsonSafe(join(moduleDir, "package.json"));
-  /** @type {string[]} */
-  const dirs = [];
-  for (const field of MODULE_DEPENDENCY_FIELDS) {
-    for (const dep of Object.keys(pkg?.[field] ?? {})) {
-      const dir = resolveDependencyDir(moduleDir, dep);
-      if (dir !== null) dirs.push(dir);
-    }
-  }
-  return dirs;
-}
-
-export function candidatePackages(cwd) {
+/**
+ * The packages shipping skills that a project can see, in priority order: the
+ * workspace and the modules `ajs` cached, their dependencies, then whatever
+ * `node_modules` holds.
+ */
+export function candidatePackages(cwd, onWarning) {
   const ancestors = ancestorDirs(cwd);
   const root = ancestors[ancestors.length - 1];
   const workspace = [...ancestors, ...workspacePackageDirs(root)];
   const cache = packagesIn(join(cwd, ".antelope", "cache"));
-  const nodeModules = [...new Set([cwd, root])].flatMap((dir) =>
+  const installed = [...new Set([cwd, root])].flatMap((dir) =>
     packagesIn(join(dir, "node_modules")),
   );
-  return [
-    ...workspace.map((dir) => ({ dir, origin: ORIGIN.workspace })),
-    ...cache.map((dir) => ({ dir, origin: ORIGIN.cache })),
-    ...[...workspace, ...cache].flatMap((dir) =>
-      dependencyDirs(dir).map((dep) => ({
-        dir: dep,
-        origin: ORIGIN.dependency,
-      })),
-    ),
-    ...nodeModules.map((dir) => ({ dir, origin: ORIGIN.nodeModules })),
-  ];
+  const workspaceDirs = new Set(workspace);
+  const cacheDirs = new Set(cache);
+  return collectSkillPackages({
+    modules: [
+      ...workspace,
+      ...cache,
+      ...installed.filter(isInstalledModule),
+    ].map((dir) => ({ dir })),
+    installed,
+    onWarning,
+  }).map((skillPackage) => ({
+    ...skillPackage,
+    origin: originOf(skillPackage, workspaceDirs, cacheDirs),
+  }));
 }
