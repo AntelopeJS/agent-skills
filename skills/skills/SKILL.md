@@ -12,8 +12,9 @@ node "<skill-dir>/../../scripts/sync-skills.mjs" --list --target <claude|codex>
 
 It changes nothing. Each row is one skill: the entry in `.claude/skills/` (Claude Code) or `.agents/skills/` (Codex), the skill's own name (the one to invoke), the package and version that ships it, where that package was found, and its status.
 
-- **FROM**: `workspace` (a source checkout: the current package, its parents up to the repository root, or a workspace package), `node_modules` (an installed dependency, pnpm links included), or `antelope-cache` (a module `ajs` installed in `.antelope/cache`).
+- **FROM**: `workspace` (a source checkout: the current package, its parents up to the repository root, or a workspace package), `node_modules` (an installed dependency, pnpm links included), `antelope-cache` (a module `ajs` installed in `.antelope/cache`), or `dependency` (a package a workspace or cached module installs for itself).
 - **STATUS**: `linked` (synced), `not synced yet` (run the `antelopejs:sync-skills` skill), or `skipped` (a file of the person's already holds that entry name, so it is never overwritten).
+- A package shows once, from the first place that has it, even when that copy declares no skills: a workspace or cached copy without skills hides the installed one, because it is the copy the project runs. When a package's skills are missing, look for a nearer copy of it.
 
 Present the result grouped by package, so the person sees which package teaches what. In a DMS project, point out the `dms` router skill and `dms-best-practices` as the place to start.
 

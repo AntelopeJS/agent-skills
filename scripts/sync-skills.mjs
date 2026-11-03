@@ -9,16 +9,6 @@
  *   claude — `.claude/skills/` (Claude Code)
  *   codex  — `.agents/skills/` (OpenAI Codex)
  *
- * Packages are discovered, first hit per package name wins, in:
- *   1. workspace  — the cwd, its ancestors up to the repository/workspace root,
- *                   and the packages listed by that root's pnpm-workspace.yaml
- *                   or package.json `workspaces` (source checkouts, playgrounds).
- *   2. node_modules — `node_modules` of the cwd and of that root (direct and
- *                   hoisted dependencies). pnpm symlinks into `.pnpm` are
- *                   followed; the link keeps the `node_modules/<pkg>` path so
- *                   it survives version bumps.
- *   3. antelope-cache — `.antelope/cache`, where `ajs` installs project modules.
- *
  * A directory is an AntelopeJS project when it holds `antelope.config.*`, or
  * when its package.json depends on `@antelopejs/core` (embedded runtime, e.g.
  * the AdonisJS template). Anywhere else the script exits 0 and does nothing.
@@ -46,7 +36,7 @@ import {
   writeFileSync,
   readlinkSync,
 } from "node:fs";
-import { join, relative, resolve, dirname, isAbsolute } from "node:path";
+import { join, relative, resolve, dirname } from "node:path";
 
 import {
   fieldOf,
@@ -57,7 +47,7 @@ import {
   readdirSafe,
 } from "./lib/safe-read.mjs";
 import { compareText, isText, textIfTruthy } from "./lib/values.mjs";
-import { declaresWorkspaces, workspacePackageDirs } from "./lib/workspaces.mjs";
+import { candidatePackages } from "./lib/skill-packages.mjs";
 
 /**
  * @typedef {object} Target
@@ -70,7 +60,7 @@ import { declaresWorkspaces, workspacePackageDirs } from "./lib/workspaces.mjs";
  * @typedef {object} SkillInfo
  * @property {string} target
  * @property {string} package
- * @property {unknown} version
+ * @property {string | null} version
  * @property {string} origin
  * @property {string} skill
  */
@@ -144,11 +134,6 @@ const DEPENDENCY_FIELDS = [
   "devDependencies",
   "optionalDependencies",
 ];
-const ORIGIN = {
-  workspace: "workspace",
-  nodeModules: "node_modules",
-  cache: "antelope-cache",
-};
 const STATUS = { linked: "linked", added: "added", skipped: "skipped" };
 
 /**
@@ -209,70 +194,6 @@ function isAntelopeProject(dir) {
 }
 
 /**
- * @param {string} dir
- * @returns {boolean}
- */
-function isBoundary(dir) {
-  return existsSync(join(dir, ".git")) || declaresWorkspaces(dir);
-}
-
-/**
- * The cwd and its ancestors up to the nearest repository or workspace root;
- * only the cwd when no such root exists.
- * @returns {string[]}
- */
-function ancestorDirs() {
-  const dirs = [];
-  for (let dir = cwd; ; dir = dirname(dir)) {
-    dirs.push(dir);
-    if (isBoundary(dir)) return dirs;
-    if (dirname(dir) === dir) return [cwd];
-  }
-}
-
-/**
- * Direct children of a package root: <root>/<pkg> and <root>/@scope/<pkg>.
- * @param {string} base
- * @returns {string[]}
- */
-function packagesIn(base) {
-  /** @type {string[]} */
-  const dirs = [];
-  for (const entry of readdirSafe(base)) {
-    if (entry.startsWith(".")) continue;
-    const path = join(base, entry);
-    if (!entry.startsWith("@")) dirs.push(path);
-    else
-      dirs.push(
-        ...readdirSafe(path)
-          .filter((e) => !e.startsWith("."))
-          .map((e) => join(path, e)),
-      );
-  }
-  return dirs;
-}
-
-/**
- * @returns {{ dir: string, origin: string }[]}
- */
-function candidatePackages() {
-  const ancestors = ancestorDirs();
-  const root = ancestors[ancestors.length - 1];
-  const workspace = [...ancestors, ...workspacePackageDirs(root)];
-  const nodeModules = [...new Set([cwd, root])].flatMap((dir) =>
-    packagesIn(join(dir, "node_modules")),
-  );
-  return [
-    ...workspace.map((dir) => ({ dir, origin: ORIGIN.workspace })),
-    ...nodeModules.map((dir) => ({ dir, origin: ORIGIN.nodeModules })),
-    ...packagesIn(join(cwd, ".antelope", "cache")).map((dir) => ({
-      dir,
-      origin: ORIGIN.cache,
-    })),
-  ];
-}
-
-/**
  * Every skill declared by the discovered packages.
  * Returns Map<entryName, { target, package, version, origin, skill }>.
  * @param {string[]} warnings
@@ -281,32 +202,11 @@ function candidatePackages() {
 function discoverSkills(warnings) {
   /** @type {Map<string, SkillInfo>} */
   const skills = new Map();
-  const seenPackages = new Set();
-  for (const { dir, origin } of candidatePackages()) {
-    const pkg = readJsonSafe(join(dir, "package.json"));
-    const name = fieldOf(pkg, "name");
-    if (!isText(name) || seenPackages.has(name)) continue;
-    const declared = fieldOf(fieldOf(pkg, "antelopeJs"), "skills");
-    if (!Array.isArray(declared) || !declared.length) continue;
-    seenPackages.add(name);
-    collectPackageSkills(
-      { pkg: { name, version: fieldOf(pkg, "version") }, dir, origin },
-      declared,
-      skills,
-      warnings,
-    );
-  }
+  for (const source of candidatePackages(cwd, (message) =>
+    warnings.push(message),
+  ))
+    collectPackageSkills(source, skills, warnings);
   return skills;
-}
-
-/**
- * @param {string} pkgDir
- * @param {string} dir
- * @returns {boolean}
- */
-function escapesPackage(pkgDir, dir) {
-  const relToPkg = relative(pkgDir, dir);
-  return relToPkg.startsWith("..") || isAbsolute(relToPkg);
 }
 
 /**
@@ -323,39 +223,31 @@ function skillName(skillDir, fallback) {
 }
 
 /**
- * @param {{ pkg: { name: string, version: unknown }, dir: string, origin: string }} source
- * @param {unknown[]} declaredDirs
+ * @param {import("./lib/skill-packages.mjs").OriginSkillPackage} source
  * @param {Map<string, SkillInfo>} skills
  * @param {string[]} warnings
  */
-function collectPackageSkills(source, declaredDirs, skills, warnings) {
-  const { pkg, dir: pkgDir, origin } = source;
-  const moduleShort = pkg.name.slice(pkg.name.lastIndexOf("/") + 1);
-  for (const rel of declaredDirs.filter(isText)) {
-    const dir = resolve(pkgDir, rel);
-    if (escapesPackage(pkgDir, dir)) {
-      warnings.push(
-        `${pkg.name}: skills dir '${rel}' escapes the package — skipped.`,
-      );
-      continue;
-    }
+function collectPackageSkills(source, skills, warnings) {
+  const { name: pkgName, version, skillDirs, origin } = source;
+  const moduleShort = pkgName.slice(pkgName.lastIndexOf("/") + 1);
+  for (const dir of skillDirs) {
     for (const sub of readdirSafe(dir)) {
       const skillDir = join(dir, sub);
       if (!isDirectorySafe(skillDir) || !existsSync(join(skillDir, "SKILL.md")))
         continue;
       const entryName = `${moduleShort}--${sub}`;
       const existing = skills.get(entryName);
-      if (existing && existing.package !== pkg.name) {
+      if (existing && existing.package !== pkgName) {
         warnings.push(
-          `${entryName}: also provided by ${pkg.name} — keeping the one from ${existing.package}.`,
+          `${entryName}: also provided by ${pkgName} — keeping the one from ${existing.package}.`,
         );
       }
       if (existing) continue;
       const skill = skillName(skillDir, sub);
       skills.set(entryName, {
         target: skillDir,
-        package: pkg.name,
-        version: pkg.version ?? null,
+        package: pkgName,
+        version,
         origin,
         skill,
       });

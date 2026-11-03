@@ -3,7 +3,7 @@
   <h1>AntelopeJS agent skills</h1>
   <p><strong>The AntelopeJS and DMS skills, synced into Claude Code and Codex.</strong></p>
 
-<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
+<a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
 <a href="https://dms.antelopejs.com/docs/ai-and-claude-code/overview"><img alt="Docs" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
 
 </div>
@@ -88,9 +88,13 @@ Packages ship their own skills: a package declares `antelopeJs.skills` in its `p
 
 - **When**: through the hooks, at session start and after every Bash command (so `pnpm install`, `ajs project dev`, or `ajs project modules add` that bring new packages are picked up); otherwise when you run the sync command. Claude Code loads the new skills in the running session; if `.claude/skills/` did not exist when the session started, run `/reload-skills` once. Codex detects skill changes on its own; restart it if a skill does not appear.
 - **Where it looks**, first hit per package wins:
-  1. the **workspace**: the current package, its parents up to the repository root, and the packages listed in that root's `pnpm-workspace.yaml` or `package.json` `workspaces` (source checkouts and module playgrounds);
-  2. **`node_modules`** of the project and of the workspace root (pnpm's symlinks into `.pnpm` included; the link goes through `node_modules/<pkg>` so it survives version bumps);
-  3. **`.antelope/cache`**, where `ajs` downloads the modules declared in `antelope.config.ts` on `ajs project dev`, `build`, or `modules add`.
+  1. the **workspace**: the current package, its parents up to the repository root, and the packages listed in that root's `pnpm-workspace.yaml` or package.json `workspaces` (source checkouts and module playgrounds);
+  2. **`.antelope/cache`**, where `ajs` downloads the modules declared in `antelope.config.ts` on `ajs project dev`, `build`, or `modules add`, so the skills match the module version that runs;
+  3. the **dependencies** of those packages, resolved from each package's own directory, which brings the interface packages a module installs for itself;
+  4. **`node_modules`** of the project and of the workspace root (pnpm's symlinks into `.pnpm` included; the link goes through `node_modules/<pkg>` so it survives version bumps).
+
+  A package is found once, at the first place that has it, even when that copy ships no skills: a cached module that declares none hides the installed copy, because the cached one is what runs. dms-ai calls the same code, [`@antelopejs/agent-skills`](packages/agent-skills), with the modules it has loaded, so the coding agent and the DMS assistant see the same copy of each skill. The two start from different module lists, so they can still differ: dms-ai asks the runtime which modules are loaded, while the plugin infers them from the layout above and treats an installed package that declares `antelopeJs.implements` as a module, whether or not the project's config loads it.
+
 - **Which projects**: a directory holding `antelope.config.*`, or an app whose `package.json` depends on `@antelopejs/core` (an embedded runtime, like the AdonisJS DMS template). Anywhere else the sync does nothing.
 - **Safety**: only the entries the sync created are touched. Each skills directory tracks them in its own `.ajs-managed.json` and lists them in a generated `.gitignore`, so your repository stays clean; a skill of yours with the same entry name is skipped, never overwritten; entries whose package disappeared are removed.
 
