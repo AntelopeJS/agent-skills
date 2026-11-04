@@ -1,6 +1,61 @@
+/** @typedef {import("./dataset.mjs").EvalCase} EvalCase */
+/** @typedef {import("./dataset.mjs").EvalStyle} EvalStyle */
+/** @typedef {import("./dataset.mjs").EvalArea} EvalArea */
+
+/**
+ * How one case scored: the skills picked against the ones expected, as recall
+ * and precision. `absent` are expected skills missing from the corpus; a case
+ * left with no expected skill is `skipped`.
+ * @typedef {object} CaseScore
+ * @property {string} id
+ * @property {EvalStyle} style
+ * @property {EvalArea} area
+ * @property {string[]} predicted
+ * @property {string[]} expected
+ * @property {string[]} absent
+ * @property {string[]} missed
+ * @property {string[]} extra
+ * @property {string[]} avoided
+ * @property {boolean} skipped
+ * @property {number} recall
+ * @property {number} precision
+ */
+
+/**
+ * Mean recall and precision over some scored cases.
+ * @typedef {object} ScoreAverages
+ * @property {number} cases
+ * @property {number} recall
+ * @property {number} precision
+ */
+
+/**
+ * The floors a summary has to reach.
+ * @typedef {object} Thresholds
+ * @property {number} minRecall
+ * @property {number} minPrecision
+ */
+
+/**
+ * @typedef {object} ScoreSummary
+ * @property {number} scored
+ * @property {number} skipped
+ * @property {number} recall
+ * @property {number} precision
+ * @property {Record<string, ScoreAverages>} byStyle
+ * @property {Thresholds} thresholds
+ * @property {boolean} passed
+ */
+
 const PERCENT = 100;
 const NOT_APPLICABLE = "-";
 
+/**
+ * @param {number} part
+ * @param {number} whole
+ * @param {number} empty
+ * @returns {number}
+ */
 function ratio(part, whole, empty) {
   return whole === 0 ? empty : part / whole;
 }
@@ -11,6 +66,10 @@ function ratio(part, whole, empty) {
  *
  * Scores one case. Expected skills missing from the corpus are reported as
  * `absent` and left out of recall; when none is left the case is `skipped`.
+ * @param {EvalCase} evalCase
+ * @param {string[]} predicted
+ * @param {Set<string>} corpusNames
+ * @returns {CaseScore}
  */
 export function scoreCase(evalCase, predicted, corpusNames) {
   const picked = [...new Set(predicted)];
@@ -45,6 +104,10 @@ export function scoreCase(evalCase, predicted, corpusNames) {
   };
 }
 
+/**
+ * @param {number[]} values
+ * @returns {number}
+ */
 function mean(values) {
   return ratio(
     values.reduce((sum, value) => sum + value, 0),
@@ -53,6 +116,10 @@ function mean(values) {
   );
 }
 
+/**
+ * @param {CaseScore[]} scores
+ * @returns {ScoreAverages}
+ */
 function averages(scores) {
   return {
     cases: scores.length,
@@ -61,7 +128,12 @@ function averages(scores) {
   };
 }
 
-/** Macro averages over the scored cases, overall and per question style. */
+/**
+ * Macro averages over the scored cases, overall and per question style.
+ * @param {CaseScore[]} scores
+ * @param {{ minRecall?: number, minPrecision?: number }} [thresholds]
+ * @returns {ScoreSummary}
+ */
 export function summarize(scores, { minRecall = 0, minPrecision = 0 } = {}) {
   const scored = scores.filter((score) => !score.skipped);
   const overall = averages(scored);
@@ -85,10 +157,18 @@ export function summarize(scores, { minRecall = 0, minPrecision = 0 } = {}) {
   };
 }
 
+/**
+ * @param {number} value
+ * @returns {string}
+ */
 function percent(value) {
   return `${Math.round(value * PERCENT)}%`;
 }
 
+/**
+ * @param {CaseScore} score
+ * @returns {string[]}
+ */
 function caseRow(score) {
   if (score.skipped)
     return [
@@ -114,6 +194,10 @@ function caseRow(score) {
   ];
 }
 
+/**
+ * @param {string[][]} rows
+ * @returns {string}
+ */
 function render(rows) {
   const widths = rows[0].map((_, column) =>
     Math.max(...rows.map((row) => row[column].length)),
@@ -128,6 +212,11 @@ function render(rows) {
     .join("\n");
 }
 
+/**
+ * @param {CaseScore[]} scores
+ * @param {ScoreSummary} summary
+ * @returns {string}
+ */
 export function formatTable(scores, summary) {
   const header = ["CASE", "RECALL", "PRECISION", "PICKED", "NOTES"];
   const styleRows = Object.entries(summary.byStyle).map(([style, value]) => [

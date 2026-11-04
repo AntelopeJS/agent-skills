@@ -1,11 +1,18 @@
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { collectSkillPackages } from "../../packages/agent-skills/index.mjs";
-import { isText } from "./values.mjs";
+import { fieldOf, readJsonSafe, readdirSafe } from "./safe-read.mjs";
+import { declaresWorkspaces, workspacePackageDirs } from "./workspaces.mjs";
 
-const WORKSPACE_FILE = "pnpm-workspace.yaml";
-const RECURSIVE_GLOB_DEPTH = 3;
+/**
+ * @typedef {import("../../packages/agent-skills/index.js").SkillPackage} SkillPackage
+ */
+
+/**
+ * @typedef {SkillPackage & { origin: string }} OriginSkillPackage
+ */
+
 const ORIGIN = {
   workspace: "workspace",
   nodeModules: "node_modules",
@@ -13,46 +20,10 @@ const ORIGIN = {
   dependency: "dependency",
 };
 
-export function readJsonSafe(path) {
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
-}
-
-/** @returns {string} */
-export function readTextSafe(path) {
-  try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return "";
-  }
-}
-
-/** @returns {boolean} */
-export function isDirectorySafe(path) {
-  try {
-    return statSync(path).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-/** @returns {string[]} */
-export function readdirSafe(path) {
-  try {
-    return readdirSync(path);
-  } catch {
-    return [];
-  }
-}
-
-function declaresWorkspaces(dir) {
-  if (existsSync(join(dir, WORKSPACE_FILE))) return true;
-  return Boolean(readJsonSafe(join(dir, "package.json"))?.workspaces);
-}
-
+/**
+ * @param {string} dir
+ * @returns {boolean}
+ */
 function isBoundary(dir) {
   return existsSync(join(dir, ".git")) || declaresWorkspaces(dir);
 }
@@ -60,6 +31,7 @@ function isBoundary(dir) {
 /**
  * The cwd and its ancestors up to the nearest repository or workspace root;
  * only the cwd when no such root exists.
+ * @param {string} cwd
  * @returns {string[]}
  */
 function ancestorDirs(cwd) {
@@ -72,60 +44,9 @@ function ancestorDirs(cwd) {
   }
 }
 
-function pnpmWorkspaceGlobs(root) {
-  const lines = readTextSafe(join(root, WORKSPACE_FILE)).split("\n");
-  const start = lines.findIndex((line) => /^packages:\s*$/.test(line));
-  if (start < 0) return [];
-  const globs = [];
-  for (const line of lines.slice(start + 1)) {
-    if (/^\S/.test(line)) break;
-    const match = line.match(/^\s*-\s*["']?([^"'#]+?)["']?\s*(#.*)?$/);
-    if (match) globs.push(match[1]);
-  }
-  return globs;
-}
-
-function packageJsonWorkspaceGlobs(root) {
-  const workspaces = readJsonSafe(join(root, "package.json"))?.workspaces;
-  const globs = Array.isArray(workspaces) ? workspaces : workspaces?.packages;
-  return Array.isArray(globs) ? globs.filter(isText) : [];
-}
-
-function childDirs(dir) {
-  return readdirSafe(dir)
-    .filter((entry) => !entry.startsWith(".") && entry !== "node_modules")
-    .map((entry) => join(dir, entry))
-    .filter(isDirectorySafe);
-}
-
-function descendantDirs(dir, depth) {
-  if (depth === 0) return [];
-  return childDirs(dir).flatMap((child) => [
-    child,
-    ...descendantDirs(child, depth - 1),
-  ]);
-}
-
-/** Supports the glob forms workspaces use in practice: `dir`, `dir/*`, `dir/**`. */
-function expandWorkspaceGlob(root, glob) {
-  if (glob.startsWith("!")) return [];
-  const clean = glob.replace(/^\.\//, "").replace(/\/$/, "");
-  if (clean.endsWith("/**"))
-    return descendantDirs(join(root, clean.slice(0, -3)), RECURSIVE_GLOB_DEPTH);
-  if (clean.endsWith("/*")) return childDirs(join(root, clean.slice(0, -2)));
-  return [join(root, clean)];
-}
-
-function workspacePackageDirs(root) {
-  const globs = [
-    ...pnpmWorkspaceGlobs(root),
-    ...packageJsonWorkspaceGlobs(root),
-  ];
-  return globs.flatMap((glob) => expandWorkspaceGlob(root, glob));
-}
-
 /**
  * Direct children of a package root: <root>/<pkg> and <root>/@scope/<pkg>.
+ * @param {string} base
  * @returns {string[]}
  */
 function packagesIn(base) {
@@ -148,6 +69,10 @@ function packagesIn(base) {
 /**
  * Where a skill package was found, in the words the plugin's output uses: a
  * module is a workspace package unless it came from `.antelope/cache`.
+ * @param {SkillPackage} skillPackage
+ * @param {Set<string>} workspace
+ * @param {Set<string>} cache
+ * @returns {string}
  */
 function originOf(skillPackage, workspace, cache) {
   if (skillPackage.kind === "dependency") return ORIGIN.dependency;
@@ -155,10 +80,17 @@ function originOf(skillPackage, workspace, cache) {
   return cache.has(skillPackage.dir) ? ORIGIN.cache : ORIGIN.nodeModules;
 }
 
-/** An installed package that implements an interface is a module `ajs` can run. */
+/**
+ * An installed package that implements an interface is a module `ajs` can run.
+ * @param {string} dir
+ * @returns {boolean}
+ */
 function isInstalledModule(dir) {
   return Boolean(
-    readJsonSafe(join(dir, "package.json"))?.antelopeJs?.implements,
+    fieldOf(
+      fieldOf(readJsonSafe(join(dir, "package.json")), "antelopeJs"),
+      "implements",
+    ),
   );
 }
 
@@ -166,6 +98,9 @@ function isInstalledModule(dir) {
  * The packages shipping skills that a project can see, in priority order: the
  * workspace and the modules `ajs` cached, their dependencies, then whatever
  * `node_modules` holds.
+ * @param {string} cwd
+ * @param {(message: string) => void} onWarning
+ * @returns {OriginSkillPackage[]}
  */
 export function candidatePackages(cwd, onWarning) {
   const ancestors = ancestorDirs(cwd);

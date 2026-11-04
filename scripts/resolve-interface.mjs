@@ -74,6 +74,7 @@ const cmd = argv[0];
 const positional = argv.slice(1).filter((a) => !a.startsWith("--"));
 const json = flags.has("--json");
 
+/** @type {Record<string, () => void | Promise<void>>} */
 const COMMANDS = {
   list: () => cmdList(json),
   show: () => cmdShow(positional[0], json),

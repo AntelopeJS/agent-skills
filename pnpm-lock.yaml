@@ -15,6 +15,9 @@ importers:
       '@antelopejs/tooling-configs':
         specifier: ^0.2.17
         version: 0.2.17(knip@6.43.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2005))
+      '@types/node':
+        specifier: ^24
+        version: 24.19.2
       knip:
         specifier: ^6.43.0
         version: 6.43.0
@@ -2463,7 +2466,7 @@ snapshots:
 
   dts-bundle-generator@9.5.1:
     dependencies:
-      typescript: 5.9.3
+      typescript: 6.0.3
       yargs: 17.7.3
 
   emoji-regex@8.0.0: {}

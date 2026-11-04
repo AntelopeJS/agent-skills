@@ -33,8 +33,46 @@ import {
 import { DEFAULT_SETUP } from "./seeded-scratch.mjs";
 import { TEARDOWNS } from "./seeded-teardown.mjs";
 
+/**
+ * The options `evals seeded` reads, as `parseArgs` returns them for OPTIONS in
+ * eval-options.mjs: the text options are strings, the flags booleans, and each
+ * is absent when not given.
+ * @typedef {{
+ *   repo?: string,
+ *   skill?: string,
+ *   ref?: string,
+ *   modes?: string,
+ *   only?: string,
+ *   "min-catch"?: string,
+ *   "min-door-catch"?: string,
+ *   "min-clean"?: string,
+ *   model?: string,
+ *   effort?: string,
+ *   "max-budget"?: string,
+ *   timeout?: string,
+ *   jobs?: string,
+ *   setup?: string,
+ *   teardown?: string,
+ *   "pass-env"?: string,
+ *   "cache-home"?: string,
+ *   out?: string,
+ *   scratch?: string,
+ *   "keep-scratch"?: boolean,
+ *   resume?: boolean,
+ *   "claude-bin"?: string,
+ *   json?: boolean,
+ * }} SeededValues
+ */
+
+/** @typedef {import("./seeded-run.mjs").SeededOptions} SeededOptions */
+/** @typedef {import("./seeded-score.mjs").CaseResult} CaseResult */
+
 export const DEFAULT_JOBS = 3;
 
+/**
+ * @param {string | undefined} value
+ * @returns {string[]}
+ */
 function modesOf(value) {
   const modes = listOption(value);
   const unknown = modes.filter((mode) => !KINDS.includes(mode));
@@ -42,6 +80,10 @@ function modesOf(value) {
   return modes;
 }
 
+/**
+ * @param {SeededValues} values
+ * @returns {SeededOptions}
+ */
 function optionsOf(values) {
   return {
     jobs: parseCount(values.jobs, "jobs", DEFAULT_JOBS),
@@ -75,6 +117,8 @@ function optionsOf(values) {
  * folders), writes the partial summary with the interrupted cases marked and
  * exits 128 plus the signal number; a second signal kills the stop commands
  * and exits at once.
+ * @param {SeededValues} values
+ * @returns {Promise<number>} The process exit code.
  */
 export async function seeded(values) {
   if (!values.repo) fail("seeded needs --repo <checkout>");
@@ -83,7 +127,7 @@ export async function seeded(values) {
   try {
     skill = pickSkill(checkout, values.skill);
   } catch (error) {
-    return fail(error.message);
+    return fail(error instanceof Error ? error.message : String(error));
   }
   const cases = selectSeeded(discoverCases(checkout, skill), {
     modes: modesOf(values.modes),

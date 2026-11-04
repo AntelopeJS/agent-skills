@@ -1,6 +1,19 @@
-import { readFileSync, statSync } from "node:fs";
+import { statSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { readJsonFile } from "../json.mjs";
+import { isRecord, isText } from "../values.mjs";
+
+/**
+ * @typedef {Record<string, unknown>} PackageManifest The parsed `package.json` of a package.
+ */
+
+/**
+ * @typedef {object} PackageEntry A package found on disk, or fetched into the cache.
+ * @property {string} dir
+ * @property {PackageManifest} pkg
+ * @property {boolean} [remote] Whether it was fetched from the registry.
+ */
 
 export const PUBLIC_SCOPE = "@antelopejs";
 export const PKG_PREFIX = `${PUBLIC_SCOPE}/interface-`;
@@ -9,6 +22,23 @@ export const INTERFACE_PKG_RE = /^@[^/]+\/interface-/;
 export const CACHE_ROOT =
   process.env.AJS_RESOLVER_CACHE ||
   join(homedir(), ".cache", "ajs-interface-resolver");
+
+const TYPE_CONDITIONS = ["types", "import", "require", "node", "default"];
+
+/**
+ * The declaration path an `exports` target names, taking the first condition of
+ * `types`, `import`, `require`, `node`, `default` that the target holds.
+ * @param {unknown} target
+ * @returns {string | null}
+ */
+export function typesTarget(target) {
+  if (isText(target) || target === null) return target;
+  if (Array.isArray(target))
+    return target.map(typesTarget).find(isText) ?? null;
+  if (!isRecord(target)) return null;
+  const condition = TYPE_CONDITIONS.find((key) => target[key] !== undefined);
+  return condition ? typesTarget(target[condition]) : null;
+}
 
 /**
  * Host packages named explicitly via env — package names whose interface
@@ -31,6 +61,8 @@ export const DMS_DIRS = (process.env.AJS_DMS_DIR || "")
 /**
  * statSync follows symlinks and throws on a dangling one — guard every probe so
  * a single broken entry (common in pnpm node_modules) can't crash discovery.
+ * @param {string} path
+ * @returns {boolean}
  */
 export function isDirectorySafe(path) {
   try {
@@ -40,23 +72,28 @@ export function isDirectorySafe(path) {
   }
 }
 
-export function readJson(path) {
-  return JSON.parse(readFileSync(path, "utf8"));
+/**
+ * @param {string} path
+ * @returns {PackageManifest} The parsed `package.json`, empty when its root is not an object.
+ */
+export function readManifest(path) {
+  const parsed = readJsonFile(path);
+  return isRecord(parsed) ? parsed : {};
 }
 
-export function readJsonSafe(path) {
-  try {
-    return readJson(path);
-  } catch {
-    return null;
-  }
-}
-
+/**
+ * @param {string} msg
+ * @returns {never}
+ */
 export function fail(msg) {
   process.stderr.write(`error: ${msg}\n`);
   process.exit(1);
 }
 
+/**
+ * @param {string} msg
+ * @returns {void}
+ */
 export function warn(msg) {
   process.stderr.write(`warning: ${msg}\n`);
 }
@@ -65,6 +102,8 @@ export function warn(msg) {
  * Split a `name@version` spec. The leading `@` of a scope is at index 0, so a
  * version suffix is only present when `@` appears later (e.g. `core@0.0.4`,
  * `@antelopejs/interface-core@0.0.4`).
+ * @param {string} input
+ * @returns {{ rawName: string, version: string | undefined }}
  */
 export function splitSpec(input) {
   const at = input.lastIndexOf("@");
@@ -73,16 +112,53 @@ export function splitSpec(input) {
   return { rawName: input, version: undefined };
 }
 
+/**
+ * @param {string} fullName
+ * @returns {string}
+ */
 export function shortName(fullName) {
   return fullName.replace(INTERFACE_PKG_RE, "");
 }
 
+/**
+ * @param {string} pkgName
+ * @returns {string}
+ */
 export function shortModuleName(pkgName) {
   return pkgName.slice(pkgName.lastIndexOf("/") + 1);
 }
 
+/**
+ * @param {PackageManifest} pkg
+ * @returns {string} The manifest's `name`, empty when it is not text.
+ */
+export function nameOf(pkg) {
+  return isText(pkg.name) ? pkg.name : "";
+}
+
+/**
+ * @param {PackageManifest} pkg
+ * @returns {unknown} The manifest's `version`, whatever JSON value it holds.
+ */
+export function versionOf(pkg) {
+  return pkg.version;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Array<[string, unknown]>} The own enumerable entries of an object, array or string; none for any other value.
+ */
+export function entriesOf(value) {
+  return isRecord(value) || isText(value) ? Object.entries(value) : [];
+}
+
+/**
+ * @param {PackageManifest} pkg
+ * @returns {unknown} The manifest's `antelopeJs.baseUrl`, `"dist"` when it has none.
+ */
 export function baseUrlOf(pkg) {
-  return pkg.antelopeJs?.baseUrl || "dist";
+  const antelopeJs = pkg.antelopeJs;
+  return (isRecord(antelopeJs) ? antelopeJs.baseUrl : undefined) || "dist";
 }
 
 export const flags = new Set(

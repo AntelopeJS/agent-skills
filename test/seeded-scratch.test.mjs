@@ -11,8 +11,13 @@ import { makeTempDir, removeDir } from "./helpers.mjs";
 import { exists, listDir, readText } from "./helpers/read.mjs";
 import { gitIn, makeSeededRepo } from "./helpers/seeded-repo.mjs";
 
+/** @typedef {import("../scripts/lib/seeded-scratch.mjs").Scratch} Scratch */
+
+/** @type {string | undefined} */
 let repo;
+/** @type {Scratch | undefined} */
 let scratch;
+/** @type {string | undefined} */
 let root;
 
 afterEach(() => {
@@ -22,23 +27,32 @@ afterEach(() => {
   repo = scratch = root = undefined;
 });
 
+/**
+ * @param {string} id
+ * @param {{ setup?: string | null }} [extra]
+ * @returns {Scratch}
+ */
 function scratchFor(id, extra = {}) {
-  repo = makeSeededRepo();
-  root = makeTempDir();
-  const item = discoverCases(repo, "verify-demo").find((c) => c.id === id);
-  scratch = createScratch({
-    checkout: repo,
+  const checkout = makeSeededRepo();
+  const rootDir = makeTempDir();
+  repo = checkout;
+  root = rootDir;
+  const item = discoverCases(checkout, "verify-demo").find((c) => c.id === id);
+  assert.ok(item);
+  const created = createScratch({
+    checkout,
     skill: "verify-demo",
     patch: item.patch,
     touch: item.touch,
-    root,
+    root: rootDir,
     setup: null,
     ...extra,
   });
-  return scratch;
+  scratch = created;
+  return created;
 }
 
-test("the patch is the only change over origin/main, and the checkout it came from is untouched", () => {
+void test("the patch is the only change over origin/main, and the checkout it came from is untouched", () => {
   const { dir, baseSha, headSha } = scratchFor("break-alpha");
 
   assert.notEqual(baseSha, headSha);
@@ -48,11 +62,12 @@ test("the patch is the only change over origin/main, and the checkout it came fr
     "src/alpha.txt",
   );
   assert.equal(readText(join(dir, "src", "alpha.txt")), "broken\n");
+  assert.ok(repo);
   assert.equal(readText(join(repo, "src", "alpha.txt")), "alpha\n");
   assert.equal(gitIn(repo, ["status", "--porcelain"]), "");
 });
 
-test("the verifier finds no seeded patch in the tree or in the history", () => {
+void test("the verifier finds no seeded patch in the tree or in the history", () => {
   const { dir } = scratchFor("door-data");
 
   const skill = join(dir, ".agents/skills/verify-demo");
@@ -66,7 +81,7 @@ test("the verifier finds no seeded patch in the tree or in the history", () => {
   );
 });
 
-test("origin keeps the GitHub URL for rendering but cannot be pushed to", () => {
+void test("origin keeps the GitHub URL for rendering but cannot be pushed to", () => {
   const { dir } = scratchFor("break-alpha");
 
   assert.equal(
@@ -79,14 +94,14 @@ test("origin keeps the GitHub URL for rendering but cannot be pushed to", () => 
   );
 });
 
-test("the unpatched head has no commit over its base", () => {
+void test("the unpatched head has no commit over its base", () => {
   const { dir, baseSha, headSha } = scratchFor("control");
 
   assert.equal(headSha, baseSha);
   assert.equal(gitIn(dir, ["diff", "--name-only", "origin/main...HEAD"]), "");
 });
 
-test("a touched head changes the files of the patch without the patch's change", () => {
+void test("a touched head changes the files of the patch without the patch's change", () => {
   const { dir } = scratchFor("touched-alpha");
 
   assert.equal(
@@ -96,7 +111,7 @@ test("a touched head changes the files of the patch without the patch's change",
   assert.equal(readText(join(dir, "src", "alpha.txt")), "alpha\n\n");
 });
 
-test("the setup runs after the base commit and before the change", () => {
+void test("the setup runs after the base commit and before the change", () => {
   const { dir } = scratchFor("break-alpha", {
     setup:
       "git log --format=%s > setup-saw.txt && cat src/alpha.txt >> setup-saw.txt",
@@ -105,18 +120,20 @@ test("the setup runs after the base commit and before the change", () => {
   assert.equal(readText(join(dir, "setup-saw.txt")), "base\nalpha\n");
 });
 
-test("a patch that does not apply leaves no scratch behind", () => {
-  repo = makeSeededRepo();
-  root = makeTempDir();
+void test("a patch that does not apply leaves no scratch behind", () => {
+  const checkout = makeSeededRepo();
+  const rootDir = makeTempDir();
+  repo = checkout;
+  root = rootDir;
 
   assert.throws(() =>
     createScratch({
-      checkout: repo,
+      checkout,
       skill: "verify-demo",
-      patch: join(repo, "src", "alpha.txt"),
-      root,
+      patch: join(checkout, "src", "alpha.txt"),
+      root: rootDir,
       setup: null,
     }),
   );
-  assert.deepEqual(listDir(root), []);
+  assert.deepEqual(listDir(rootDir), []);
 });

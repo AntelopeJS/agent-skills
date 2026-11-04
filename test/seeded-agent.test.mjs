@@ -15,6 +15,8 @@ import {
 } from "../scripts/lib/seeded-agent.mjs";
 import { exists } from "./helpers/read.mjs";
 
+/** @typedef {import("../scripts/lib/executors.mjs").SpawnCall} SpawnCall */
+
 const SCRATCH = { dir: "/nowhere", baseSha: "abc123" };
 const HOME = {
   home: "/tmp/agent/home",
@@ -42,7 +44,7 @@ const REPLY = {
   modelUsage: { "claude-sonnet-5-5": {} },
 };
 
-test("the agent gets neither a GitHub or SSH credential nor the caller's other variables", () => {
+void test("the agent gets neither a GitHub or SSH credential nor the caller's other variables", () => {
   const env = agentEnv({
     agentHome: HOME,
     env: {
@@ -72,7 +74,7 @@ test("the agent gets neither a GitHub or SSH credential nor the caller's other v
   );
 });
 
-test("an env var the caller lists is passed, and the XDG cache stays the caller's", () => {
+void test("an env var the caller lists is passed, and the XDG cache stays the caller's", () => {
   const env = agentEnv({
     agentHome: HOME,
     env: { PATH: "/bin", XDG_CACHE_HOME: "/cache", KEEP_ME: "1" },
@@ -83,7 +85,7 @@ test("an env var the caller lists is passed, and the XDG cache stays the caller'
   assert.equal(env.XDG_CACHE_HOME, "/cache");
 });
 
-test("a cache home replaces the caller's XDG cache", () => {
+void test("a cache home replaces the caller's XDG cache", () => {
   const env = agentEnv({
     agentHome: HOME,
     env: { PATH: "/bin", XDG_CACHE_HOME: "/cache" },
@@ -93,7 +95,7 @@ test("a cache home replaces the caller's XDG cache", () => {
   assert.equal(env.XDG_CACHE_HOME, "/dedicated");
 });
 
-test("withoutCredentials drops tokens and session variables but keeps HOME and PATH", () => {
+void test("withoutCredentials drops tokens and session variables but keeps HOME and PATH", () => {
   const env = withoutCredentials({
     HOME: "/h",
     PATH: "/bin",
@@ -107,7 +109,7 @@ test("withoutCredentials drops tokens and session variables but keeps HOME and P
   assert.deepEqual(Object.keys(env).sort(), ["HOME", "PATH"]);
 });
 
-test("the config home links only the login and is removed whole", () => {
+void test("the config home links only the login and is removed whole", () => {
   const source = createAgentHome();
   const { config, dir, tmp } = source;
   assert.equal(exists(join(config, "settings.json")), false);
@@ -117,13 +119,17 @@ test("the config home links only the login and is removed whole", () => {
   assert.equal(exists(tmp), false);
 });
 
-test("the headless call is pinned, tool-limited, budget-capped and returns the verdict schema", () => {
+void test("the headless call is pinned, tool-limited, budget-capped and returns the verdict schema", () => {
   const { args, input } = agentInvocation({
     prompt: "go",
     model: "claude-sonnet-5-5",
     effort: "medium",
     maxBudget: 3,
   });
+  /**
+   * @param {string} flag
+   * @returns {string}
+   */
   const after = (flag) => args[args.indexOf(flag) + 1];
 
   assert.equal(input, "go");
@@ -142,7 +148,7 @@ test("the headless call is pinned, tool-limited, budget-capped and returns the v
     assert.ok(args.includes(flag));
 });
 
-test("the prompt names the skill and the base, forbids publishing, and does not name the feature", () => {
+void test("the prompt names the skill and the base, forbids publishing, and does not name the feature", () => {
   const prompt = buildPrompt({ skill: "verify-demo", baseSha: "abc123" });
 
   assert.match(prompt, /\.agents\/skills\/verify-demo\/SKILL\.md/);
@@ -150,13 +156,13 @@ test("the prompt names the skill and the base, forbids publishing, and does not 
   assert.match(prompt, /Never run the skill's publish step/);
 });
 
-test("the output gives the verdict, cost, tokens and models", () => {
+void test("the output gives the verdict, cost, tokens and models", () => {
   const parsed = parseAgentOutput(JSON.stringify(REPLY));
 
-  assert.equal(parsed.verdict.result, "FAIL");
-  assert.deepEqual(parsed.verdict.failedFeatures, ["alpha"]);
-  assert.deepEqual(parsed.verdict.notRun, ["beta/x"]);
-  assert.deepEqual(parsed.verdict.passed, ["alpha/y"]);
+  assert.equal(parsed.verdict?.result, "FAIL");
+  assert.deepEqual(parsed.verdict?.failedFeatures, ["alpha"]);
+  assert.deepEqual(parsed.verdict?.notRun, ["beta/x"]);
+  assert.deepEqual(parsed.verdict?.passed, ["alpha/y"]);
   assert.equal(parsed.costUsd, 0.25);
   assert.equal(parsed.turns, 9);
   assert.deepEqual(parsed.tokens, {
@@ -168,11 +174,15 @@ test("the output gives the verdict, cost, tokens and models", () => {
   assert.deepEqual(parsed.models, ["claude-sonnet-5-5"]);
 });
 
-test("an error reply, a missing structured verdict and an unknown result give no verdict", () => {
+void test("an error reply, a missing structured verdict and an unknown result give no verdict", () => {
+  /**
+   * @param {unknown} reply
+   * @returns {import("../scripts/lib/seeded-agent.mjs").AgentOutput}
+   */
   const bad = (reply) => parseAgentOutput(JSON.stringify(reply));
 
   assert.equal(bad({ is_error: true, result: "budget" }).verdict, undefined);
-  assert.match(bad({ is_error: true, result: "budget" }).error, /budget/);
+  assert.match(bad({ is_error: true, result: "budget" }).error ?? "", /budget/);
   assert.equal(bad({ result: "text only" }).verdict, undefined);
   assert.equal(
     bad({ structured_output: { ...REPLY.structured_output, result: "MAYBE" } })
@@ -181,10 +191,10 @@ test("an error reply, a missing structured verdict and an unknown result give no
   );
   const { notRun: _omitted, ...withoutNotRun } = REPLY.structured_output;
   assert.equal(bad({ structured_output: withoutNotRun }).verdict, undefined);
-  assert.match(parseAgentOutput("not json").error, /no JSON/);
+  assert.match(parseAgentOutput("not json").error ?? "", /no JSON/);
 });
 
-test("a run that times out reports it, whatever it printed", async () => {
+void test("a run that times out reports it, whatever it printed", async () => {
   const run = async () => {
     throw Object.assign(new Error("killed"), {
       stdout: JSON.stringify(REPLY),
@@ -205,8 +215,10 @@ test("a run that times out reports it, whatever it printed", async () => {
   assert.equal(outcome.error, "timed out after 7 s");
 });
 
-test("the run is a process group in the scratch checkout with the capped wall time", async () => {
+void test("the run is a process group in the scratch checkout with the capped wall time", async () => {
+  /** @type {SpawnCall[]} */
   const calls = [];
+  /** @type {import("../scripts/lib/executors.mjs").SpawnRunner} */
   const run = async (call) => {
     calls.push(call);
     return { stdout: JSON.stringify(REPLY) };
@@ -220,7 +232,7 @@ test("the run is a process group in the scratch checkout with the capped wall ti
     run,
   });
 
-  assert.equal(outcome.verdict.result, "FAIL");
+  assert.equal(outcome.verdict?.result, "FAIL");
   assert.equal(calls[0].cwd, "/nowhere");
   assert.equal(calls[0].group, true);
   assert.equal(calls[0].timeoutMs, 7000);

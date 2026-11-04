@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { rubricErrorsOf, suiteErrors } from "../scripts/lib/rubric.mjs";
 import { makeTempDir, removeDir, writeFile, writeJson } from "./helpers.mjs";
 
+/** @type {string} */
 let root;
 
 beforeEach(() => {
@@ -20,6 +21,11 @@ const CRITERIA = ["first-rule", "second-rule", "third-rule"].map((id) => ({
   text: `The answer satisfies ${id} fully.`,
 }));
 
+/**
+ * @param {string} id
+ * @param {Record<string, unknown>} [extra] Fields that replace the valid ones.
+ * @returns {Record<string, unknown>}
+ */
 function rubricCase(id, extra = {}) {
   return {
     id,
@@ -31,13 +37,16 @@ function rubricCase(id, extra = {}) {
   };
 }
 
+/**
+ * @returns {string}
+ */
 function suiteDir() {
   const dir = join(root, "new-module");
   writeFile(join(dir, "fixtures", "empty", "package.json"), "{}\n");
   return dir;
 }
 
-test("a suite needs three behaviour cases, each with 3 to 6 criteria and a fixture that exists", () => {
+void test("a suite needs three behaviour cases, each with 3 to 6 criteria and a fixture that exists", () => {
   const dir = suiteDir();
   const good = { cases: ["a", "b", "c"].map((id) => rubricCase(id)) };
 
@@ -73,7 +82,7 @@ test("a suite needs three behaviour cases, each with 3 to 6 criteria and a fixtu
   );
 });
 
-test("a case from a Lesson may carry fewer criteria", () => {
+void test("a case from a Lesson may carry fewer criteria", () => {
   const dir = suiteDir();
   const lesson = rubricCase("c", {
     rubric: CRITERIA.slice(0, 1),
@@ -86,7 +95,7 @@ test("a case from a Lesson may carry fewer criteria", () => {
   );
 });
 
-test("a suite directory must belong to a plugin skill and hold a cases file", () => {
+void test("a suite directory must belong to a plugin skill and hold a cases file", () => {
   writeJson(join(root, "unknown", "cases.json"), { cases: [] });
   writeFile(join(root, "new-module", "fixtures", "x"), "");
 
@@ -95,3 +104,46 @@ test("a suite directory must belong to a plugin skill and hold a cases file", ()
     "evals/commands/unknown: not a skill of the plugin",
   ]);
 });
+
+const WRONG_SHA =
+  "a repo fixture needs repo (owner/name) and a 40-character sha";
+const LESSON = "https://github.com/Upd4ting/outer-loop/issues/1";
+
+/** @type {[string, Record<string, unknown>, string][]} */
+const WRONG_TYPES = [
+  ["a numeric case id", { id: 5 }, "case ?: id must be kebab-case"],
+  [
+    "a repo given as a list",
+    { fixture: { type: "repo", repo: ["a/b"], sha: "0".repeat(40) } },
+    `case c: ${WRONG_SHA}`,
+  ],
+  [
+    "a sha given as a list",
+    { fixture: { type: "repo", repo: "a/b", sha: ["0".repeat(40)] } },
+    `case c: ${WRONG_SHA}`,
+  ],
+  [
+    "a numeric criterion id",
+    { rubric: [...CRITERIA.slice(0, 2), { id: 7, text: CRITERIA[2].text }] },
+    "case c: each criterion needs a kebab-case id and a text",
+  ],
+  [
+    "a lesson given as a list",
+    { lesson: [LESSON] },
+    "case c: lesson must be an https URL",
+  ],
+  [
+    "a numeric prompt",
+    { prompt: 12345678901 },
+    "case c: prompt must be a sentence",
+  ],
+];
+
+for (const [name, extra, error] of WRONG_TYPES) {
+  void test(`${name} is an error, not a coerced string`, () => {
+    const dir = suiteDir();
+    const cases = [rubricCase("a"), rubricCase("b"), rubricCase("c", extra)];
+
+    assert.deepEqual(suiteErrors({ cases }, dir), [error]);
+  });
+}

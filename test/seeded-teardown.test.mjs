@@ -15,8 +15,15 @@ import { makeTempDir, removeDir } from "./helpers.mjs";
 import { exists, readText } from "./helpers/read.mjs";
 import { makeSeededRepo } from "./helpers/seeded-repo.mjs";
 
+/** @typedef {import("node:child_process").ChildProcess} ChildProcess */
+/** @typedef {import("../scripts/lib/executors.mjs").SpawnRunner} SpawnRunner */
+/** @typedef {import("../scripts/lib/seeded-run.mjs").SeededOptions} SeededOptions */
+
+/** @type {string | undefined} */
 let repo;
+/** @type {string | undefined} */
 let work;
+/** @type {ChildProcess[]} */
 const children = [];
 
 afterEach(() => {
@@ -26,6 +33,10 @@ afterEach(() => {
   repo = work = undefined;
 });
 
+/**
+ * @param {string} marker
+ * @returns {ChildProcess}
+ */
 function sleeper(marker) {
   const child = spawn(
     process.execPath,
@@ -36,7 +47,13 @@ function sleeper(marker) {
   return child;
 }
 
+/**
+ * @param {SpawnRunner} run
+ * @param {{ teardown?: string }} [extra]
+ * @returns {SeededOptions}
+ */
 function optionsOf(run, extra = {}) {
+  assert.ok(work);
   return {
     jobs: 1,
     model: "m",
@@ -53,7 +70,7 @@ function optionsOf(run, extra = {}) {
   };
 }
 
-test("the stop command runs in the scratch checkout with the case's runs folder", async () => {
+void test("the stop command runs in the scratch checkout with the case's runs folder", async () => {
   work = makeTempDir();
 
   const outcome = await runTeardown({
@@ -67,7 +84,7 @@ test("the stop command runs in the scratch checkout with the case's runs folder"
   assert.equal(readText(join(work, "seen.txt")), `/runs/here ${work}\n`);
 });
 
-test("a stop command that fails is reported and does not throw", async () => {
+void test("a stop command that fails is reported and does not throw", async () => {
   const outcome = await runTeardown({
     command: "echo broken >&2; exit 4",
     cwd: process.cwd(),
@@ -76,13 +93,13 @@ test("a stop command that fails is reported and does not throw", async () => {
   });
 
   assert.equal(outcome.ran, true);
-  assert.match(outcome.error, /broken/);
+  assert.match(outcome.error ?? "", /broken/);
   assert.deepEqual(await runTeardown({ cwd: ".", env: {}, runs: "/r" }), {
     ran: false,
   });
 });
 
-test("a process of the case that is still alive is listed, one that ended is not", async () => {
+void test("a process of the case that is still alive is listed, one that ended is not", async () => {
   const marker = `/tmp/seeded-leak-${process.pid}`;
   const child = sleeper(marker);
   await new Promise((resolve) => setTimeout(resolve, 100));
@@ -96,19 +113,21 @@ test("a process of the case that is still alive is listed, one that ended is not
   assert.deepEqual(leakedProcesses(["/nowhere/at/all"]), []);
 });
 
-test("the known harnesses stop their runs through their own command", () => {
+void test("the known harnesses stop their runs through their own command", () => {
   assert.match(TEARDOWNS["verify-dms"], /dms-control\.mjs down/);
   assert.match(TEARDOWNS["verify-antelopejs"], /verify-ajs\.mts clean/);
 });
 
-test("every case stops its runs after the agent, even when the agent died, and a leftover process fails the case record", async () => {
+void test("every case stops its runs after the agent, even when the agent died, and a leftover process fails the case record", async () => {
   repo = makeSeededRepo();
   work = makeTempDir();
   const log = join(work, "teardown.log");
   const cases = discoverCases(repo, "verify-demo").filter(
     (item) => item.kind === "break",
   );
+  /** @type {SpawnRunner} */
   const run = async ({ env }) => {
+    assert.ok(env.TMPDIR);
     sleeper(env.TMPDIR);
     throw Object.assign(new Error("killed"), { stdout: "", timedOut: true });
   };
@@ -130,19 +149,22 @@ test("every case stops its runs after the agent, even when the agent died, and a
       work.startsWith("/tmp") ? "/tmp/seeded-tmp-" : "/",
     ),
   );
-  assert.equal(result.teardown.ran, true);
-  assert.equal(result.leaked.length, 1);
+  assert.equal(result.teardown?.ran, true);
+  assert.equal(result.leaked?.length, 1);
   assert.equal(exists(join(work, "out", "break-alpha", "result.json")), true);
 });
 
-test("a stop command that really stops the process leaves no leak and the folders are removed", async () => {
+void test("a stop command that really stops the process leaves no leak and the folders are removed", async () => {
   repo = makeSeededRepo();
   work = makeTempDir();
   const cases = discoverCases(repo, "verify-demo").filter(
     (item) => item.kind === "break",
   );
+  /** @type {ChildProcess | undefined} */
   let started;
+  /** @type {SpawnRunner} */
   const run = async ({ env }) => {
+    assert.ok(env.TMPDIR);
     started = sleeper(env.TMPDIR);
     writeFileSync(join(env.TMPDIR, "pid"), String(started.pid));
     return { stdout: "{}" };
@@ -158,7 +180,7 @@ test("a stop command that really stops the process leaves no leak and the folder
     }),
   });
 
-  assert.ok(started.pid);
+  assert.ok(started?.pid);
   assert.deepEqual(result.leaked, []);
   assert.equal(exists(join(work, "seeded-eval-")), false);
 });

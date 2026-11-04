@@ -15,6 +15,9 @@ import {
 import { caseOf, makeTempDir, removeDir, skillOf } from "./helpers.mjs";
 import { exists } from "./helpers/read.mjs";
 
+/** @typedef {import("../scripts/lib/requests.mjs").RunTask} RunTask */
+
+/** @type {string} */
 let dir;
 
 beforeEach(() => {
@@ -33,6 +36,7 @@ const CASES = [
   caseOf("plain", ["dms-pages"]),
 ];
 
+/** @param {import("../scripts/lib/requests.mjs").RunOptions} [options] */
 function prepare(options) {
   return writeRun({
     dir,
@@ -43,7 +47,7 @@ function prepare(options) {
   });
 }
 
-test("one trigger request and two answers requests per case and model, none for a case whose skills are absent", () => {
+void test("one trigger request and two answers requests per case and model, none for a case whose skills are absent", () => {
   const manifest = prepare();
 
   const tasks = listTasks(manifest);
@@ -60,7 +64,7 @@ test("one trigger request and two answers requests per case and model, none for 
   assert.ok(exists(requestFile(dir, tasks[0])));
 });
 
-test("the trigger request lists every skill and the answers request loads only the expected ones", () => {
+void test("the trigger request lists every skill and the answers request loads only the expected ones", () => {
   const manifest = prepare();
   const model = manifest.models[0].id;
 
@@ -86,8 +90,9 @@ test("the trigger request lists every skill and the answers request loads only t
   assert.doesNotMatch(answers.system, /Body of dms-mailing/);
 });
 
-test("the without-skills variant keeps the cases and loads nothing", () => {
+void test("the without-skills variant keeps the cases and loads nothing", () => {
   const manifest = prepare({ modes: ["answers"], withSkills: false });
+  /** @type {RunTask} */
   const task = {
     model: manifest.models[0].id,
     mode: "answers",
@@ -99,7 +104,7 @@ test("the without-skills variant keeps the cases and loads nothing", () => {
   assert.doesNotMatch(readRequest(dir, task).system, /<skill /);
 });
 
-test("answers round-trip and a missing answer reads as undefined", () => {
+void test("answers round-trip and a missing answer reads as undefined", () => {
   const manifest = prepare();
   const task = listTasks(manifest)[0];
 
@@ -108,6 +113,6 @@ test("answers round-trip and a missing answer reads as undefined", () => {
   assert.equal(readAnswer(dir, task), "text");
 });
 
-test("a directory without a manifest is refused", () => {
+void test("a directory without a manifest is refused", () => {
   assert.throws(() => readManifest(dir), /holds no manifest.json/);
 });

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { MATRIX, floorTolerance, parseModels } from "../scripts/lib/matrix.mjs";
 
-test("the default matrix is Opus 5.5 low, Sonnet 5.5 low and the Codex default GPT", () => {
+void test("the default matrix is Opus 5.5 low, Sonnet 5.5 low and the Codex default GPT", () => {
   assert.deepEqual(
     parseModels(undefined).map((entry) => [
       entry.id,
@@ -18,7 +18,7 @@ test("the default matrix is Opus 5.5 low, Sonnet 5.5 low and the Codex default G
   );
 });
 
-test("a custom spec names its executor, model and effort", () => {
+void test("a custom spec names its executor, model and effort", () => {
   assert.deepEqual(
     parseModels("claude:claude-haiku-5-5:medium,codex:gpt-6.1-sol"),
     [
@@ -38,7 +38,7 @@ test("a custom spec names its executor, model and effort", () => {
   );
 });
 
-test("an unknown model or effort is refused", () => {
+void test("an unknown model or effort is refused", () => {
   assert.throws(() => parseModels("gemini"), /unknown model 'gemini'/);
   assert.throws(
     () => parseModels("claude:claude-opus-5-5:fast"),
@@ -46,7 +46,7 @@ test("an unknown model or effort is refused", () => {
   );
 });
 
-test("only Sonnet is allowed 0.1 under the floors", () => {
+void test("only Sonnet is allowed 0.1 under the floors", () => {
   assert.deepEqual(
     MATRIX.map((entry) => floorTolerance(entry)),
     [0, 0.1, 0],

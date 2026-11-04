@@ -9,14 +9,80 @@ import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { spawnRun } from "./executors.mjs";
+import { parseJson } from "./json.mjs";
+import { fieldOf } from "./safe-read.mjs";
+import { isRecord, isText } from "./values.mjs";
+
+/** @typedef {import("./executors.mjs").SpawnRunner} SpawnRunner */
+
+/**
+ * The verdict the headless verifier ends with. `passed` is absent from the
+ * verdicts that were recorded before the field existed.
+ * @typedef {object} SeededVerdict
+ * @property {string} result One of {@link RESULTS}.
+ * @property {string[]} failedFeatures
+ * @property {string[]} notRun
+ * @property {string[]} [passed]
+ * @property {string[]} doors
+ * @property {string} summary
+ */
+
+/**
+ * The token counts `claude -p` reports.
+ * @typedef {object} AgentTokens
+ * @property {number | undefined} input
+ * @property {number | undefined} output
+ * @property {number | undefined} cacheRead
+ * @property {number | undefined} cacheWrite
+ */
+
+/**
+ * What `claude -p --output-format json` printed, read.
+ * @typedef {object} AgentOutput
+ * @property {SeededVerdict} [verdict]
+ * @property {string} [error]
+ * @property {number} [costUsd]
+ * @property {number} [durationMs]
+ * @property {number} [turns]
+ * @property {AgentTokens} [tokens]
+ * @property {string[]} [models]
+ */
+
+/**
+ * What a run of the agent came to: its prompt, wall time and parsed output,
+ * and whether it timed out or was interrupted.
+ * @typedef {AgentOutput & { prompt: string, wallMs: number, timedOut?: boolean, interrupted?: boolean }} AgentOutcome
+ */
+
+/**
+ * The folders of one agent's isolated config home.
+ * @typedef {object} AgentDirs
+ * @property {string} home
+ * @property {string} config
+ * @property {string} tmp
+ */
+
+/**
+ * @typedef {AgentDirs & { dir: string }} AgentHome
+ */
+
+/**
+ * The scratch checkout the agent runs in.
+ * @typedef {object} AgentScratch
+ * @property {string} dir
+ * @property {string} baseSha
+ */
 
 export const DEFAULT_MODEL = "claude-sonnet-5-5";
 export const DEFAULT_EFFORT = "medium";
 export const DEFAULT_TIMEOUT_SECONDS = 1800;
 export const DEFAULT_MAX_BUDGET_USD = 5;
+/** @type {string[]} */
 export const RESULTS = ["PASS", "PASS+NOTES", "FAIL"];
+/** @type {string[]} */
 export const TOOLS = ["Bash", "Read", "Grep", "Glob"];
 const MILLISECONDS = 1000;
+/** @type {string[]} */
 const KEPT_ENV = [
   "PATH",
   "LANG",
@@ -74,7 +140,11 @@ export const VERDICT_SCHEMA = {
   },
 };
 
-/** The prompt every case gets: the change is never described, only the skill. */
+/**
+ * The prompt every case gets: the change is never described, only the skill.
+ * @param {{ skill: string, baseSha: string }} request
+ * @returns {string}
+ */
 export function buildPrompt({ skill, baseSha }) {
   return [
     `You are the fresh verifier of a change. This checkout holds one commit on top of base commit ${baseSha}, which \`origin/main\` points at. You did not write the change and do not know what it does.`,
@@ -84,7 +154,11 @@ export function buildPrompt({ skill, baseSha }) {
   ].join("\n\n");
 }
 
-/** Builds the isolated config home of one agent: a temporary HOME, a Claude config directory holding only a link to the login, and a private TMPDIR where the harness keeps the runs the case starts. */
+/**
+ * Builds the isolated config home of one agent: a temporary HOME, a Claude config directory holding only a link to the login, and a private TMPDIR where the harness keeps the runs the case starts.
+ * @param {{ root?: string, configDir?: string }} [where]
+ * @returns {AgentHome}
+ */
 export function createAgentHome({
   root = tmpdir(),
   configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"),
@@ -101,12 +175,20 @@ export function createAgentHome({
   return { dir, home, config, tmp };
 }
 
+/**
+ * @param {AgentHome} agentHome
+ * @returns {void}
+ */
 export function removeAgentHome(agentHome) {
   rmSync(agentHome.dir, { recursive: true, force: true });
   rmSync(agentHome.tmp, { recursive: true, force: true });
 }
 
-/** `env` without credentials: GitHub and SSH access, tokens, keys, agent-session variables. */
+/**
+ * `env` without credentials: GitHub and SSH access, tokens, keys, agent-session variables.
+ * @param {NodeJS.ProcessEnv} env
+ * @returns {NodeJS.ProcessEnv}
+ */
 export function withoutCredentials(env) {
   return Object.fromEntries(
     Object.entries(env).filter(([name]) => !SECRET_NAME_RE.test(name)),
@@ -119,6 +201,8 @@ export function withoutCredentials(env) {
  * the temporary ones, and the XDG cache is `cacheHome` (default: the caller's)
  * so a warm pnpm store and base builds are reused. No GitHub token, `gh` login or SSH agent
  * reaches the agent.
+ * @param {{ agentHome: AgentDirs, env?: NodeJS.ProcessEnv, passEnv?: string[], cacheHome?: string }} request
+ * @returns {NodeJS.ProcessEnv}
  */
 export function agentEnv({
   agentHome,
@@ -150,7 +234,11 @@ export function agentEnv({
   };
 }
 
-/** The `claude -p` call for one case, as a command line and its stdin. */
+/**
+ * The `claude -p` call for one case, as a command line and its stdin.
+ * @param {{ prompt: string, model: string, effort?: string, maxBudget: number }} request
+ * @returns {{ args: string[], input: string }}
+ */
 export function agentInvocation({ prompt, model, effort, maxBudget }) {
   return {
     args: [
@@ -178,57 +266,97 @@ export function agentInvocation({ prompt, model, effort, maxBudget }) {
   };
 }
 
+/**
+ * @param {unknown} value
+ * @returns {value is number}
+ */
+function isNumber(value) {
+  return typeof value === "number";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {number | undefined}
+ */
+function numberOf(value) {
+  return isNumber(value) ? value : undefined;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {SeededVerdict | undefined}
+ */
 function cleanVerdict(value) {
+  /**
+   * @param {unknown} items
+   * @returns {string[] | undefined}
+   */
   const list = (items) =>
     Array.isArray(items) ? items.map(String) : undefined;
-  if (!RESULTS.includes(value?.result)) return undefined;
-  const failedFeatures = list(value.failedFeatures);
-  const notRun = list(value.notRun);
-  const doors = list(value.doors);
+  const result = fieldOf(value, "result");
+  if (!isText(result) || !RESULTS.includes(result)) return undefined;
+  const failedFeatures = list(fieldOf(value, "failedFeatures"));
+  const notRun = list(fieldOf(value, "notRun"));
+  const doors = list(fieldOf(value, "doors"));
   if (!failedFeatures || !notRun || !doors) return undefined;
+  const summary = fieldOf(value, "summary");
   return {
-    result: value.result,
+    result,
     failedFeatures,
     notRun,
-    passed: list(value.passed) ?? [],
+    passed: list(fieldOf(value, "passed")) ?? [],
     doors,
-    summary: String(value.summary ?? ""),
+    summary: isText(summary) ? summary : "",
   };
 }
 
-/** Reads `claude -p --output-format json`: the verdict, the cost and the models that ran. */
+/**
+ * Reads `claude -p --output-format json`: the verdict, the cost and the models that ran.
+ * @param {string} stdout
+ * @returns {AgentOutput}
+ */
 export function parseAgentOutput(stdout) {
   let reply;
   try {
-    reply = JSON.parse(stdout);
+    reply = parseJson(stdout);
   } catch {
     return { error: "claude printed no JSON" };
   }
-  const usage = reply.usage ?? {};
+  const usage = fieldOf(reply, "usage");
+  const modelUsage = fieldOf(reply, "modelUsage");
+  const structured = fieldOf(reply, "structured_output");
+  const subtype = fieldOf(reply, "subtype");
   return {
-    verdict: reply.is_error ? undefined : cleanVerdict(reply.structured_output),
-    error: reply.is_error
-      ? String(reply.result ?? reply.subtype)
-      : reply.structured_output
+    verdict: fieldOf(reply, "is_error") ? undefined : cleanVerdict(structured),
+    error: fieldOf(reply, "is_error")
+      ? String(fieldOf(reply, "result") ?? subtype)
+      : structured
         ? undefined
-        : `no structured verdict (${reply.subtype ?? "unknown"})`,
-    costUsd: reply.total_cost_usd,
-    durationMs: reply.duration_ms,
-    turns: reply.num_turns,
+        : `no structured verdict (${isText(subtype) ? subtype : "unknown"})`,
+    costUsd: numberOf(fieldOf(reply, "total_cost_usd")),
+    durationMs: numberOf(fieldOf(reply, "duration_ms")),
+    turns: numberOf(fieldOf(reply, "num_turns")),
     tokens: {
-      input: usage.input_tokens,
-      output: usage.output_tokens,
-      cacheRead: usage.cache_read_input_tokens,
-      cacheWrite: usage.cache_creation_input_tokens,
+      input: numberOf(fieldOf(usage, "input_tokens")),
+      output: numberOf(fieldOf(usage, "output_tokens")),
+      cacheRead: numberOf(fieldOf(usage, "cache_read_input_tokens")),
+      cacheWrite: numberOf(fieldOf(usage, "cache_creation_input_tokens")),
     },
-    models: Object.keys(reply.modelUsage ?? {}),
+    models: isRecord(modelUsage) ? Object.keys(modelUsage) : [],
   };
 }
 
+/**
+ * @param {unknown} error
+ * @param {AgentOutput} partial
+ * @param {number} timeoutSeconds
+ * @returns {string | undefined}
+ */
 function agentError(error, partial, timeoutSeconds) {
-  if (error.interrupted) return "interrupted";
-  if (error.timedOut) return `timed out after ${timeoutSeconds} s`;
-  return partial.error ?? error.message;
+  if (fieldOf(error, "interrupted")) return "interrupted";
+  if (fieldOf(error, "timedOut")) return `timed out after ${timeoutSeconds} s`;
+  const message = fieldOf(error, "message");
+  return partial.error ?? (isText(message) ? message : undefined);
 }
 
 /**
@@ -236,6 +364,20 @@ function agentError(error, partial, timeoutSeconds) {
  * output, or `{ error, timedOut, interrupted }` when the run died, hit its
  * wall-time cap or its budget, or `signal` aborted and killed its process
  * group; it never rejects on the agent's own failure.
+ * @param {object} request
+ * @param {AgentScratch} request.scratch
+ * @param {string} request.skill
+ * @param {AgentDirs} request.agentHome
+ * @param {string} [request.model]
+ * @param {string} [request.effort]
+ * @param {number} [request.maxBudget]
+ * @param {number} [request.timeoutSeconds]
+ * @param {string} [request.claudeBin]
+ * @param {string[]} [request.passEnv]
+ * @param {string} [request.cacheHome]
+ * @param {SpawnRunner} [request.run]
+ * @param {AbortSignal} [request.signal]
+ * @returns {Promise<AgentOutcome>}
  */
 export async function runAgent({
   scratch,
@@ -271,14 +413,15 @@ export async function runAgent({
       ...parseAgentOutput(stdout),
     };
   } catch (error) {
-    const partial = error.stdout ? parseAgentOutput(error.stdout) : {};
+    const stdout = fieldOf(error, "stdout");
+    const partial = isText(stdout) && stdout ? parseAgentOutput(stdout) : {};
     return {
       prompt,
       wallMs: Date.now() - started,
       ...partial,
       verdict: undefined,
-      timedOut: Boolean(error.timedOut),
-      interrupted: Boolean(error.interrupted),
+      timedOut: Boolean(fieldOf(error, "timedOut")),
+      interrupted: Boolean(fieldOf(error, "interrupted")),
       error: agentError(error, partial, timeoutSeconds),
     };
   }

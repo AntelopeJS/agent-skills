@@ -5,7 +5,86 @@
  * loaded only when a model-backed eval actually runs.
  */
 
+import { parseJson } from "./json.mjs";
+import { fieldOf } from "./safe-read.mjs";
 import { isText } from "./values.mjs";
+
+/** @typedef {"low" | "medium" | "high" | "xhigh" | "max"} Effort */
+
+/**
+ * A skill as the requests show it: its name and description to a trigger
+ * request, its body to an answers request.
+ * @typedef {object} RequestSkill
+ * @property {string} name
+ * @property {string} description
+ * @property {string} content
+ */
+
+/**
+ * One call to a model: a system text, the user text and, optionally, a JSON
+ * schema the reply must follow, a reasoning effort and a token cap.
+ * @typedef {object} ModelRequest
+ * @property {string} system
+ * @property {string} user
+ * @property {Record<string, unknown>} [schema]
+ * @property {Effort} [effort]
+ * @property {number} [maxTokens]
+ */
+
+/**
+ * The schema of a trigger reply: `{ "skills": [...] }` over the corpus skill names.
+ * @typedef {object} TriggerSchema
+ * @property {"object"} type
+ * @property {{ skills: { type: "array", items: { type: "string", enum: string[] } } }} properties
+ * @property {string[]} required
+ * @property {false} additionalProperties
+ */
+
+/** @typedef {ModelRequest & { schema: TriggerSchema }} TriggerRequest */
+
+/**
+ * A model backend: answers a request with the reply text.
+ * @typedef {object} ModelBackend
+ * @property {string} [name]
+ * @property {(request: ModelRequest) => Promise<string>} complete
+ */
+
+/**
+ * Picks the skills a model would load for a prompt.
+ * @typedef {(prompt: string) => Promise<string[]>} SkillPicker
+ */
+
+/**
+ * The body of a `beta.messages.create` call.
+ * @typedef {object} AnthropicParams
+ * @property {string} model
+ * @property {number} max_tokens
+ * @property {string} system
+ * @property {{ role: "user", content: string }[]} messages
+ * @property {AnthropicOutputConfig} [output_config]
+ * @property {string[]} [betas]
+ * @property {"default"} [fallbacks]
+ */
+
+/**
+ * @typedef {object} AnthropicOutputConfig
+ * @property {{ type: "json_schema", schema: Record<string, unknown> }} [format]
+ * @property {Effort} [effort]
+ */
+
+/**
+ * The part of a Messages API reply the backend reads.
+ * @typedef {object} AnthropicReply
+ * @property {string | null} [stop_reason]
+ * @property {{ category?: string | null } | null} [stop_details]
+ * @property {{ type: string, text?: string }[]} content
+ */
+
+/**
+ * The part of the Anthropic SDK client the backend calls.
+ * @typedef {object} AnthropicClient
+ * @property {{ messages: { create: (params: AnthropicParams) => Promise<AnthropicReply> } }} beta
+ */
 
 export const DEFAULT_MODEL = "claude-opus-5-5";
 const DEFAULT_MAX_TOKENS = 16000;
@@ -42,18 +121,32 @@ below are loaded; follow them. Handle the user's request as you would in the pro
 explain briefly and write the code it needs, with its imports.
 `;
 
+/**
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {string}
+ */
 export function modelFromEnv(env = process.env) {
   return env.EVAL_MODEL || DEFAULT_MODEL;
 }
 
+/**
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {boolean}
+ */
 export function hasCredentials(env = process.env) {
   return Boolean(env.ANTHROPIC_API_KEY || env.ANTHROPIC_AUTH_TOKEN);
 }
 
+/**
+ * @param {RequestSkill[]} skills
+ * @param {string} prompt
+ * @returns {TriggerRequest}
+ */
 export function triggerRequest(skills, prompt) {
   const listing = skills
     .map((skill) => `- ${skill.name}: ${skill.description}`)
     .join("\n");
+  /** @type {TriggerSchema} */
   const schema = {
     type: "object",
     properties: {
@@ -74,6 +167,11 @@ export function triggerRequest(skills, prompt) {
   };
 }
 
+/**
+ * @param {RequestSkill[]} skills
+ * @param {string} prompt
+ * @returns {ModelRequest}
+ */
 export function answerRequest(skills, prompt) {
   const loaded = skills
     .map(
@@ -88,27 +186,42 @@ export function answerRequest(skills, prompt) {
   };
 }
 
-/** `(prompt) => Promise<skillNames>` backed by a model. */
+/**
+ * `(prompt) => Promise<skillNames>` backed by a model.
+ * @param {ModelBackend} backend
+ * @param {RequestSkill[]} skills
+ * @returns {SkillPicker}
+ */
 export function createModelPicker(backend, skills) {
   return async (prompt) => {
     const text = await backend.complete(triggerRequest(skills, prompt));
-    const parsed = JSON.parse(text);
-    return Array.isArray(parsed.skills) ? parsed.skills.filter(isText) : [];
+    const parsed = parseJson(text);
+    if (parsed === null) throw new TypeError("the model reply is null");
+    const picked = fieldOf(parsed, "skills");
+    return Array.isArray(picked) ? picked.filter(isText) : [];
   };
 }
 
+/** @returns {Promise<AnthropicClient>} */
 async function defaultClient() {
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   return new Anthropic();
 }
 
+/**
+ * @param {string} model
+ * @param {ModelRequest} request
+ * @returns {AnthropicParams}
+ */
 function requestParams(
   model,
   { system, user, schema, effort, maxTokens = DEFAULT_MAX_TOKENS },
 ) {
+  /** @type {AnthropicOutputConfig} */
   const outputConfig = {};
   if (schema) outputConfig.format = { type: "json_schema", schema };
   if (effort && EFFORT_MODELS.has(model)) outputConfig.effort = effort;
+  /** @type {AnthropicParams} */
   const params = {
     model,
     max_tokens: maxTokens,
@@ -123,10 +236,15 @@ function requestParams(
   return params;
 }
 
+/**
+ * @param {{ model?: string, client?: AnthropicClient }} [options]
+ * @returns {ModelBackend}
+ */
 export function createAnthropicBackend({
   model = modelFromEnv(),
   client,
 } = {}) {
+  /** @type {Promise<AnthropicClient> | null} */
   let ready = client ? Promise.resolve(client) : null;
   return {
     name: `anthropic (${model})`,

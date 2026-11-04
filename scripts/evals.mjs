@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { parseArgs } from "node:util";
+import { format, parseArgs } from "node:util";
 import { pathToFileURL } from "node:url";
 
 import { createBaselinePicker } from "./lib/baseline.mjs";
@@ -37,9 +37,38 @@ import {
   formatAnswers,
 } from "./lib/answers.mjs";
 import { verifyText } from "./lib/verify.mjs";
+import { fieldOf } from "./lib/safe-read.mjs";
+import { isCallable, isRecord } from "./lib/values.mjs";
 import { seeded } from "./lib/seeded-command.mjs";
 
+/** @typedef {import("./lib/corpus.mjs").Skill} Skill */
+/** @typedef {import("./lib/dataset.mjs").EvalCase} EvalCase */
+/** @typedef {import("./lib/eval-options.mjs").EvalValues} EvalValues */
+/** @typedef {import("./lib/model.mjs").ModelBackend} ModelBackend */
+/** @typedef {import("./lib/model.mjs").ModelRequest} ModelRequest */
+/** @typedef {import("./lib/answers.mjs").AnswerResult} AnswerResult */
+
+/**
+ * A model call to print instead of sending, with the case it stands for.
+ * @typedef {object} DryRunRequest
+ * @property {string} id
+ * @property {ModelRequest} request
+ * @property {string} [note]
+ */
+
+/**
+ * Runs a command of the CLI and returns its exit code.
+ * @typedef {(values: EvalValues, positionals: string[]) => number | Promise<number>} CommandHandler
+ */
+
+/**
+ * Runs a direct mode over the selected cases; a dry run returns no exit code.
+ * @typedef {(values: EvalValues, cases: EvalCase[], skills: Skill[]) => Promise<number | void>} DirectRunner
+ */
+
+/** @type {Record<string, CommandHandler>} */
 const COMMAND_HANDLERS = { prepare, exec, score, check, lift, seeded };
+/** @type {Record<string, string>} */
 const DEFAULT_BACKENDS = {
   trigger: BACKENDS.baseline,
   answers: BACKENDS.anthropic,
@@ -55,18 +84,33 @@ const CREDENTIALS = {
   },
 };
 
+/**
+ * @param {string} name
+ * @param {string | undefined} model
+ * @returns {Promise<ModelBackend>}
+ */
 async function loadBackend(name, model) {
   if (name === BACKENDS.anthropic)
     return createAnthropicBackend({ model: model ?? modelFromEnv() });
   if (name === BACKENDS.openai)
     return createOpenAIBackend({ model: model ?? openaiModelFromEnv() });
+  /** @type {unknown} */
   const module = await import(pathToFileURL(resolve(name)).href);
-  const complete = module.complete ?? module.default?.complete;
-  if (typeof complete !== "function")
-    fail(`${name} exports no complete() function`);
+  const fallback = fieldOf(module, "default");
+  /** @type {unknown} */
+  const complete =
+    fieldOf(module, "complete") ??
+    ((isRecord(fallback) || isCallable(fallback)) && "complete" in fallback
+      ? fallback.complete
+      : undefined);
+  if (!isCallable(complete)) fail(`${name} exports no complete() function`);
   return { name, complete };
 }
 
+/**
+ * @param {DryRunRequest[]} requests
+ * @returns {void}
+ */
 function printDryRun(requests) {
   const [first] = requests;
   process.stdout.write(
@@ -78,6 +122,11 @@ function printDryRun(requests) {
     );
 }
 
+/**
+ * @param {EvalValues} values
+ * @param {string} backendName
+ * @returns {boolean}
+ */
 function skipWithoutKey(values, backendName) {
   const credentials = CREDENTIALS[backendName];
   if (values["dry-run"] || !credentials || credentials.present()) return false;
@@ -87,6 +136,11 @@ function skipWithoutKey(values, backendName) {
   return true;
 }
 
+/**
+ * @param {EvalValues} values
+ * @param {Skill[]} skills
+ * @returns {Promise<{ name: string, pick: (prompt: string) => string[] | Promise<string[]> }>}
+ */
 async function triggerPicker(values, skills) {
   const backendName = values.backend;
   if (backendName === BACKENDS.baseline)
@@ -98,6 +152,7 @@ async function triggerPicker(values, skills) {
   };
 }
 
+/** @type {DirectRunner} */
 async function runTrigger(values, cases, skills) {
   if (values["dry-run"])
     return printDryRun(
@@ -133,13 +188,20 @@ async function runTrigger(values, cases, skills) {
   return summary.passed ? EXIT.ok : EXIT.failed;
 }
 
+/**
+ * @param {string} dir
+ * @param {AnswerResult[]} results
+ * @returns {void}
+ */
 function writeAnswers(dir, results) {
   mkdirSync(dir, { recursive: true });
   for (const result of results.filter((item) => !item.skipped))
     writeFileSync(join(dir, `${result.id}.md`), result.answer);
 }
 
+/** @type {DirectRunner} */
 async function runAnswers(values, cases, skills) {
+  /** @param {EvalCase} item */
   const loadedFor = (item) =>
     skills.filter((skill) => item.expect.skills.includes(skill.name));
   if (values["dry-run"]) {
@@ -176,6 +238,11 @@ async function runAnswers(values, cases, skills) {
   return summary.passed ? EXIT.ok : EXIT.failed;
 }
 
+/**
+ * @param {string} mode
+ * @param {EvalValues} values
+ * @returns {Promise<number>}
+ */
 async function runDirect(mode, values) {
   values.backend ??= DEFAULT_BACKENDS[mode];
   if (skipWithoutKey(values, values.backend)) return EXIT.ok;
@@ -186,10 +253,14 @@ async function runDirect(mode, values) {
     process.stderr.write(
       `note: ${shadowed.length} central case(s) replaced by the skills' own (${shadowed.map((item) => item.id).join(", ")})\n`,
     );
+  /** @type {Record<string, DirectRunner>} */
   const runners = { trigger: runTrigger, answers: runAnswers };
   return (await runners[mode](values, selected, skills)) ?? EXIT.ok;
 }
 
+/**
+ * @returns {Promise<number>}
+ */
 async function main() {
   const { values, positionals } = parseArgs({
     options: OPTIONS,
@@ -213,8 +284,9 @@ main().then(
   (code) => {
     process.exitCode = code;
   },
+  /** @param {unknown} error */
   (error) => {
-    process.stderr.write(`error: ${error.message}\n`);
+    process.stderr.write(format("error: %s\n", fieldOf(error, "message")));
     process.exitCode = EXIT.failed;
   },
 );

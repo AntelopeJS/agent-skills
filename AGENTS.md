@@ -12,7 +12,7 @@ The AntelopeJS agent plugin for Claude Code and OpenAI Codex: the sync of the sk
 
 ## Checks and tests
 
-- `typecheck` runs `tsc` over `packages/agent-skills` only (JSDoc types in `index.mjs` checked against `index.d.ts`); the rest is untyped JavaScript. `test/tsconfig.json` lists the test files typed the same way, so type-aware lint reads `node:` types in them: add a new test file there, because added lines in an untyped file fail the ratchet. `pnpm test` runs the `node:test` suites in `test/`.
+- `typecheck` runs `tsc` over `packages/agent-skills` only (JSDoc types in `index.mjs` checked against `index.d.ts`); the rest is untyped JavaScript. `test/tsconfig.json` lists the test files typed the same way, so type-aware lint reads `node:` types in them: add a new test file there to type it the same way. `pnpm test` runs the `node:test` suites in `test/`.
 - `pnpm run checks` does not run the evals. CI runs `pnpm evals:check` and `pnpm evals:baseline` (deterministic, no key, no model) after the checks. The model-backed evals run through `evals prepare`, `exec` (the local `claude` and `codex` CLIs) or an Amp Thread, and `score`; the `eval-skills` skill describes both executors. A change to `scripts/lib/` that touches scoring, the pass bar or the executors needs its test.
 
 <!-- antelopejs-guardrails:start -->
@@ -20,7 +20,7 @@ The AntelopeJS agent plugin for Claude Code and OpenAI Codex: the sync of the sk
 
 ## Guardrails
 
-Finish every change with `pnpm run checks`. It runs typecheck, lint, format, knip, tests, size, ratchet, suppressions, and sync, and prints only what failed. The change is done when it prints no failure.
+Finish every change with `pnpm run checks`. It runs typecheck, lint, format, knip, tests, size, suppressions, and sync, and prints only what failed. The change is done when it prints no failure.
 
 The tools enforce most rules, listed in the table at the end. The sections below hold the rules no tool checks.
 
@@ -57,10 +57,6 @@ Verify a boundary against the imports a developer or agent would plausibly write
 ### Suppression budget
 
 `guardrails.suppressions.json` caps the suppressions in authored code: lint directives per rule they name (`*` for none), `@ts-expect-error`, `@ts-ignore` and `SAFETY:` comments, and under `config` each rule a lint config (`oxlint.config.*`, `.oxlintrc.json`, `eslint.config.*`) switches off or to a warning, keyed by rule and `files` glob anchored at the config's directory, so widening or moving a scope is a new ceiling of 0, while narrowing one takes over the room it gives up. Switching a rule off in a config is a suppression too: fix the code its rule reports instead. A suppression over its ceiling fails: fix the code, or remove another suppression of the same kind. A rule that keeps needing suppressions should be changed in the preset. Never raise or remove a number in that file: the check fails a ceiling higher than on the pull request base, and only the operator approves a raise. A directive disabling `anti-slop/require-safety-comment-for-type-assertion` is burn-down debt: remove the assertion, or, where it holds, replace the directive with `SAFETY: <why it holds>`, which takes over its room without a raise. After you remove suppressions, run `pnpm run suppressions:update` and commit the lowered file.
-
-### Debt
-
-`guardrails.ratchet.json` records the lint findings and oversize files this repository already had. Its numbers only go down. After you remove debt, or after a pack upgrade, run `pnpm run ratchet:update` and commit the file: it lowers the numbers and adds only the rules the new pack release enabled, at today's count. Never edit the numbers by hand; CI fails one added or raised against the base. A rule listed there is off for `oxlint`. The ratchet counts it instead, and the pre-commit hook rejects it on every line you add.
 
 ### What enforces what
 
@@ -103,6 +99,5 @@ Verify a boundary against the imports a developer or agent would plausibly write
 | Entry-only rules exempt no tracked outsider                                    | `antelopejs-sync --check`                           |
 | A DMS layer's `build/backend-boundary.ts` is the pack's plugin                 | `antelopejs-sync --check`                           |
 | A test names the wrong implementation it catches                               | review; no tool                                     |
-| Existing debt only shrinks                                                     | `antelopejs-ratchet`                                |
 
 <!-- antelopejs-guardrails:end -->

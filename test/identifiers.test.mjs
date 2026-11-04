@@ -6,6 +6,10 @@ import { compareText } from "../scripts/lib/values.mjs";
 
 const fence = "```";
 
+/**
+ * @param {string} text
+ * @returns {[string, string[]][]}
+ */
 function importsOf(text) {
   return extractApiReferences(text).imports.map(({ specifier, names }) => [
     specifier,
@@ -13,11 +17,15 @@ function importsOf(text) {
   ]);
 }
 
+/**
+ * @param {string} text
+ * @returns {string[]}
+ */
 function referencesOf(text) {
   return extractApiReferences(text).references.map((r) => r.name);
 }
 
-test("reads named, aliased, type and multi-line imports from code fences", () => {
+void test("reads named, aliased, type and multi-line imports from code fences", () => {
   const answer = [
     "Use the table view:",
     `${fence}ts`,
@@ -35,7 +43,7 @@ test("reads named, aliased, type and multi-line imports from code fences", () =>
   ]);
 });
 
-test("reads require destructuring, re-exports and side-effect imports", () => {
+void test("reads require destructuring, re-exports and side-effect imports", () => {
   const code = [
     fence,
     'const { DatabaseService } = require("@antelopejs/core");',
@@ -51,7 +59,7 @@ test("reads require destructuring, re-exports and side-effect imports", () => {
   ]);
 });
 
-test("default and namespace imports bind names without checking them", () => {
+void test("default and namespace imports bind names without checking them", () => {
   const { imports } = extractApiReferences(
     `${fence}\nimport Mailer, * as Media from "x";\n${fence}`,
   );
@@ -60,7 +68,7 @@ test("default and namespace imports bind names without checking them", () => {
   assert.deepEqual(imports[0].bound, ["Mailer", "Media"]);
 });
 
-test("collects API-shaped references from inline code and code, minus locals, imports and globals", () => {
+void test("collects API-shaped references from inline code and code, minus locals, imports and globals", () => {
   const answer = [
     "Call `DatabaseService.find()` or decorate with `@RegisterPage`; set `DMS_AI=1` and read `orders`.",
     `${fence}ts`,
@@ -82,7 +90,7 @@ test("collects API-shaped references from inline code and code, minus locals, im
   ]);
 });
 
-test("a diff contributes only its added lines and only its imports", () => {
+void test("a diff contributes only its added lines and only its imports", () => {
   const diff = [
     "diff --git a/src/page.ts b/src/page.ts",
     "--- a/src/page.ts",
@@ -102,7 +110,7 @@ test("a diff contributes only its added lines and only its imports", () => {
   assert.deepEqual(result.references, []);
 });
 
-test("reports the line of each finding in the original text", () => {
+void test("reports the line of each finding in the original text", () => {
   const answer = [
     "intro",
     `${fence}`,

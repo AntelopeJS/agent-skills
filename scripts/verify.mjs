@@ -15,6 +15,7 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { verifyText, formatReport } from "./lib/verify.mjs";
+import { isRecord, isText } from "./lib/values.mjs";
 
 const EXIT = { ok: 0, unknown: 1, usage: 2 };
 const STDIN = "-";
@@ -58,8 +59,11 @@ async function main() {
 
 main().then(
   (code) => process.exit(code),
+  /** @param {unknown} error */
   (error) => {
-    process.stderr.write(`error: ${error.message}\n`);
+    const message =
+      isRecord(error) && isText(error.message) ? error.message : undefined;
+    process.stderr.write(`error: ${message}\n`);
     process.exit(EXIT.usage);
   },
 );

@@ -30,7 +30,6 @@
 
 import {
   existsSync,
-  lstatSync,
   mkdirSync,
   symlinkSync,
   unlinkSync,
@@ -40,13 +39,61 @@ import {
 import { join, relative, resolve, dirname } from "node:path";
 
 import {
-  candidatePackages,
+  fieldOf,
   isDirectorySafe,
+  lstatSafe,
   readJsonSafe,
   readTextSafe,
   readdirSafe,
-} from "./lib/skill-packages.mjs";
-import { compareText, isText } from "./lib/values.mjs";
+} from "./lib/safe-read.mjs";
+import { compareText, isText, textIfTruthy } from "./lib/values.mjs";
+import { candidatePackages } from "./lib/skill-packages.mjs";
+
+/**
+ * @typedef {object} Target
+ * @property {string} name
+ * @property {string} label
+ * @property {string} dir
+ */
+
+/**
+ * @typedef {object} SkillInfo
+ * @property {string} target
+ * @property {string} package
+ * @property {string | null} version
+ * @property {string} origin
+ * @property {string} skill
+ */
+
+/**
+ * @typedef {object} SyncState
+ * @property {Target} target
+ * @property {Map<string, SkillInfo>} desired
+ * @property {Set<string>} managed
+ * @property {string[]} removed
+ * @property {string[]} warnings
+ */
+
+/**
+ * @typedef {object} TargetResult
+ * @property {string} target
+ * @property {string} dir
+ * @property {string[]} added
+ * @property {string[]} removed
+ * @property {string[]} kept
+ * @property {Map<string, string>} statuses
+ */
+
+/**
+ * @typedef {SkillInfo & { name: string, status: Record<string, string | undefined> }} ListedSkill
+ */
+
+/**
+ * @typedef {object} SyncResult
+ * @property {Omit<TargetResult, "statuses">[]} targets
+ * @property {string[]} warnings
+ * @property {ListedSkill[]} skills
+ */
 
 const args = process.argv.slice(2);
 const argv = new Set(args);
@@ -61,6 +108,7 @@ const GITIGNORE_FILE = ".gitignore";
 const TARGET_FLAG = "--target";
 const ALL_TARGETS = "all";
 const USAGE_EXIT_CODE = 2;
+/** @type {Record<string, Target>} */
 const TARGETS = {
   claude: {
     name: "claude",
@@ -88,22 +136,23 @@ const DEPENDENCY_FIELDS = [
 ];
 const STATUS = { linked: "linked", added: "added", skipped: "skipped" };
 
+/**
+ * @param {string} msg
+ */
 function log(msg) {
   if (!QUIET && !JSON_OUT) console.log(msg);
 }
 
+/**
+ * @param {string} msg
+ */
 function warn(msg) {
   if (!QUIET) process.stderr.write(`warning: ${msg}\n`);
 }
 
-function lstatSafe(path) {
-  try {
-    return lstatSync(path);
-  } catch {
-    return null;
-  }
-}
-
+/**
+ * @returns {string | undefined}
+ */
 function targetFlagValue() {
   const inline = args.find((arg) => arg.startsWith(`${TARGET_FLAG}=`));
   if (inline) return inline.slice(TARGET_FLAG.length + 1);
@@ -111,20 +160,34 @@ function targetFlagValue() {
   return index < 0 ? ALL_TARGETS : args[index + 1];
 }
 
+/**
+ * @returns {Target[]}
+ */
 function selectedTargets() {
   const value = targetFlagValue();
   if (value === ALL_TARGETS) return Object.values(TARGETS);
-  if (Object.hasOwn(TARGETS, value ?? "")) return [TARGETS[value]];
+  if (value !== undefined && Object.hasOwn(TARGETS, value))
+    return [TARGETS[value]];
   process.stderr.write(
     `error: ${TARGET_FLAG} expects one of ${[...Object.keys(TARGETS), ALL_TARGETS].join(", ")}.\n`,
   );
   process.exit(USAGE_EXIT_CODE);
 }
 
+/**
+ * @param {unknown} pkg
+ * @returns {boolean}
+ */
 function dependsOnCore(pkg) {
-  return DEPENDENCY_FIELDS.some((field) => pkg?.[field]?.[CORE_PACKAGE]);
+  return DEPENDENCY_FIELDS.some((field) =>
+    Boolean(fieldOf(fieldOf(pkg, field), CORE_PACKAGE)),
+  );
 }
 
+/**
+ * @param {string} dir
+ * @returns {boolean}
+ */
 function isAntelopeProject(dir) {
   if (CONFIG_VARIANTS.some((f) => existsSync(join(dir, f)))) return true;
   return dependsOnCore(readJsonSafe(join(dir, "package.json")));
@@ -133,8 +196,11 @@ function isAntelopeProject(dir) {
 /**
  * Every skill declared by the discovered packages.
  * Returns Map<entryName, { target, package, version, origin, skill }>.
+ * @param {string[]} warnings
+ * @returns {Map<string, SkillInfo>}
  */
 function discoverSkills(warnings) {
+  /** @type {Map<string, SkillInfo>} */
   const skills = new Map();
   for (const source of candidatePackages(cwd, (message) =>
     warnings.push(message),
@@ -143,6 +209,11 @@ function discoverSkills(warnings) {
   return skills;
 }
 
+/**
+ * @param {string} skillDir
+ * @param {string} fallback
+ * @returns {string}
+ */
 function skillName(skillDir, fallback) {
   const frontmatter = readTextSafe(join(skillDir, "SKILL.md")).match(
     /^---\r?\n([\s\S]*?)\r?\n---/,
@@ -151,6 +222,11 @@ function skillName(skillDir, fallback) {
   return name ? name[1] : fallback;
 }
 
+/**
+ * @param {import("./lib/skill-packages.mjs").OriginSkillPackage} source
+ * @param {Map<string, SkillInfo>} skills
+ * @param {string[]} warnings
+ */
 function collectPackageSkills(source, skills, warnings) {
   const { name: pkgName, version, skillDirs, origin } = source;
   const moduleShort = pkgName.slice(pkgName.lastIndexOf("/") + 1);
@@ -179,11 +255,20 @@ function collectPackageSkills(source, skills, warnings) {
   }
 }
 
+/**
+ * @param {Target} target
+ * @returns {string[]}
+ */
 function loadManifest(target) {
   const data = readJsonSafe(join(target.dir, MANIFEST_FILE));
-  return Array.isArray(data?.entries) ? data.entries.filter(isText) : [];
+  const entries = fieldOf(data, "entries");
+  return Array.isArray(entries) ? entries.filter(isText) : [];
 }
 
+/**
+ * @param {Target} target
+ * @param {Iterable<string>} entries
+ */
 function saveManifest(target, entries) {
   writeFileSync(
     join(target.dir, MANIFEST_FILE),
@@ -191,6 +276,10 @@ function saveManifest(target, entries) {
   );
 }
 
+/**
+ * @param {Target} target
+ * @param {Iterable<string>} entries
+ */
 function writeGitignore(target, entries) {
   const path = join(target.dir, GITIGNORE_FILE);
   const lines = [
@@ -204,6 +293,11 @@ function writeGitignore(target, entries) {
   writeFileSync(path, content);
 }
 
+/**
+ * @param {string} linkPath
+ * @param {string} target
+ * @returns {boolean}
+ */
 function symlinkPointsTo(linkPath, target) {
   const st = lstatSafe(linkPath);
   if (!st?.isSymbolicLink()) return false;
@@ -219,6 +313,7 @@ function symlinkPointsTo(linkPath, target) {
 /**
  * Drops managed entries that are no longer desired. A managed entry the user
  * replaced with a real file or directory becomes theirs and leaves the manifest.
+ * @param {SyncState} state
  */
 function pruneManaged(state) {
   const { target, desired, managed, removed, warnings } = state;
@@ -242,6 +337,12 @@ function pruneManaged(state) {
   }
 }
 
+/**
+ * @param {string} name
+ * @param {string} skillDir
+ * @param {SyncState} state
+ * @returns {string}
+ */
 function linkSkill(name, skillDir, state) {
   const { target } = state;
   const linkPath = join(target.dir, name);
@@ -262,6 +363,10 @@ function linkSkill(name, skillDir, state) {
   return STATUS.added;
 }
 
+/**
+ * @param {Target} target
+ * @param {Set<string>} managed
+ */
 function persist(target, managed) {
   if (
     DRY_RUN ||
@@ -273,7 +378,14 @@ function persist(target, managed) {
   writeGitignore(target, managed);
 }
 
+/**
+ * @param {Target} target
+ * @param {Map<string, SkillInfo>} desired
+ * @param {string[]} warnings
+ * @returns {TargetResult}
+ */
 function syncTarget(target, desired, warnings) {
+  /** @type {SyncState} */
   const state = {
     target,
     desired,
@@ -289,6 +401,7 @@ function syncTarget(target, desired, warnings) {
     ]),
   );
   persist(target, state.managed);
+  /** @param {string} status */
   const named = (status) =>
     [...statuses].filter(([, s]) => s === status).map(([name]) => name);
   return {
@@ -301,12 +414,18 @@ function syncTarget(target, desired, warnings) {
   };
 }
 
+/**
+ * @param {Target[]} targets
+ * @returns {SyncResult}
+ */
 function sync(targets) {
+  /** @type {string[]} */
   const warnings = [];
   const desired = discoverSkills(warnings);
   const results = targets.map((target) =>
     syncTarget(target, desired, warnings),
   );
+  /** @param {string} name */
   const statusOf = (name) =>
     Object.fromEntries(results.map((r) => [r.target, r.statuses.get(name)]));
   const skills = [...desired].map(([name, info]) => ({
@@ -321,13 +440,22 @@ function sync(targets) {
   };
 }
 
+/**
+ * @param {string | undefined} status
+ * @returns {string | undefined}
+ */
 function listStatus(status) {
   return DRY_RUN && status === STATUS.added ? "not synced yet" : status;
 }
 
+/**
+ * @param {ListedSkill} skill
+ * @param {SyncResult["targets"]} targets
+ * @returns {(string | undefined)[]}
+ */
 function listRow(skill, targets) {
   const pkg = skill.version
-    ? `${skill.package}@${skill.version}`
+    ? `${skill.package}@${textIfTruthy(skill.version)}`
     : skill.package;
   const statuses = targets.map((t) => listStatus(skill.status[t.target]));
   return [
@@ -340,6 +468,9 @@ function listRow(skill, targets) {
   ];
 }
 
+/**
+ * @param {string[][]} rows
+ */
 function printTable(rows) {
   const widths = rows[0].map((_, i) =>
     Math.max(...rows.map((row) => row[i].length)),
@@ -353,6 +484,9 @@ function printTable(rows) {
     );
 }
 
+/**
+ * @param {SyncResult} result
+ */
 function printList(result) {
   if (!result.skills.length) {
     log(
@@ -380,6 +514,9 @@ function printList(result) {
   }
 }
 
+/**
+ * @param {SyncResult} result
+ */
 function printChanges(result) {
   const verb = DRY_RUN ? "would add" : "add";
   const verbRm = DRY_RUN ? "would remove" : "remove";
@@ -392,6 +529,9 @@ function printChanges(result) {
   }
 }
 
+/**
+ * @param {SyncResult} result
+ */
 function printJson(result) {
   const skills = result.skills.map(({ target, ...rest }) => ({
     ...rest,

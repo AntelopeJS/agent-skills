@@ -1,3 +1,5 @@
+import { isText } from "./values.mjs";
+
 const FENCE_RE = /^\s*(```|~~~)/;
 const DIFF_RE = /^(diff --git |@@ -\d|\+\+\+ |--- a\/)/m;
 const INLINE_CODE_RE = /`([^`\n]+)`/g;
@@ -75,14 +77,55 @@ const GLOBALS = new Set([
   ...TYPE_UTILITIES,
 ]);
 
+/**
+ * @typedef {object} Source
+ * @property {string} text
+ * @property {number[]} lines The original line number of each line of `text`.
+ */
+
+/**
+ * @typedef {object} NamedBinding
+ * @property {string} imported
+ * @property {string} local
+ */
+
+/**
+ * @typedef {object} ImportStatement
+ * @property {string} specifier
+ * @property {string} kind
+ * @property {number} line
+ * @property {NamedBinding[]} names
+ * @property {string[]} bound
+ */
+
+/**
+ * @typedef {object} ApiReference
+ * @property {string} name
+ * @property {number} line
+ */
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
 function blank(text) {
   return text.replace(/[^\n]/g, " ");
 }
 
+/**
+ * @param {Source} source
+ * @param {number} index
+ * @returns {number}
+ */
 function lineAt(source, index) {
   return source.lines[source.text.slice(0, index).split("\n").length - 1];
 }
 
+/**
+ * @param {(string | null)[]} lines
+ * @param {(entry: { text: string | null, line: number }, index: number) => boolean} keep
+ * @returns {Source}
+ */
 function collectLines(lines, keep) {
   const kept = lines
     .map((text, index) => ({ text, line: index + 1 }))
@@ -93,6 +136,10 @@ function collectLines(lines, keep) {
   };
 }
 
+/**
+ * @param {string} text
+ * @returns {{ code: Source, prose: Source }}
+ */
 function splitMarkdown(text) {
   let inFence = false;
   const tagged = text.split("\n").map((line) => {
@@ -107,6 +154,10 @@ function splitMarkdown(text) {
   };
 }
 
+/**
+ * @param {string} text
+ * @returns {{ code: Source, prose: Source }}
+ */
 function splitDiff(text) {
   const lines = text
     .split("\n")
@@ -115,6 +166,11 @@ function splitDiff(text) {
   return { code: added, prose: { text: "", lines: [] } };
 }
 
+/**
+ * @param {string} list
+ * @param {string | RegExp} separator
+ * @returns {NamedBinding[]}
+ */
 function parseNamed(list, separator) {
   return list
     .split(",")
@@ -128,6 +184,11 @@ function parseNamed(list, separator) {
     });
 }
 
+/**
+ * @param {string} clause
+ * @param {string} kind
+ * @returns {{ names: NamedBinding[], bound: string[] }}
+ */
 function parseClause(clause, kind) {
   const separator = kind === "require" ? ":" : /\s+as\s+/;
   const braces = clause.match(/\{([^}]*)\}/);
@@ -135,15 +196,20 @@ function parseClause(clause, kind) {
   const rest = clause.replace(/\{[^}]*\}/, "");
   const namespace = rest.match(/\*\s*as\s+([\w$]+)/)?.[1];
   const plain = rest.replace(/\*\s*as\s+[\w$]+/, "").match(/[\w$]+/)?.[0];
-  const unchecked = [plain, namespace].filter(Boolean);
+  const unchecked = [plain, namespace].filter(isText);
   return {
     names: named,
     bound: [...named.map((name) => name.local), ...unchecked],
   };
 }
 
+/**
+ * @param {Source} source
+ * @returns {{ imports: ImportStatement[], remaining: string }}
+ */
 function extractImports(source) {
   let text = source.text;
+  /** @type {(ImportStatement & { index: number })[]} */
   const found = [];
   for (const { kind, re, clauseless } of IMPORT_PATTERNS) {
     for (const match of text.matchAll(re)) {
@@ -171,6 +237,10 @@ function extractImports(source) {
   return { imports, remaining: text };
 }
 
+/**
+ * @param {string} code
+ * @returns {Set<string>}
+ */
 function declaredNames(code) {
   const names = [...code.matchAll(DECLARATION_RE)].map((match) => match[1]);
   const destructured = [...code.matchAll(DESTRUCTURING_RE)].flatMap((match) =>
@@ -179,6 +249,10 @@ function declaredNames(code) {
   return new Set([...names, ...destructured]);
 }
 
+/**
+ * @param {Source} prose
+ * @returns {ApiReference[]}
+ */
 function inlineReferences(prose) {
   const source = prose;
   return [...source.text.matchAll(INLINE_CODE_RE)]
@@ -193,6 +267,11 @@ function inlineReferences(prose) {
     }));
 }
 
+/**
+ * @param {Source} code
+ * @param {string} remaining
+ * @returns {ApiReference[]}
+ */
 function codeReferences(code, remaining) {
   return REFERENCE_PATTERNS.flatMap((re) =>
     [...remaining.matchAll(re)].map((match) => ({
@@ -202,7 +281,13 @@ function codeReferences(code, remaining) {
   );
 }
 
+/**
+ * @param {ApiReference[]} candidates
+ * @param {Set<string>} excluded
+ * @returns {ApiReference[]}
+ */
 function uniqueReferences(candidates, excluded) {
+  /** @type {Map<string, ApiReference>} */
   const seen = new Map();
   for (const candidate of candidates) {
     const keep =
@@ -225,6 +310,8 @@ function uniqueReferences(candidates, excluded) {
  *
  * `mode` is `diff` when the text is a unified diff (added lines only, imports
  * only) and `markdown` otherwise (code fences, inline code and imports).
+ * @param {string} text
+ * @returns {{ mode: string, imports: ImportStatement[], references: ApiReference[] }}
  */
 export function extractApiReferences(text) {
   const mode = DIFF_RE.test(text) ? "diff" : "markdown";

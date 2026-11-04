@@ -1,24 +1,58 @@
+/** @typedef {import("./executors.mjs").StoredExecutorRecord} StoredExecutorRecord */
+/** @typedef {import("./matrix.mjs").MatrixEntry} MatrixEntry */
+/** @typedef {import("./passbar.mjs").PassBar} PassBar */
+/** @typedef {import("./run-score.mjs").AnswerCaseResult} AnswerCaseResult */
+/** @typedef {import("./run-score.mjs").AnswerRun} AnswerRun */
+/** @typedef {import("./run-score.mjs").ModelResult} ModelResult */
+/** @typedef {import("./run-score.mjs").ScoredRun} ScoredRun */
+
+/**
+ * What the report states besides the scores: the skills the floors applied to
+ * and the lines of its Attention section.
+ * @typedef {object} ReportNotes
+ * @property {string[]} [touched]
+ * @property {string[]} [attention]
+ */
+
 const PERCENT = 100;
 const MAX_QUOTED_ANSWERS = 10;
 const MAX_QUOTED_LINES = 14;
 const FENCE = "~~~~";
 
+/**
+ * @param {number | undefined} value
+ * @returns {string}
+ */
 const pct = (value) =>
   value === undefined ? "-" : `${Math.round(value * PERCENT)}%`;
 
+/**
+ * @param {string[]} header
+ * @param {string[][]} rows
+ * @returns {string}
+ */
 function table(header, rows) {
+  /** @param {string[]} cells */
   const line = (cells) => `| ${cells.join(" | ")} |`;
   return [line(header), line(header.map(() => "---")), ...rows.map(line)].join(
     "\n",
   );
 }
 
+/**
+ * @param {number[]} values
+ * @returns {number | undefined}
+ */
 function mean(values) {
   return values.length
     ? values.reduce((sum, value) => sum + value, 0) / values.length
     : undefined;
 }
 
+/**
+ * @param {ModelResult} result
+ * @returns {string[]}
+ */
 function modelRow(result) {
   const scored = result.trigger.filter((item) => !item.skipped);
   const answered = result.answers;
@@ -42,6 +76,11 @@ function modelRow(result) {
   ];
 }
 
+/**
+ * @param {ScoredRun} scored
+ * @param {Record<string, StoredExecutorRecord>} records
+ * @returns {string[][]}
+ */
 function executorRows(scored, records) {
   return scored.models.map(({ model }) => {
     const record = records[model.id] ?? {};
@@ -58,6 +97,11 @@ function executorRows(scored, records) {
   });
 }
 
+/**
+ * @param {PassBar} bar
+ * @param {string[]} [touched]
+ * @returns {string[][]}
+ */
 function skillRows(bar, touched = []) {
   const names = [
     ...new Set(bar.perModel.flatMap(({ skills }) => Object.keys(skills))),
@@ -75,6 +119,10 @@ function skillRows(bar, touched = []) {
   ]);
 }
 
+/**
+ * @param {ScoredRun} scored
+ * @returns {string[]}
+ */
 function failingTriggers(scored) {
   return scored.models.flatMap(({ model, trigger }) =>
     trigger
@@ -86,6 +134,12 @@ function failingTriggers(scored) {
   );
 }
 
+/**
+ * @param {MatrixEntry} model
+ * @param {AnswerCaseResult} item
+ * @param {AnswerRun} run
+ * @returns {string}
+ */
 function quoteAnswer(model, item, run) {
   const reasons = [
     run.unknown?.length ? `unknown names: ${run.unknown.join(", ")}` : "",
@@ -109,6 +163,10 @@ function quoteAnswer(model, item, run) {
   ].join("\n");
 }
 
+/**
+ * @param {ScoredRun} scored
+ * @returns {string[]}
+ */
 function failingAnswers(scored) {
   const quotes = scored.models.flatMap(({ model, answers }) =>
     answers.flatMap((item) =>
@@ -124,6 +182,11 @@ function failingAnswers(scored) {
   ];
 }
 
+/**
+ * @param {string} title
+ * @param {string[]} body
+ * @returns {string[]}
+ */
 function section(title, body) {
   return body.length ? [`### ${title}`, "", ...body, ""] : [];
 }
@@ -132,6 +195,12 @@ function section(title, body) {
  * Renders the Eval report: verdict, corpus, executors, per-model scores, the
  * per-skill figures behind the floors, the failures and the failing answers
  * quoted.
+ * @param {object} report
+ * @param {ScoredRun} report.scored
+ * @param {PassBar} report.bar
+ * @param {Record<string, StoredExecutorRecord>} [report.records]
+ * @param {ReportNotes} [report.notes]
+ * @returns {string}
  */
 export function formatEvalReport({ scored, bar, records = {}, notes = {} }) {
   const { manifest } = scored;

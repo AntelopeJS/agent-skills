@@ -1,4 +1,80 @@
+/** @typedef {import("./seeded-agent.mjs").AgentTokens} AgentTokens */
+/** @typedef {import("./seeded-agent.mjs").SeededVerdict} SeededVerdict */
+/** @typedef {import("./seeded-cases.mjs").CaseKind} CaseKind */
+/** @typedef {import("./seeded-teardown.mjs").LeakedProcess} LeakedProcess */
+/** @typedef {import("./seeded-teardown.mjs").TeardownOutcome} TeardownOutcome */
+
+/** @typedef {"ok" | "wrong" | "error" | "interrupted"} CaseStatus */
+
+/**
+ * What a case came to, as far as judging it goes.
+ * @typedef {object} CaseOutcome
+ * @property {SeededVerdict} [verdict]
+ * @property {boolean} [interrupted]
+ * @property {string} [error]
+ */
+
+/**
+ * How a case was judged.
+ * @typedef {object} CaseJudgement
+ * @property {boolean} passed
+ * @property {CaseStatus} status
+ * @property {string | undefined} [why]
+ */
+
+/**
+ * One case's `result.json`: the judgement, what the run left and, for a case
+ * that ran, the agent's outcome, the commits and what the stop command found.
+ * @typedef {CaseJudgement & { id: string, kind: CaseKind, subject: string, verdict?: SeededVerdict, error?: string, wallMs?: number, costUsd?: number, durationMs?: number, turns?: number, tokens?: AgentTokens, models?: string[], timedOut?: boolean, interrupted?: boolean, baseSha?: string, headSha?: string, teardown?: TeardownOutcome, leaked?: LeakedProcess[], prompt?: string, at?: string }} CaseResult
+ */
+
+/**
+ * The cases of one kind that were judged, the share caught and the ones missed.
+ * @typedef {object} CaseRate
+ * @property {number} total
+ * @property {number} caught
+ * @property {number | undefined} rate
+ * @property {string[]} missed
+ */
+
+/**
+ * The catch rate of the breaks whose touched head does not FAIL, and the breaks whose touched head FAILs too.
+ * @typedef {CaseRate & { indistinct: string[] }} Separation
+ */
+
+/**
+ * @typedef {object} SeededSummary
+ * @property {CaseRate} breaks
+ * @property {CaseRate} doors
+ * @property {CaseRate} control
+ * @property {CaseRate} touched
+ * @property {Separation} separated
+ * @property {string[]} interrupted
+ * @property {string[]} failures
+ * @property {boolean} passed
+ */
+
+/**
+ * The gates of a run, each a ratio between 0 and 1.
+ * @typedef {object} SeededGates
+ * @property {number} [minCatch]
+ * @property {number} [minDoorCatch]
+ * @property {number} [minClean]
+ */
+
+/**
+ * @typedef {object} SeededTotals
+ * @property {number} cases
+ * @property {number} costUsd
+ * @property {number} wallMs
+ * @property {number} inputTokens
+ * @property {number} outputTokens
+ * @property {number} cacheReadTokens
+ * @property {number} cacheWriteTokens
+ */
+
 const PERCENT = 100;
+/** @type {Record<CaseKind, string>} */
 const OK_LABELS = {
   break: "caught",
   door: "caught",
@@ -8,6 +84,11 @@ const OK_LABELS = {
 const COST_DIGITS = 2;
 const SECONDS = 1000;
 
+/**
+ * @param {string} entry
+ * @param {string} feature
+ * @returns {boolean}
+ */
 const ofFeature = (entry, feature) =>
   entry.toLowerCase() === feature.toLowerCase() ||
   entry.toLowerCase().startsWith(`${feature.toLowerCase()}/`);
@@ -19,12 +100,20 @@ const ofFeature = (entry, feature) =>
  * One-way doors section names its kind; the unpatched head passes when the
  * verdict is not FAIL. A case with no verdict is an error and counts as missed;
  * an interrupted case is neither caught nor missed.
+ * @param {{ kind: CaseKind, subject: string }} item
+ * @param {CaseOutcome} outcome
+ * @returns {CaseJudgement}
  */
 export function judgeCase(item, outcome) {
   const { verdict } = outcome;
   if (outcome.interrupted)
     return { passed: false, status: "interrupted", why: outcome.error };
   if (!verdict) return { passed: false, status: "error", why: outcome.error };
+  /**
+   * @param {string[]} names
+   * @param {string} wanted
+   * @returns {boolean}
+   */
   const named = (names, wanted) =>
     names.some((name) => name.toLowerCase() === wanted.toLowerCase());
   const falseAlarm = () =>
@@ -65,25 +154,47 @@ export function judgeCase(item, outcome) {
  * it did not FAIL; with neither, an unnamed journey (a bare feature entry) or a
  * verdict written before `passed` existed, the break keeps its strict
  * judgement.
+ * @param {CaseResult[]} results
+ * @returns {CaseResult[]}
  */
 export function excuseControlGaps(results) {
+  /**
+   * @param {string[] | undefined} entries
+   * @returns {string[]}
+   */
   const lower = (entries) =>
     (entries ?? []).map((entry) => entry.toLowerCase());
+  /**
+   * @param {string} entry
+   * @param {string} feature
+   * @returns {boolean}
+   */
   const journeyOf = (entry, feature) =>
     entry.toLowerCase().startsWith(`${feature.toLowerCase()}/`);
+  /**
+   * @param {SeededVerdict | undefined} verdict
+   * @param {string} feature
+   * @returns {boolean}
+   */
   const covers = (verdict, feature) =>
     Array.isArray(verdict?.passed) &&
     [...verdict.passed, ...(verdict.notRun ?? [])].some((entry) =>
       journeyOf(entry, feature),
     );
   const control = results.find((result) => result.kind === "control");
+  /**
+   * @param {string} feature
+   * @returns {SeededVerdict | undefined}
+   */
   const baselineOf = (feature) => {
-    if (covers(control?.verdict, feature)) return control.verdict;
+    const controlVerdict = control?.verdict;
+    if (covers(controlVerdict, feature)) return controlVerdict;
     const twin = results.find(
       (result) => result.kind === "touched" && result.subject === feature,
     );
-    return twin?.verdict?.result !== "FAIL" && covers(twin?.verdict, feature)
-      ? twin.verdict
+    const twinVerdict = twin?.verdict;
+    return twinVerdict?.result !== "FAIL" && covers(twinVerdict, feature)
+      ? twinVerdict
       : undefined;
   };
   return results.map((result) => {
@@ -118,6 +229,11 @@ export function excuseControlGaps(results) {
   });
 }
 
+/**
+ * @param {CaseResult[]} results
+ * @param {CaseKind} kind
+ * @returns {CaseRate}
+ */
 function rate(results, kind) {
   const of = results.filter(
     (result) => result.kind === kind && result.status !== "interrupted",
@@ -132,6 +248,10 @@ function rate(results, kind) {
   };
 }
 
+/**
+ * @param {CaseResult[]} all
+ * @returns {Separation}
+ */
 function separation(all) {
   const results = all.filter((result) => result.status !== "interrupted");
   const twins = new Map(
@@ -141,6 +261,10 @@ function separation(all) {
   );
   const breaks = results.filter((result) => result.kind === "break");
   const withTwin = breaks.filter((item) => twins.has(item.subject));
+  /**
+   * @param {CaseResult} item
+   * @returns {boolean}
+   */
   const failing = (item) => {
     const twin = twins.get(item.subject);
     return twin.status === "wrong" && !twin.passed;
@@ -164,6 +288,9 @@ function separation(all) {
  * false alarm) or never finished fails the run whatever the gates. A touched
  * head gates only under `minClean`: a feature with known findings fails its
  * verdict by the skill's own rule whenever a diff touches it.
+ * @param {CaseResult[]} results
+ * @param {SeededGates} [gates]
+ * @returns {SeededSummary}
  */
 export function summarizeSeeded(
   results,
@@ -212,15 +339,31 @@ export function summarizeSeeded(
   };
 }
 
+/**
+ * @param {number | undefined} ratio
+ * @returns {string}
+ */
 function format(ratio) {
   return ratio === undefined ? "n/a" : `${(ratio * PERCENT).toFixed(0)}%`;
 }
 
+/**
+ * @param {CaseRate} rates
+ * @returns {string}
+ */
 function fraction({ caught, total, rate: value }) {
   return total ? `${caught}/${total} (${format(value)})` : "none ran";
 }
 
+/**
+ * @param {CaseResult[]} results
+ * @returns {SeededTotals}
+ */
 export function totals(results) {
+  /**
+   * @param {(result: CaseResult) => number | undefined} pick
+   * @returns {number}
+   */
   const sum = (pick) =>
     results.reduce((total, result) => total + (pick(result) ?? 0), 0);
   return {
@@ -234,14 +377,34 @@ export function totals(results) {
   };
 }
 
+/**
+ * @param {number | undefined} ms
+ * @returns {string}
+ */
 const minutes = (ms) => `${(ms / SECONDS / 60).toFixed(1)} min`;
+/**
+ * @param {number | undefined} value
+ * @returns {string}
+ */
 const dollars = (value) =>
   value === undefined ? "n/a" : `$${value.toFixed(COST_DIGITS)}`;
 
-/** The table, rates and cost of a run, as Markdown. */
+/**
+ * The table, rates and cost of a run, as Markdown.
+ * @param {{ repo: string, skill: string, model: string, results: CaseResult[], summary: SeededSummary }} report
+ * @returns {string}
+ */
 export function formatSeeded({ repo, skill, model, results, summary }) {
   const sum = totals(results);
+  /**
+   * @param {number} value
+   * @returns {number}
+   */
   const mean = (value) => (results.length ? value / results.length : 0);
+  /**
+   * @param {CaseResult} result
+   * @returns {string}
+   */
   const outcome = (result) => {
     if (result.status === "interrupted") return "INTERRUPTED";
     if (result.status === "error") return "ERROR";
