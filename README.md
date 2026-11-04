@@ -6,7 +6,11 @@
 <a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
 <a href="https://dms.antelopejs.com/docs/ai-and-claude-code/overview"><img alt="Docs" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
 
+[Docs](https://dms.antelopejs.com/docs/ai-and-claude-code/overview) · [Install](#install) · [AntelopeJS DMS](https://github.com/AntelopeJS/dms) · [Discord](https://discord.gg/g4pFt6eXqu)
+
 </div>
+
+![Screen recording from the AntelopeJS DMS film. A dashboard page is written as a TypeScript class under the caption Code. Your editor. Your repo., edited on the page with Ctrl B, then described to the assistant running Claude Code under the caption Or describe it. A git diff then shows the hand-written line, the Builder line and the assistant line in the same dashboard/page.ts under the caption One codebase. No export step.](./.github/assets/three-ways.gif)
 
 Tools for coding agents building with [AntelopeJS](https://github.com/AntelopeJS) — the Node.js framework where a tight core + `ajs` CLI orchestrate modules that communicate **only** through versioned _interface_ contracts — and with the AntelopeJS DMS. Every skill ships inside an npm package (the framework skills in `@antelopejs/core`, the DMS suite in `@antelopejs/dms`, one per module or interface); this plugin syncs them into your project, resolves interface contracts live, and adds four skills of its own.
 
