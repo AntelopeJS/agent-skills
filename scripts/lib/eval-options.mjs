@@ -60,21 +60,6 @@ export const OPTIONS = {
   touched: TEXT,
   "new-cases": TEXT,
   report: FLAG,
-  repo: TEXT,
-  skill: TEXT,
-  ref: TEXT,
-  effort: TEXT,
-  setup: TEXT,
-  scratch: TEXT,
-  "keep-scratch": FLAG,
-  resume: FLAG,
-  "pass-env": TEXT,
-  "cache-home": TEXT,
-  teardown: TEXT,
-  "max-budget": TEXT,
-  "min-catch": TEXT,
-  "min-door-catch": TEXT,
-  "min-clean": TEXT,
   help: HELP,
 };
 
@@ -96,7 +81,6 @@ export const USAGE = `Usage: evals [trigger|answers] [options]
        evals exec <dir> [options]
        evals score <dir> [options]
        evals lift <dir-with-skills> <dir-without-skills>
-       evals seeded --repo <checkout> [options]
        evals check [options]
 
 Corpus (default: the current directory as a project):
@@ -149,34 +133,6 @@ score: reads the answer files, checks them and applies the pass bar
   --offline              verify without fetching interface packages from npm
   --report               print the Markdown Eval report
   --json                 machine-readable result
-
-seeded: a headless verifier must catch the repo's seeded breaks and doors (see the README)
-  --repo <dir>           the checkout; its .agents/skills/verify-<repo>/ holds the skill and the patches
-  --skill <name>         the verification skill when the checkout has several
-  --ref <rev>            the revision of the checkout to verify (default: HEAD)
-  --modes <a,b>          breaks, doors, control, touched (default: all but touched)
-  --only <id,id>         break-<feature>, door-<kind>, control or touched-<feature>
-  --min-catch <0-1>      fail under this share of breaks caught (the gate is 1)
-  --min-door-catch <0-1> fail under this share of doors named (the gate is 1)
-  --min-clean <0-1>      fail under this share of touched heads that do not FAIL (report only without it)
-  --model <id>           the verifier's model (default: claude-sonnet-5-5)
-  --effort <level>       its reasoning effort (default: medium)
-  --max-budget <usd>     cost cap per case (default: 5)
-  --timeout <seconds>    wall-time cap per case (default: 1800)
-  --jobs <n>             cases at once (default: 3)
-  --setup <command>      run in each scratch checkout before the change is applied
-                         (default: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts)
-  --teardown <command>   run after each case in the scratch checkout with $SEEDED_RUNS set to the case's private
-                         temporary folder, to stop the runs the harness started (default: the known
-                         harness's own stop command, e.g. dms-control down)
-  --pass-env <a,b>       environment variables the verifier may also see
-  --cache-home <dir>     the verifier's XDG cache (default: the caller's); a dedicated one keeps
-                         other sessions out of the skill's warm store, and the first case warms it
-  --out <dir>            one result.json per case, summary.json and report.md
-  --resume               skip the cases of --out that already have a result
-  --scratch <dir>        where scratch checkouts go (default: the temp directory)
-  --keep-scratch         keep each scratch checkout and record its path
-  --claude-bin <path>    the claude CLI (default: claude)
 
 check: validates every case file and, for the skills of the selected corpus, the case minimum
 `;
