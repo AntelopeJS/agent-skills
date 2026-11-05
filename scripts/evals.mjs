@@ -39,7 +39,6 @@ import {
 import { verifyText } from "./lib/verify.mjs";
 import { fieldOf } from "./lib/safe-read.mjs";
 import { isCallable, isRecord } from "./lib/values.mjs";
-import { seeded } from "./lib/seeded-command.mjs";
 
 /** @typedef {import("./lib/corpus.mjs").Skill} Skill */
 /** @typedef {import("./lib/dataset.mjs").EvalCase} EvalCase */
@@ -67,7 +66,7 @@ import { seeded } from "./lib/seeded-command.mjs";
  */
 
 /** @type {Record<string, CommandHandler>} */
-const COMMAND_HANDLERS = { prepare, exec, score, check, lift, seeded };
+const COMMAND_HANDLERS = { prepare, exec, score, check, lift };
 /** @type {Record<string, string>} */
 const DEFAULT_BACKENDS = {
   trigger: BACKENDS.baseline,
