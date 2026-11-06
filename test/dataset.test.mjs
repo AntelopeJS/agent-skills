@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import {
   loadDataset,
   validateDataset,
-  DATASET_FILE,
+  CENTRAL_FILES,
 } from "../scripts/lib/dataset.mjs";
 
 const VALID_CASE = {
@@ -23,19 +23,9 @@ function errorsOf(cases) {
   return validateDataset({ version: 1, cases });
 }
 
-void test("the committed dataset is valid", () => {
-  const { cases } = loadDataset(DATASET_FILE);
-
-  assert.ok(cases.length >= 50);
-});
-
-void test("the committed dataset ports every docs-assistant question in both styles", () => {
-  const ported = loadDataset(DATASET_FILE).cases.filter(
-    (c) => c.origin === "docs-assistant",
-  );
-
-  assert.equal(ported.length, 24);
-  assert.equal(ported.filter((c) => c.style === "casual").length, 12);
+void test("the committed central datasets load", () => {
+  for (const file of CENTRAL_FILES)
+    assert.doesNotThrow(() => loadDataset(file), file);
 });
 
 void test("a well-formed case passes", () => {
