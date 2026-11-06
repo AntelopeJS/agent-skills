@@ -21,6 +21,7 @@ jobs:
         README.md
         packages/agent-skills/README.md
       renovate-sync: false
+      test-job: true
     permissions:
       contents: read
   renovate-sync:
