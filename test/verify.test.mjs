@@ -244,3 +244,25 @@ void test("survives export * cycles between declaration files", async () => {
 
   assert.deepEqual(unknownNames(report), ["C1"]);
 });
+
+void test("reads a package whose exports is null from its types field", async () => {
+  const dir = join(project, "node_modules", "@antelopejs", "null-exports");
+  writeJson(join(dir, "package.json"), {
+    name: "@antelopejs/null-exports",
+    exports: null,
+    main: "./dist/index.js",
+    types: "./dist/index.d.ts",
+  });
+  writeFile(
+    join(dir, "dist", "index.d.ts"),
+    "export declare const NullExported: 1;\n",
+  );
+
+  const imported = await verify(
+    `${fence}\nimport { NullExported, Missing } from "@antelopejs/null-exports";\n${fence}`,
+  );
+  const referenced = await verify("Read it from `NullExported`.");
+
+  assert.deepEqual(unknownNames(imported), ["Missing"]);
+  assert.deepEqual(referenced.findings, []);
+});

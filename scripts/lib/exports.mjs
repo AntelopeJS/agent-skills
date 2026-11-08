@@ -146,7 +146,7 @@ function resolverPackageDir(context, name) {
  */
 function exportsMap(exports) {
   if (
-    (exports === null || isRecord(exports)) &&
+    isRecord(exports) &&
     !Array.isArray(exports) &&
     Object.keys(exports).every((key) => key.startsWith("."))
   )
@@ -274,7 +274,7 @@ function expandPattern(dir, key, target) {
  * @returns {{ dts?: string | null, missing?: boolean }}
  */
 export function entryDts(dir, pkg, subpath) {
-  if (pkg.exports === undefined) return { dts: legacyEntry(dir, pkg, subpath) };
+  if (pkg.exports == null) return { dts: legacyEntry(dir, pkg, subpath) };
   const map = exportsMap(pkg.exports);
   const key = subpath ? `./${subpath}` : ".";
   const target = Object.hasOwn(map, key)
@@ -472,7 +472,7 @@ export class ModuleResolver {
   packageSpecifiers(name) {
     const entry = this.#packageEntry(name);
     if (!entry) return [];
-    if (entry.pkg.exports === undefined) return [name];
+    if (entry.pkg.exports == null) return [name];
     return Object.entries(exportsMap(entry.pkg.exports))
       .filter(([key]) => key !== "./package.json")
       .flatMap(([key, target]) =>
