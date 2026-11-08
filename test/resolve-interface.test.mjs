@@ -97,10 +97,11 @@ void test("list includes locally installed interfaces when offline", () => {
 });
 
 /**
- * @param {string} wildcard The `./*` export of an installed interface package.
+ * @param {string} subpath An `exports` key of an installed interface package.
+ * @param {unknown} target The export that key maps to.
  * @returns {string[]} The import paths `show` lists for it.
  */
-function showWildcardPackage(wildcard) {
+function showPackageExport(subpath, target) {
   const root = makeTempDir();
   try {
     writeJson(join(root, "package.json"), {
@@ -113,7 +114,7 @@ function showWildcardPackage(wildcard) {
       version: "1.0.0",
       exports: {
         ".": { types: "./dist/index.d.ts" },
-        "./*": wildcard,
+        [subpath]: target,
       },
     });
     writeFile(
@@ -141,7 +142,7 @@ function showWildcardPackage(wildcard) {
 }
 
 void test("show lists the files behind a wildcard export whose types is a string", () => {
-  assert.deepEqual(showWildcardPackage({ types: "./dist/*.d.ts" }), [
+  assert.deepEqual(showPackageExport("./*", { types: "./dist/*.d.ts" }), [
     "@acme/interface-wild",
     "@acme/interface-wild/extras",
   ]);
@@ -149,8 +150,17 @@ void test("show lists the files behind a wildcard export whose types is a string
 
 void test("show reads a wildcard export whose types is a conditions object", () => {
   assert.deepEqual(
-    showWildcardPackage({
+    showPackageExport("./*", {
       types: { import: "./dist/*.d.mts", require: "./dist/*.d.cts" },
+    }),
+    ["@acme/interface-wild", "@acme/interface-wild/extras"],
+  );
+});
+
+void test("show reads an explicit subpath export whose types is a conditions object", () => {
+  assert.deepEqual(
+    showPackageExport("./extras", {
+      types: { import: "./dist/extras.d.ts" },
     }),
     ["@acme/interface-wild", "@acme/interface-wild/extras"],
   );
