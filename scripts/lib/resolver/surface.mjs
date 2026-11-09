@@ -32,7 +32,7 @@ function dtsForTarget(dir, target) {
   /** @type {unknown} */
   let rel = null;
   if (Array.isArray(target)) rel = target[0];
-  else if (isRecord(target)) rel = target.types;
+  else if (isRecord(target)) rel = typesTarget(target.types);
   else if (isText(target)) rel = target;
   if (!rel) return null;
   const resolved = join(dir, rel);
