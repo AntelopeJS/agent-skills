@@ -1,6 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { join } from "node:path";
+import { chmodSync } from "node:fs";
+import { delimiter, join } from "node:path";
 
 import {
   makeTempDir,
@@ -164,4 +165,78 @@ void test("show reads an explicit subpath export whose types is a conditions obj
     }),
     ["@acme/interface-wild", "@acme/interface-wild/extras"],
   );
+});
+
+/**
+ * Runs the resolver with an `npm` on PATH that answers one `npm view` of
+ * `@acme/interface-payments` and fails any other or later call.
+ * @param {string[]} args
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {string}
+ */
+function runWithOneNpmView(args, env = {}) {
+  const bin = makeTempDir();
+  try {
+    const npm = join(bin, "npm");
+    writeFile(
+      npm,
+      [
+        "#!/bin/sh",
+        'if [ -e "$0.called" ]; then echo "npm error second call" >&2; exit 1; fi',
+        'touch "$0.called"',
+        'if [ "$*" = "view @acme/interface-payments versions dist-tags --json" ]; then',
+        '  echo \'{"versions":["1.0.0","1.2.0"],"dist-tags":{"latest":"1.2.0"}}\'',
+        "else",
+        '  echo "npm error unexpected arguments: $*" >&2; exit 1',
+        "fi",
+      ].join("\n"),
+    );
+    chmodSync(npm, 0o755);
+    return runScript(SCRIPT, project, args, {
+      ...process.env,
+      ...env,
+      PATH: `${bin}${delimiter}${process.env.PATH}`,
+    });
+  } finally {
+    removeDir(bin);
+  }
+}
+
+void test("versions lists the published versions and latest from a single npm call", () => {
+  const output = runWithOneNpmView(["versions", "@acme/interface-payments"]);
+
+  assert.equal(
+    output,
+    "installed: v1.2.0\nlatest:    v1.2.0\nv1.2.0\nv1.0.0\n",
+  );
+});
+
+void test("show of a registry copy picks the version and lists versions from a single npm call", () => {
+  const cache = makeTempDir();
+  try {
+    writeJson(
+      join(
+        cache,
+        "acme__interface-payments",
+        "1.2.0",
+        "package",
+        "package.json",
+      ),
+      { name: "@acme/interface-payments", version: "1.2.0" },
+    );
+
+    const shown = parseJson(
+      runWithOneNpmView(
+        ["show", "@acme/interface-payments", "--remote", "--json"],
+        { AJS_RESOLVER_CACHE: cache },
+      ),
+    );
+
+    if (!isRecord(shown)) assert.fail("show printed no object");
+    assert.equal(shown.source, "npm");
+    assert.equal(shown.latest, "1.2.0");
+    assert.deepEqual(shown.availableVersions, ["1.2.0", "1.0.0"]);
+  } finally {
+    removeDir(cache);
+  }
 });

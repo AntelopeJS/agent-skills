@@ -118,14 +118,16 @@ export function writeAntelopeConfig(dir) {
  * @param {string} script
  * @param {string} cwd
  * @param {string[]} [args]
+ * @param {NodeJS.ProcessEnv} [env]
  * @returns {string}
  */
-export function runScript(script, cwd, args = []) {
+export function runScript(script, cwd, args = [], env = process.env) {
   const stdout = execFileSync(
     process.execPath,
     [join(SCRIPTS_DIR, script), ...args],
     {
       cwd,
+      env,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     },
