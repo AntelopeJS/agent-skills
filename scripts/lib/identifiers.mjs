@@ -113,12 +113,23 @@ function blank(text) {
 }
 
 /**
+ * Maps an offset in `source.text` to the line it came from.
  * @param {Source} source
- * @param {number} index
- * @returns {number}
+ * @returns {(index: number) => number}
  */
-function lineAt(source, index) {
-  return source.lines[source.text.slice(0, index).split("\n").length - 1];
+function lineFinder(source) {
+  const starts = [0];
+  for (const match of source.text.matchAll(/\n/g)) starts.push(match.index + 1);
+  return (index) => {
+    let low = 0;
+    let high = starts.length - 1;
+    while (low < high) {
+      const middle = Math.ceil((low + high) / 2);
+      if (starts[middle] <= index) low = middle;
+      else high = middle - 1;
+    }
+    return source.lines[low];
+  };
 }
 
 /**
@@ -208,12 +219,13 @@ function parseClause(clause, kind) {
  * @returns {{ imports: ImportStatement[], remaining: string }}
  */
 function extractImports(source) {
+  const lineAt = lineFinder(source);
   let text = source.text;
   /** @type {(ImportStatement & { index: number })[]} */
   const found = [];
   for (const { kind, re, clauseless } of IMPORT_PATTERNS) {
     for (const match of text.matchAll(re)) {
-      const [statement, first, second] = match;
+      const [, first, second] = match;
       const specifier = clauseless ? first : second;
       const parsed = clauseless
         ? { names: [], bound: [] }
@@ -222,14 +234,11 @@ function extractImports(source) {
         index: match.index,
         specifier,
         kind,
-        line: lineAt(source, match.index),
+        line: lineAt(match.index),
         ...parsed,
       });
-      text =
-        text.slice(0, match.index) +
-        blank(statement) +
-        text.slice(match.index + statement.length);
     }
+    text = text.replace(re, blank);
   }
   const imports = found
     .sort((left, right) => left.index - right.index)
@@ -254,8 +263,8 @@ function declaredNames(code) {
  * @returns {ApiReference[]}
  */
 function inlineReferences(prose) {
-  const source = prose;
-  return [...source.text.matchAll(INLINE_CODE_RE)]
+  const lineAt = lineFinder(prose);
+  return [...prose.text.matchAll(INLINE_CODE_RE)]
     .map((match) => ({
       term: match[1].trim().replace(/\(.*\)$/, ""),
       index: match.index,
@@ -263,7 +272,7 @@ function inlineReferences(prose) {
     .filter(({ term }) => INLINE_IDENTIFIER_RE.test(term))
     .map(({ term, index }) => ({
       name: term.replace(/^@/, "").split(".")[0],
-      line: lineAt(source, index),
+      line: lineAt(index),
     }));
 }
 
@@ -273,10 +282,11 @@ function inlineReferences(prose) {
  * @returns {ApiReference[]}
  */
 function codeReferences(code, remaining) {
+  const lineAt = lineFinder(code);
   return REFERENCE_PATTERNS.flatMap((re) =>
     [...remaining.matchAll(re)].map((match) => ({
       name: match[1],
-      line: lineAt(code, match.index),
+      line: lineAt(match.index),
     })),
   );
 }

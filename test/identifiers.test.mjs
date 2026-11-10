@@ -110,6 +110,31 @@ void test("a diff contributes only its added lines and only its imports", () => 
   assert.deepEqual(result.references, []);
 });
 
+void test("reports the diff line of each import added at the start of a line", () => {
+  const diff = [
+    "diff --git a/src/page.ts b/src/page.ts",
+    "--- a/src/page.ts",
+    "+++ b/src/page.ts",
+    "@@ -1,3 +1,5 @@",
+    "+const first = 1;",
+    '+import { A1b } from "pkg-a";',
+    '-import { Old } from "pkg-old";',
+    "+const middle = 2;",
+    '+import { B2c } from "pkg-b";',
+  ].join("\n");
+
+  assert.deepEqual(
+    extractApiReferences(diff).imports.map((entry) => [
+      entry.specifier,
+      entry.line,
+    ]),
+    [
+      ["pkg-a", 6],
+      ["pkg-b", 9],
+    ],
+  );
+});
+
 void test("reports the line of each finding in the original text", () => {
   const answer = [
     "intro",
