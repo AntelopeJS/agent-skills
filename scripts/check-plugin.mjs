@@ -29,9 +29,9 @@ const TEXT_FILE_RE = /\.(?:md|json|mjs|cjs|js|ts|sh|ya?ml|toml|txt)$/;
 const PLUGIN_SKILLS = ["interface", "new-module", "skills", "sync-skills"];
 const TOOL_SPECIFIC_RE = /\$ARGUMENTS|\$\d|\$\{(?:CLAUDE_)?PLUGIN_ROOT\}/;
 const FRONTMATTER_LINES_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
-const ALLOWED_TOOLS_KEY = "allowed-tools:";
-const YAML_KEY_RE = /^[A-Za-z0-9_-]+:/;
-const RULE_LINE_RE = /^ {2}- (?:'([^'#]+)'|([^\s'"#][^'"#]*[^\s'"#]))$/;
+const ALLOWED_TOOLS_KEY = "allowed-tools";
+const TOP_LEVEL_KEY_RE = /^([A-Za-z0-9_-]+):(?: (.*))?$/;
+const RULE_LINE_RE = /^ {2}- (?:'(Bash\([^'#]+\))'|(Bash\([^'"#]+\)))$/;
 const BASH_RULE_RE = /^Bash\((.*)\)$/;
 const ARGS = String.raw`(?: [^"'\`$;&|<>()]+)?`;
 const SCRIPT_RULE_RE = new RegExp(
@@ -40,31 +40,8 @@ const SCRIPT_RULE_RE = new RegExp(
 const PROGRAM_RULE_RE = new RegExp(
   String.raw`^([a-z][\w-]*) [a-z][\w-]*${ARGS}$`,
 );
-/** Programs that run whatever code their arguments hold, so no rule may name them by subcommand. */
-const INTERPRETERS = new Set([
-  "bash",
-  "bun",
-  "bunx",
-  "deno",
-  "env",
-  "eval",
-  "exec",
-  "node",
-  "npm",
-  "npx",
-  "perl",
-  "pipx",
-  "pnpm",
-  "python",
-  "python3",
-  "ruby",
-  "sh",
-  "uv",
-  "uvx",
-  "xargs",
-  "yarn",
-  "zsh",
-]);
+/** The programs whose subcommands a skill may pre-approve: the CLIs the skills drive, none of which runs arbitrary code. */
+const ALLOWED_PROGRAMS = new Set(["ajs"]);
 const LAUNCHER_RE =
   /(?:^|[\s`"'(])(npx|bunx|uvx|pnpm dlx|yarn dlx|pipx run|uv run)\s/m;
 const USAGE = `Usage: check-plugin [dir]
@@ -163,9 +140,11 @@ function checkMarketplaces(root, failures) {
 }
 
 /**
- * Reads the allowed-tools rules in the one form this check accepts: a block
- * list, one rule per `  - ` line, no comments or blank lines, so a rule a YAML
- * parser would read can never be skipped here.
+ * Reads the allowed-tools rules in the one form this check accepts, and every
+ * other frontmatter line it cannot place: each top-level line is a bare
+ * `key:` or `key: value`, and allowed-tools is a block list of `  - Bash(…)`
+ * lines with no comment or blank line. A rule a YAML parser would read can
+ * therefore never be skipped here.
  * @param {string} text
  * @returns {{ rules: string[], unreadable: string[] }}
  */
@@ -177,14 +156,16 @@ function readAllowedTools(text) {
   const unreadable = [];
   let inList = false;
   for (const line of lines) {
-    if (YAML_KEY_RE.test(line)) {
-      inList = line.startsWith(ALLOWED_TOOLS_KEY);
-      if (inList && line.slice(ALLOWED_TOOLS_KEY.length).trim() !== "")
-        unreadable.push(line);
-      continue;
+    if (inList || !/^\s|^$/.test(line)) {
+      const key = line.match(TOP_LEVEL_KEY_RE);
+      if (key) {
+        inList = key[1] === ALLOWED_TOOLS_KEY;
+        if (inList && (key[2] ?? "").trim() !== "") unreadable.push(line);
+        continue;
+      }
     }
-    if (!inList) continue;
-    const item = line.match(RULE_LINE_RE);
+    if (!inList && /^\s|^$/.test(line)) continue;
+    const item = inList ? line.match(RULE_LINE_RE) : null;
     if (item) rules.push(item[1] ?? item[2]);
     else unreadable.push(line);
   }
@@ -194,15 +175,13 @@ function readAllowedTools(text) {
 /**
  * @param {string} root
  * @param {string} rule
- * @returns {boolean} whether the rule names one command of the plugin or one subcommand of a program
+ * @returns {boolean} whether the rule names one command of the plugin or one subcommand of a CLI the skills drive
  */
 function isExactRule(root, rule) {
-  const bash = rule.match(BASH_RULE_RE);
-  if (!bash) return !rule.startsWith("Bash");
-  const script = bash[1].match(SCRIPT_RULE_RE);
+  const command = rule.match(BASH_RULE_RE)?.[1] ?? "";
+  const script = command.match(SCRIPT_RULE_RE);
   if (script) return existsSync(join(root, PLUGIN_DIR, "scripts", script[1]));
-  const program = bash[1].match(PROGRAM_RULE_RE);
-  return Boolean(program) && !INTERPRETERS.has(program?.[1] ?? "");
+  return ALLOWED_PROGRAMS.has(command.match(PROGRAM_RULE_RE)?.[1] ?? "");
 }
 
 /**
@@ -215,11 +194,11 @@ function checkAllowedTools(root, path, text, failures) {
   const { rules, unreadable } = readAllowedTools(text);
   for (const line of unreadable)
     failures.push(
-      `${path}: allowed-tools line ${JSON.stringify(line)} is not a "  - <rule>" item; write one rule per line, with no comment or blank line.`,
+      `${path}: frontmatter line ${JSON.stringify(line)} is not a bare "key: value" or, under allowed-tools, a "  - Bash(<rule>)" item; write one rule per line, with no comment, blank line, tag or anchor.`,
     );
   for (const rule of rules.filter((entry) => !isExactRule(root, entry)))
     failures.push(
-      `${path}: allowed-tools "${rule}" pre-approves more than one command; name a plugin script (Bash(node "\${CLAUDE_SKILL_DIR}/../../scripts/x.mjs" show *)) or a program's subcommand (Bash(ajs module init *)).`,
+      `${path}: allowed-tools "${rule}" pre-approves more than one command; name a plugin script (Bash(node "\${CLAUDE_SKILL_DIR}/../../scripts/x.mjs" show *)) or a subcommand of ${[...ALLOWED_PROGRAMS].join(", ")} (Bash(ajs module init *)).`,
     );
 }
 

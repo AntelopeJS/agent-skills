@@ -161,7 +161,6 @@ for (const placeholder of ["$ARGUMENTS", "$1", "${CLAUDE_PLUGIN_ROOT}"]) {
 const list = (rule) => `\n  - '${rule}'`;
 
 for (const rule of [
-  "Bash",
   "Bash(node:*)",
   "Bash(pnpm *)",
   "Bash(*)",
@@ -172,6 +171,11 @@ for (const rule of [
   'Bash(node "${CLAUDE_SKILL_DIR}/../../scripts/../../x.mjs" *)',
   'Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/missing.mjs" *)',
   'Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/sync-skills.mjs"; rm -rf *)',
+  "Bash(sudo sh *)",
+  "Bash(busybox sh *)",
+  "Bash(nice bash *)",
+  "Bash(nohup node *)",
+  "Bash(find src *)",
 ]) {
   void test(`fails on allowed-tools ${rule}, which pre-approves more than one command`, () => {
     writeSkill("interface", "Resolve.", { allowedTools: list(rule) });
@@ -185,10 +189,29 @@ for (const [name, allowedTools] of Object.entries({
   "a comment line":
     "\n  - Bash(ajs module init *)\n  # debug\n  - Bash(node:*)",
   "a blank line": "\n  - Bash(ajs module init *)\n\n  - Bash(node:*)",
+  "a tag": "\n  - !!str Bash(*)",
+  "an anchor": "\n  - &a Bash(*)",
+  "another tool": "\n  - PowerShell(*)",
+  "a bare Bash": "\n  - Bash",
 })) {
   void test(`fails on allowed-tools written with ${name}, where a YAML parser could read a rule this check skips`, () => {
     writeSkill("interface", "Resolve.", { allowedTools });
-    assertFails("interface/SKILL\\.md: allowed-tools line .* is not a");
+    assertFails("interface/SKILL\\.md: frontmatter line .* is not a");
+  });
+}
+
+for (const [name, key] of Object.entries({
+  "a double-quoted key": '"allowed-tools":',
+  "a single-quoted key": "'allowed-tools':",
+  "a space before the colon": "allowed-tools :",
+  "an explicit key": "? allowed-tools\n:",
+})) {
+  void test(`fails on allowed-tools spelled with ${name}, which hides its rules from a line-based reader`, () => {
+    writeFile(
+      join(plugin, "skills", "interface", "SKILL.md"),
+      `---\nname: interface\ndescription: Does interface.\n${key}\n  - Bash(*)\n---\nResolve.\n`,
+    );
+    assertFails("interface/SKILL\\.md: frontmatter line ");
   });
 }
 
