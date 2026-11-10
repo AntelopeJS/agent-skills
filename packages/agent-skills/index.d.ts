@@ -49,7 +49,8 @@ export interface CollectSkillPackagesInput {
 /**
  * Collects the packages that ship agent skills, in priority order, one per
  * package name: modules (installed interface implementations included), then
- * their dependencies, then the project's dependencies, then `installed`. The first candidate to carry a name keeps it.
+ * their dependencies, then the project's dependencies, then `installed`. The
+ * first candidate to carry a name keeps it.
  * Only packages with at least one skill directory are returned.
  */
 export function collectSkillPackages(
