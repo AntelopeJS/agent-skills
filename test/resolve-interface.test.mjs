@@ -167,7 +167,14 @@ void test("show reads an explicit subpath export whose types is a conditions obj
   );
 });
 
-void test("versions lists the published versions and latest from a single npm call", () => {
+/**
+ * Runs the resolver with an `npm` on PATH that answers one `npm view` of
+ * `@acme/interface-payments` and fails any other or later call.
+ * @param {string[]} args
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {string}
+ */
+function runWithOneNpmView(args, env = {}) {
   const bin = makeTempDir();
   try {
     const npm = join(bin, "npm");
@@ -185,19 +192,51 @@ void test("versions lists the published versions and latest from a single npm ca
       ].join("\n"),
     );
     chmodSync(npm, 0o755);
-
-    const output = runScript(
-      SCRIPT,
-      project,
-      ["versions", "@acme/interface-payments"],
-      { ...process.env, PATH: `${bin}${delimiter}${process.env.PATH}` },
-    );
-
-    assert.equal(
-      output,
-      "installed: v1.2.0\nlatest:    v1.2.0\nv1.2.0\nv1.0.0\n",
-    );
+    return runScript(SCRIPT, project, args, {
+      ...process.env,
+      ...env,
+      PATH: `${bin}${delimiter}${process.env.PATH}`,
+    });
   } finally {
     removeDir(bin);
+  }
+}
+
+void test("versions lists the published versions and latest from a single npm call", () => {
+  const output = runWithOneNpmView(["versions", "@acme/interface-payments"]);
+
+  assert.equal(
+    output,
+    "installed: v1.2.0\nlatest:    v1.2.0\nv1.2.0\nv1.0.0\n",
+  );
+});
+
+void test("show of a registry copy picks the version and lists versions from a single npm call", () => {
+  const cache = makeTempDir();
+  try {
+    writeJson(
+      join(
+        cache,
+        "acme__interface-payments",
+        "1.2.0",
+        "package",
+        "package.json",
+      ),
+      { name: "@acme/interface-payments", version: "1.2.0" },
+    );
+
+    const shown = parseJson(
+      runWithOneNpmView(
+        ["show", "@acme/interface-payments", "--remote", "--json"],
+        { AJS_RESOLVER_CACHE: cache },
+      ),
+    );
+
+    if (!isRecord(shown)) assert.fail("show printed no object");
+    assert.equal(shown.source, "npm");
+    assert.equal(shown.latest, "1.2.0");
+    assert.deepEqual(shown.availableVersions, ["1.2.0", "1.0.0"]);
+  } finally {
+    removeDir(cache);
   }
 });

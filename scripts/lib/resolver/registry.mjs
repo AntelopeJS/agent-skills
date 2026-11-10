@@ -55,18 +55,24 @@ export function npmErrText(e) {
   );
 }
 
+/** @type {Map<string, { versions: string[], latest: string | null }>} */
+const remoteInfos = new Map();
+
 /**
  * The published versions of a package, oldest first, and its dist-tag latest,
- * from one `npm view`. Throws when npm fails.
+ * from one `npm view` per package for the life of the process. Throws when npm
+ * fails.
  * @param {string} fullName
  * @returns {{ versions: string[], latest: string | null }}
  */
 function remoteInfo(fullName) {
+  const known = remoteInfos.get(fullName);
+  if (known) return known;
   const info = npm(["view", fullName, "versions", "dist-tags"]);
   const versions = isRecord(info) ? info.versions : undefined;
   const tags = isRecord(info) ? info["dist-tags"] : undefined;
   const latest = isRecord(tags) ? tags.latest : undefined;
-  return {
+  const read = {
     versions: Array.isArray(versions)
       ? versions.filter(isText)
       : isText(versions)
@@ -74,6 +80,8 @@ function remoteInfo(fullName) {
         : [],
     latest: isText(latest) ? latest : null,
   };
+  remoteInfos.set(fullName, read);
+  return read;
 }
 
 /**
@@ -201,7 +209,7 @@ export function listVersions(fullName, localEntry) {
   if (!OFFLINE) {
     try {
       const { versions, latest } = remoteInfo(fullName);
-      return { versions: versions.reverse(), latest };
+      return { versions: versions.toReversed(), latest };
     } catch (e) {
       if (!localEntry) throw e;
       warn(
