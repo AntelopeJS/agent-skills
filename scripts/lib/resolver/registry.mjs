@@ -56,26 +56,24 @@ export function npmErrText(e) {
 }
 
 /**
+ * The published versions of a package, oldest first, and its dist-tag latest,
+ * from one `npm view`. Throws when npm fails.
  * @param {string} fullName
- * @returns {string[]}
+ * @returns {{ versions: string[], latest: string | null }}
  */
-function remoteVersions(fullName) {
-  const v = npm(["view", fullName, "versions"]);
-  return Array.isArray(v) ? v.filter(isText) : isText(v) ? [v] : [];
-}
-
-/**
- * @param {string} fullName
- * @returns {string | null}
- */
-function remoteLatest(fullName) {
-  try {
-    const tags = npm(["view", fullName, "dist-tags"]);
-    const latest = isRecord(tags) ? tags.latest : undefined;
-    return isText(latest) ? latest : null;
-  } catch {
-    return null;
-  }
+function remoteInfo(fullName) {
+  const info = npm(["view", fullName, "versions", "dist-tags"]);
+  const versions = isRecord(info) ? info.versions : undefined;
+  const tags = isRecord(info) ? info["dist-tags"] : undefined;
+  const latest = isRecord(tags) ? tags.latest : undefined;
+  return {
+    versions: Array.isArray(versions)
+      ? versions.filter(isText)
+      : isText(versions)
+        ? [versions]
+        : [],
+    latest: isText(latest) ? latest : null,
+  };
 }
 
 /**
@@ -84,21 +82,20 @@ function remoteLatest(fullName) {
  * @returns {string}
  */
 export function resolveRemoteVersion(fullName, wanted) {
+  const { versions, latest } = remoteInfo(fullName);
   if (wanted && wanted !== "latest") {
     const want = wanted.replace(/^v/, "");
-    const vs = remoteVersions(fullName);
-    if (!vs.includes(want)) {
+    if (!versions.includes(want)) {
       throw new Error(
-        `version '${wanted}' not published for ${fullName}. Available: ${vs.join(", ") || "(none)"}`,
+        `version '${wanted}' not published for ${fullName}. Available: ${versions.join(", ") || "(none)"}`,
       );
     }
     return want;
   }
-  const latest = remoteLatest(fullName);
   if (latest) return latest;
-  const vs = remoteVersions(fullName);
-  if (!vs.length) throw new Error(`no published versions for ${fullName}`);
-  return vs[vs.length - 1];
+  if (!versions.length)
+    throw new Error(`no published versions for ${fullName}`);
+  return versions[versions.length - 1];
 }
 
 /**
@@ -203,10 +200,8 @@ export function resolvePackageEntry(fullName, wanted, localLookup) {
 export function listVersions(fullName, localEntry) {
   if (!OFFLINE) {
     try {
-      return {
-        versions: remoteVersions(fullName).slice().reverse(),
-        latest: remoteLatest(fullName),
-      };
+      const { versions, latest } = remoteInfo(fullName);
+      return { versions: versions.reverse(), latest };
     } catch (e) {
       if (!localEntry) throw e;
       warn(

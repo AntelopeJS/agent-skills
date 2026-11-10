@@ -1,6 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { join } from "node:path";
+import { chmodSync } from "node:fs";
+import { delimiter, join } from "node:path";
 
 import {
   makeTempDir,
@@ -164,4 +165,39 @@ void test("show reads an explicit subpath export whose types is a conditions obj
     }),
     ["@acme/interface-wild", "@acme/interface-wild/extras"],
   );
+});
+
+void test("versions lists the published versions and latest from a single npm call", () => {
+  const bin = makeTempDir();
+  try {
+    const npm = join(bin, "npm");
+    writeFile(
+      npm,
+      [
+        "#!/bin/sh",
+        'if [ -e "$0.called" ]; then echo "npm error second call" >&2; exit 1; fi',
+        'touch "$0.called"',
+        'if [ "$*" = "view @acme/interface-payments versions dist-tags --json" ]; then',
+        '  echo \'{"versions":["1.0.0","1.2.0"],"dist-tags":{"latest":"1.2.0"}}\'',
+        "else",
+        '  echo "npm error unexpected arguments: $*" >&2; exit 1',
+        "fi",
+      ].join("\n"),
+    );
+    chmodSync(npm, 0o755);
+
+    const output = runScript(
+      SCRIPT,
+      project,
+      ["versions", "@acme/interface-payments"],
+      { ...process.env, PATH: `${bin}${delimiter}${process.env.PATH}` },
+    );
+
+    assert.equal(
+      output,
+      "installed: v1.2.0\nlatest:    v1.2.0\nv1.2.0\nv1.0.0\n",
+    );
+  } finally {
+    removeDir(bin);
+  }
 });
