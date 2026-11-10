@@ -36,7 +36,11 @@ export interface CollectSkillPackagesInput {
   modules: readonly ModuleRef[];
   /** The project root; its `dependencies`, `optionalDependencies` and `devDependencies` are read. */
   project?: string;
-  /** Extra package directories, lowest priority. */
+  /**
+   * Extra package directories, lowest priority. One whose `package.json` sets
+   * `antelopeJs.implements` is a module the runtime can load, so it also counts
+   * as a module, after {@link CollectSkillPackagesInput.modules}.
+   */
   installed?: readonly string[];
   /** Called with a message for each skill directory dropped because it escapes its package. */
   onWarning?: (message: string) => void;
@@ -44,8 +48,9 @@ export interface CollectSkillPackagesInput {
 
 /**
  * Collects the packages that ship agent skills, in priority order, one per
- * package name: modules, then their dependencies, then the project's
- * dependencies, then `installed`. The first candidate to carry a name keeps it.
+ * package name: modules (installed interface implementations included), then
+ * their dependencies, then the project's dependencies, then `installed`. The
+ * first candidate to carry a name keeps it.
  * Only packages with at least one skill directory are returned.
  */
 export function collectSkillPackages(

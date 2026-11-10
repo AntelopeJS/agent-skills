@@ -21,7 +21,7 @@ Each result is `{ name, version, dir, skillDirs, kind }`. `skillDirs` are absolu
 
 Candidates are ordered, and the first one to carry a package name keeps it:
 
-1. the `modules`, in the order given;
+1. the `modules`, in the order given, then the `installed` directories whose `package.json` sets `antelopeJs.implements`;
 2. the `dependencies` and `optionalDependencies` of every module, resolved from the module's real path through `node_modules/<dep>` in its ancestors;
 3. the `dependencies`, `optionalDependencies` and `devDependencies` of `project`, resolved the same way;
 4. the `installed` directories.

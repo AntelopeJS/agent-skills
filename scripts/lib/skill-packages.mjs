@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { collectSkillPackages } from "../../packages/agent-skills/index.mjs";
-import { fieldOf, readJsonSafe, readdirSafe } from "./safe-read.mjs";
+import { readdirSafe } from "./safe-read.mjs";
 import { declaresWorkspaces, workspacePackageDirs } from "./workspaces.mjs";
 
 /**
@@ -81,23 +81,9 @@ function originOf(skillPackage, workspace, cache) {
 }
 
 /**
- * An installed package that implements an interface is a module `ajs` can run.
- * @param {string} dir
- * @returns {boolean}
- */
-function isInstalledModule(dir) {
-  return Boolean(
-    fieldOf(
-      fieldOf(readJsonSafe(join(dir, "package.json")), "antelopeJs"),
-      "implements",
-    ),
-  );
-}
-
-/**
  * The packages shipping skills that a project can see, in priority order: the
- * workspace and the modules `ajs` cached, their dependencies, then whatever
- * `node_modules` holds.
+ * workspace, the modules `ajs` cached and the installed modules, their
+ * dependencies, then whatever `node_modules` holds.
  * @param {string} cwd
  * @param {(message: string) => void} onWarning
  * @returns {OriginSkillPackage[]}
@@ -113,11 +99,7 @@ export function candidatePackages(cwd, onWarning) {
   const workspaceDirs = new Set(workspace);
   const cacheDirs = new Set(cache);
   return collectSkillPackages({
-    modules: [
-      ...workspace,
-      ...cache,
-      ...installed.filter(isInstalledModule),
-    ].map((dir) => ({ dir })),
+    modules: [...workspace, ...cache].map((dir) => ({ dir })),
     installed,
     onWarning,
   }).map((skillPackage) => ({

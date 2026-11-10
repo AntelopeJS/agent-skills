@@ -20,6 +20,7 @@ const KIND = {
  * @property {string[]} dependencies Names under `dependencies`.
  * @property {string[]} optionalDependencies Names under `optionalDependencies`.
  * @property {string[]} devDependencies Names under `devDependencies`.
+ * @property {boolean} implementsInterface Whether `antelopeJs.implements` is set.
  */
 
 /**
@@ -90,6 +91,7 @@ function parseManifest(raw) {
     dependencies: dependencyNames(raw.dependencies),
     optionalDependencies: dependencyNames(raw.optionalDependencies),
     devDependencies: dependencyNames(raw.devDependencies),
+    implementsInterface: isRecord(antelopeJs) && Boolean(antelopeJs.implements),
   };
 }
 
@@ -125,12 +127,13 @@ function realpathOrSelf(path) {
  * entered from inside the store.
  * @param {string} fromDir
  * @param {string} dep
+ * @param {(dir: string) => Manifest | null} manifestOf
  * @returns {string | null}
  */
-function resolveDependencyDir(fromDir, dep) {
+function resolveDependencyDir(fromDir, dep, manifestOf) {
   for (let dir = realpathOrSelf(fromDir); ; dir = dirname(dir)) {
     const candidate = join(dir, NODE_MODULES_DIR, dep);
-    if (readManifest(candidate) !== null) return candidate;
+    if (manifestOf(candidate) !== null) return candidate;
     if (dirname(dir) === dir) return null;
   }
 }
@@ -170,11 +173,12 @@ function skillDirsOf({ name, dir, manifest }, onWarning) {
  * @param {string} root
  * @param {string[]} names
  * @param {import("./index.js").SkillPackageKind} kind
+ * @param {(dir: string) => Manifest | null} manifestOf
  * @returns {Candidate[]}
  */
-function dependencyCandidates(root, names, kind) {
+function dependencyCandidates(root, names, kind, manifestOf) {
   return names.flatMap((dep) => {
-    const dir = resolveDependencyDir(root, dep);
+    const dir = resolveDependencyDir(root, dep, manifestOf);
     return dir === null ? [] : [{ dir, kind, fallbackName: dep }];
   });
 }
@@ -185,17 +189,21 @@ function dependencyCandidates(root, names, kind) {
  * @returns {Candidate[]}
  */
 function candidatesOf({ modules, project, installed = [] }, manifestOf) {
-  const own = modules.map((entry) => ({
+  /** @type {import("./index.js").ModuleRef[]} */
+  const installedModules = installed
+    .filter((dir) => manifestOf(dir)?.implementsInterface)
+    .map((dir) => ({ dir }));
+  const own = [...modules, ...installedModules].map((entry) => ({
     dir: entry.dir,
     kind: KIND.module,
     fallbackName: entry.id,
   }));
-  const moduleDependencies = modules.flatMap((entry) => {
+  const moduleDependencies = own.flatMap((entry) => {
     const manifest = manifestOf(entry.dir);
     const names = manifest
       ? [...manifest.dependencies, ...manifest.optionalDependencies]
       : [];
-    return dependencyCandidates(entry.dir, names, KIND.dependency);
+    return dependencyCandidates(entry.dir, names, KIND.dependency, manifestOf);
   });
   const projectManifest = project === undefined ? null : manifestOf(project);
   const projectDependencies =
@@ -209,6 +217,7 @@ function candidatesOf({ modules, project, installed = [] }, manifestOf) {
             ...projectManifest.devDependencies,
           ],
           KIND.project,
+          manifestOf,
         );
   const installedDirs = installed.map((dir) => ({
     dir,
@@ -227,7 +236,8 @@ function candidatesOf({ modules, project, installed = [] }, manifestOf) {
  * Collects the packages that ship agent skills, in priority order, one per
  * package name: the first candidate to carry a name keeps it.
  *
- * The candidates, in order: the modules themselves; the dependencies and
+ * The candidates, in order: the modules themselves, then the `installed`
+ * directories whose manifest sets `antelopeJs.implements`; the dependencies and
  * optional dependencies of every module; the dependencies, optional
  * dependencies and dev dependencies of `project`; the `installed` package
  * directories. A candidate with a readable manifest and a name reserves that

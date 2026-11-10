@@ -85,6 +85,31 @@ void test("orders modules, their dependencies, the project's dependencies, then 
   });
 });
 
+void test("an installed package that implements an interface counts as a module and brings its dependencies", () => {
+  const installed = at("app", "node_modules", "impl");
+  writeSkillPackage(at("cache", "mod"), "mod", ["m"]);
+  writeJson(join(installed, "package.json"), {
+    name: "impl",
+    antelopeJs: { implements: ["@acme/interface-x"], skills: ["./skills"] },
+    dependencies: { "impl-dep": "1" },
+  });
+  writeFile(join(installed, "skills", "i", "SKILL.md"), "---\nname: i\n---\n");
+  writeSkillPackage(installedAt(installed, "impl-dep"), "impl-dep", ["d"]);
+  writeSkillPackage(at("app", "node_modules", "plain"), "plain", ["p"]);
+
+  const packages = collectSkillPackages({
+    modules: [{ dir: at("cache", "mod") }],
+    installed: [at("app", "node_modules", "plain"), installed],
+  });
+
+  assert.deepEqual(summary(packages), [
+    "module:mod",
+    "module:impl",
+    "dependency:impl-dep",
+    "installed:plain",
+  ]);
+});
+
 void test("keeps the first copy of a package name and drops later ones", () => {
   writeSkillPackage(at("cache", "first"), "shared", ["from-cache"]);
   writeSkillPackage(at("sweep", "second"), "shared", ["from-sweep"]);
