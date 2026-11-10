@@ -4,15 +4,23 @@
  * it ships without installing it.
  */
 
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  renameSync,
+  rmSync,
+} from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 import { isRecord, isText } from "./values.mjs";
 
 const NPM_TIMEOUT_MS = 90_000;
 const MAX_BUFFER_BYTES = 16 * 1024 * 1024;
+const execFileAsync = promisify(execFile);
 
 /**
  * @returns {string}
@@ -26,24 +34,23 @@ export function packageCacheRoot() {
 
 /**
  * @param {string[]} args
- * @returns {unknown}
+ * @returns {Promise<unknown>}
  */
-function npmJson(args) {
-  const output = execFileSync("npm", [...args, "--json"], {
+async function npmJson(args) {
+  const { stdout } = await execFileAsync("npm", [...args, "--json"], {
     encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
     timeout: NPM_TIMEOUT_MS,
     maxBuffer: MAX_BUFFER_BYTES,
   });
-  return JSON.parse(output || "null");
+  return JSON.parse(stdout || "null");
 }
 
 /**
  * @param {string} spec
- * @returns {string}
+ * @returns {Promise<string>}
  */
-function resolveVersion(spec) {
-  const output = npmJson(["view", spec, "version"]);
+async function resolveVersion(spec) {
+  const output = await npmJson(["view", spec, "version"]);
   const version = [output].flat().at(-1);
   if (!isText(version)) throw new Error(`npm view gave no version for ${spec}`);
   return version;
@@ -62,11 +69,11 @@ function packageName(spec) {
  * Returns the extracted `package/` directory of `spec` (e.g. `@antelopejs/dms@latest`).
  * @param {string} spec
  * @param {string} [cacheRoot]
- * @returns {string}
+ * @returns {Promise<string>}
  */
-export function fetchPackage(spec, cacheRoot = packageCacheRoot()) {
+export async function fetchPackage(spec, cacheRoot = packageCacheRoot()) {
   const name = packageName(spec);
-  const version = resolveVersion(spec);
+  const version = await resolveVersion(spec);
   const dest = join(
     cacheRoot,
     name.replace(/^@/, "").replace(/\//g, "__"),
@@ -75,18 +82,28 @@ export function fetchPackage(spec, cacheRoot = packageCacheRoot()) {
   const dir = join(dest, "package");
   if (existsSync(join(dir, "package.json"))) return dir;
   mkdirSync(dest, { recursive: true });
-  const packed = npmJson([
-    "pack",
-    `${name}@${version}`,
-    "--pack-destination",
-    dest,
-  ]);
-  const packedFile = [packed].flat()[0];
-  const filename = isRecord(packedFile) ? packedFile.filename : undefined;
-  if (!isText(filename) || !filename)
-    throw new Error(`npm pack gave no file for ${name}@${version}`);
-  const archive = join(dest, filename);
-  execFileSync("tar", ["-xzf", archive, "-C", dest], { stdio: "ignore" });
-  rmSync(archive, { force: true });
+  const work = mkdtempSync(join(dest, ".fetch-"));
+  try {
+    const packed = await npmJson([
+      "pack",
+      `${name}@${version}`,
+      "--pack-destination",
+      work,
+    ]);
+    const packedFile = [packed].flat()[0];
+    const filename = isRecord(packedFile) ? packedFile.filename : undefined;
+    if (!isText(filename) || !filename)
+      throw new Error(`npm pack gave no file for ${name}@${version}`);
+    await execFileAsync("tar", ["-xzf", join(work, filename), "-C", work]);
+    if (!existsSync(join(dir, "package.json")))
+      rmSync(dir, { recursive: true, force: true });
+    try {
+      renameSync(join(work, "package"), dir);
+    } catch (error) {
+      if (!existsSync(join(dir, "package.json"))) throw error;
+    }
+  } finally {
+    rmSync(work, { recursive: true, force: true });
+  }
   return dir;
 }

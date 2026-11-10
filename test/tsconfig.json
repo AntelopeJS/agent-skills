@@ -10,5 +10,9 @@
     "types": ["node"],
     "typeRoots": ["../packages/agent-skills/node_modules/@types"]
   },
-  "include": ["skill-discovery.test.mjs", "sync-skills-packages.test.mjs"]
+  "include": [
+    "packages.test.mjs",
+    "skill-discovery.test.mjs",
+    "sync-skills-packages.test.mjs"
+  ]
 }

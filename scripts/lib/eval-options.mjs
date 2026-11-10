@@ -246,10 +246,12 @@ export function selectCases(values, skills) {
 /**
  * @param {EvalValues} values
  * @param {{ defaultProject?: boolean }} [options]
- * @returns {Skill[]}
+ * @returns {Promise<Skill[]>}
  */
-export function loadSkills(values, options) {
-  const { skills, duplicates } = loadCorpus(corpusOptions(values, options));
+export async function loadSkills(values, options) {
+  const { skills, duplicates } = await loadCorpus(
+    corpusOptions(values, options),
+  );
   if (!skills.length)
     fail(
       "the corpus is empty: no SKILL.md found (see --project, --skills, --packages)",

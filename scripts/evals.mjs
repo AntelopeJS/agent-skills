@@ -245,7 +245,7 @@ async function runAnswers(values, cases, skills) {
 async function runDirect(mode, values) {
   values.backend ??= DEFAULT_BACKENDS[mode];
   if (skipWithoutKey(values, values.backend)) return EXIT.ok;
-  const skills = loadSkills(values);
+  const skills = await loadSkills(values);
   const { selected, shadowed } = selectCases(values, skills);
   if (!selected.length) fail("no case matches --only/--area");
   if (shadowed.length)

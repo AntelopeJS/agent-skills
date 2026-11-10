@@ -35,7 +35,7 @@ import { isRecord, isText } from "./values.mjs";
  * @property {string} [project]
  * @property {string[]} [dirs]
  * @property {string[]} [packages]
- * @property {(spec: string) => string} [fetch]
+ * @property {(spec: string) => Promise<string>} [fetch]
  */
 
 /**
@@ -147,14 +147,15 @@ function packageSkillDirs(dir) {
 
 /**
  * @param {CorpusOptions} options
- * @returns {SkillSource[]}
+ * @returns {Promise<SkillSource[]>}
  */
-function sourcesOf({
+async function sourcesOf({
   project,
   dirs = [],
   packages = [],
   fetch = fetchPackage,
 }) {
+  const fetched = await Promise.all(packages.map((spec) => fetch(spec)));
   return [
     ...dirs.flatMap((dir) =>
       skillDirsUnder(resolve(dir)).map((skillDir) => ({
@@ -163,7 +164,7 @@ function sourcesOf({
       })),
     ),
     ...(project ? projectSkillDirs(resolve(project)) : []),
-    ...packages.flatMap((spec) => packageSkillDirs(fetch(spec))),
+    ...fetched.flatMap(packageSkillDirs),
   ];
 }
 
@@ -172,14 +173,14 @@ function sourcesOf({
  * in that order. The first skill of a given name wins; later ones land in
  * `duplicates`, so explicit directories override what a project installs.
  * @param {CorpusOptions} options
- * @returns {{ skills: Skill[], duplicates: Skill[] }}
+ * @returns {Promise<{ skills: Skill[], duplicates: Skill[] }>}
  */
-export function loadCorpus(options) {
+export async function loadCorpus(options) {
   /** @type {Map<string, Skill>} */
   const skills = new Map();
   /** @type {Skill[]} */
   const duplicates = [];
-  for (const { dir, source } of sourcesOf(options)) {
+  for (const { dir, source } of await sourcesOf(options)) {
     const skill = readSkill(dir, source);
     if (skills.has(skill.name)) duplicates.push(skill);
     else skills.set(skill.name, skill);
