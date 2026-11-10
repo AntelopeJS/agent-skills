@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/agent-skills",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Finds the agent skills that AntelopeJS packages ship, so every tool that loads them sees the same ones.",
   "keywords": [
     "agent-skills",
