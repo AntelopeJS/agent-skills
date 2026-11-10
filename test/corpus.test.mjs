@@ -60,7 +60,7 @@ void test("a file without frontmatter yields no data", () => {
   assert.deepEqual(parseFrontmatter("# Title\n").data, {});
 });
 
-void test("loads every SKILL.md under explicit directories, a skill dir or a parent of skill dirs", () => {
+void test("loads every SKILL.md under explicit directories, a skill dir or a parent of skill dirs", async () => {
   writeSkill(
     join(root, "pack", "skills", "dms-pages"),
     "name: dms-pages\ndescription: Builds pages.",
@@ -71,7 +71,7 @@ void test("loads every SKILL.md under explicit directories, a skill dir or a par
   );
   writeSkill(join(root, "single"), "name: lone\ndescription: Alone.");
 
-  const corpus = loadCorpus({
+  const corpus = await loadCorpus({
     dirs: [join(root, "pack"), join(root, "single")],
   });
 
@@ -86,26 +86,26 @@ void test("loads every SKILL.md under explicit directories, a skill dir or a par
   assert.match(pages.content, /Body\./);
 });
 
-void test("falls back to the directory name when the frontmatter has no name", () => {
+void test("falls back to the directory name when the frontmatter has no name", async () => {
   writeSkill(join(root, "skills", "unnamed"), "description: No name.");
 
-  const corpus = loadCorpus({ dirs: [join(root, "skills")] });
+  const corpus = await loadCorpus({ dirs: [join(root, "skills")] });
 
   assert.equal(corpus.skills[0].name, "unnamed");
 });
 
-void test("keeps the first skill of a name and reports the duplicate", () => {
+void test("keeps the first skill of a name and reports the duplicate", async () => {
   writeSkill(join(root, "a", "dms"), "name: dms\ndescription: First.");
   writeSkill(join(root, "b", "dms"), "name: dms\ndescription: Second.");
 
-  const corpus = loadCorpus({ dirs: [join(root, "a"), join(root, "b")] });
+  const corpus = await loadCorpus({ dirs: [join(root, "a"), join(root, "b")] });
 
   assert.equal(corpus.skills.length, 1);
   assert.equal(corpus.skills[0].description, "First.");
   assert.equal(corpus.duplicates.length, 1);
 });
 
-void test("discovers package-shipped skills of a project like the sync does", () => {
+void test("discovers package-shipped skills of a project like the sync does", async () => {
   writeAntelopeConfig(root);
   const store = join(
     root,
@@ -124,7 +124,7 @@ void test("discovers package-shipped skills of a project like the sync does", ()
     ["dms-mailing"],
   );
 
-  const corpus = loadCorpus({ project: root });
+  const corpus = await loadCorpus({ project: root });
 
   assert.deepEqual(corpus.skills.map((s) => s.name).sort(compareText), [
     "dms",
@@ -136,23 +136,23 @@ void test("discovers package-shipped skills of a project like the sync does", ()
   assert.equal(dms.source, "@antelopejs/dms");
 });
 
-void test("a directory that is not an AntelopeJS project contributes nothing", () => {
-  const corpus = loadCorpus({ project: root });
+void test("a directory that is not an AntelopeJS project contributes nothing", async () => {
+  const corpus = await loadCorpus({ project: root });
 
   assert.deepEqual(corpus.skills, []);
 });
 
-void test("reads the skills a fetched package declares", () => {
+void test("reads the skills a fetched package declares", async () => {
   const fetched = join(root, "fetched", "package");
   writeSkillPackage(fetched, "@antelopejs/dms-media", ["dms-media"]);
   /** @type {string[]} */
   const requested = [];
 
-  const corpus = loadCorpus({
+  const corpus = await loadCorpus({
     packages: ["@antelopejs/dms-media@latest"],
     fetch: (spec) => {
       requested.push(spec);
-      return fetched;
+      return Promise.resolve(fetched);
     },
   });
 
@@ -162,3 +162,30 @@ void test("reads the skills a fetched package declares", () => {
     [["dms-media", "@antelopejs/dms-media"]],
   );
 });
+
+void test(
+  "fetches every package before waiting on any of them",
+  { timeout: 2000 },
+  async () => {
+    const specs = ["@antelopejs/first@latest", "@antelopejs/second@latest"];
+    writeSkillPackage(join(root, specs[0]), "first", ["one"]);
+    writeSkillPackage(join(root, specs[1]), "second", ["two"]);
+    /** @type {(() => void)[]} */
+    const pending = [];
+
+    const corpus = await loadCorpus({
+      packages: specs,
+      fetch: (spec) =>
+        new Promise((resolveFetch) => {
+          pending.push(() => resolveFetch(join(root, spec)));
+          if (pending.length === specs.length)
+            for (const done of pending) done();
+        }),
+    });
+
+    assert.deepEqual(
+      corpus.skills.map((s) => s.name),
+      ["one", "two"],
+    );
+  },
+);

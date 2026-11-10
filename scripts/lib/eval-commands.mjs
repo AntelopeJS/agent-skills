@@ -69,14 +69,14 @@ function modelList(value) {
 
 /**
  * @param {EvalValues} values
- * @returns {number}
+ * @returns {Promise<number>}
  */
-export function prepare(values) {
+export async function prepare(values) {
   if (!values.out) fail("prepare needs --out <dir>");
   const modes = listOption(values.modes);
   if (modes.some((mode) => !MODES.includes(mode)))
     fail(`--modes takes ${MODES.join(", ")}`);
-  const skills = loadSkills(values);
+  const skills = await loadSkills(values);
   const { selected } = selectCases(values, skills);
   if (!selected.length) fail("no case matches --only/--area");
   writeRun({
@@ -220,9 +220,9 @@ export async function lift(values, positionals) {
 
 /**
  * @param {EvalValues} values
- * @returns {number}
+ * @returns {Promise<number>}
  */
-export function check(values) {
+export async function check(values) {
   /** @type {string[]} */
   const problems = [];
   for (const file of values.cases ? [resolve(values.cases)] : CENTRAL_FILES)
@@ -239,7 +239,7 @@ export function check(values) {
     ),
   );
   if (hasCorpusOption(values)) {
-    const skills = loadSkills(values, { defaultProject: false });
+    const skills = await loadSkills(values, { defaultProject: false });
     try {
       const { cases } = loadCases({
         skills,
