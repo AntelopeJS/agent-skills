@@ -6,8 +6,7 @@
     "target": "esnext",
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "types": ["node"],
-    "skipLibCheck": true
+    "types": ["node"]
   },
   "include": ["bin", "evals", "scripts", "test"]
 }
