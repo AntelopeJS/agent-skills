@@ -179,7 +179,7 @@ void test(
         new Promise((resolveFetch) => {
           pending.push(() => resolveFetch(join(root, spec)));
           if (pending.length === specs.length)
-            for (const done of pending) done();
+            for (const done of pending.reverse()) done();
         }),
     });
 

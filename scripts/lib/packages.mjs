@@ -4,7 +4,13 @@
  * it ships without installing it.
  */
 
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  renameSync,
+  rmSync,
+} from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { execFile } from "node:child_process";
@@ -76,18 +82,26 @@ export async function fetchPackage(spec, cacheRoot = packageCacheRoot()) {
   const dir = join(dest, "package");
   if (existsSync(join(dir, "package.json"))) return dir;
   mkdirSync(dest, { recursive: true });
-  const packed = await npmJson([
-    "pack",
-    `${name}@${version}`,
-    "--pack-destination",
-    dest,
-  ]);
-  const packedFile = [packed].flat()[0];
-  const filename = isRecord(packedFile) ? packedFile.filename : undefined;
-  if (!isText(filename) || !filename)
-    throw new Error(`npm pack gave no file for ${name}@${version}`);
-  const archive = join(dest, filename);
-  await execFileAsync("tar", ["-xzf", archive, "-C", dest]);
-  rmSync(archive, { force: true });
+  const work = mkdtempSync(join(dest, ".fetch-"));
+  try {
+    const packed = await npmJson([
+      "pack",
+      `${name}@${version}`,
+      "--pack-destination",
+      work,
+    ]);
+    const packedFile = [packed].flat()[0];
+    const filename = isRecord(packedFile) ? packedFile.filename : undefined;
+    if (!isText(filename) || !filename)
+      throw new Error(`npm pack gave no file for ${name}@${version}`);
+    await execFileAsync("tar", ["-xzf", join(work, filename), "-C", work]);
+    try {
+      renameSync(join(work, "package"), dir);
+    } catch (error) {
+      if (!existsSync(join(dir, "package.json"))) throw error;
+    }
+  } finally {
+    rmSync(work, { recursive: true, force: true });
+  }
   return dir;
 }
