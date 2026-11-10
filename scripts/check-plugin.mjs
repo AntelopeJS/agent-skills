@@ -28,7 +28,43 @@ const SKIPPED_DIRS = new Set(["node_modules"]);
 const TEXT_FILE_RE = /\.(?:md|json|mjs|cjs|js|ts|sh|ya?ml|toml|txt)$/;
 const PLUGIN_SKILLS = ["interface", "new-module", "skills", "sync-skills"];
 const TOOL_SPECIFIC_RE = /\$ARGUMENTS|\$\d|\$\{(?:CLAUDE_)?PLUGIN_ROOT\}/;
-const BROAD_BASH_RE = /^Bash(?:\(\s*[^\s()]*?\s*(?::\*|\*)?\s*\))?$/;
+const FRONTMATTER_LINES_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
+const ALLOWED_TOOLS_KEY = "allowed-tools:";
+const YAML_KEY_RE = /^[A-Za-z0-9_-]+:/;
+const RULE_LINE_RE = /^ {2}- (?:'([^'#]+)'|([^\s'"#][^'"#]*[^\s'"#]))$/;
+const BASH_RULE_RE = /^Bash\((.*)\)$/;
+const ARGS = String.raw`(?: [^"'\`$;&|<>()]+)?`;
+const SCRIPT_RULE_RE = new RegExp(
+  String.raw`^node "\$\{(?:CLAUDE_SKILL_DIR\}/\.\./\.\.|CLAUDE_PLUGIN_ROOT\})/scripts/([\w-]+\.mjs)"${ARGS}$`,
+);
+const PROGRAM_RULE_RE = new RegExp(
+  String.raw`^([a-z][\w-]*) [a-z][\w-]*${ARGS}$`,
+);
+/** Programs that run whatever code their arguments hold, so no rule may name them by subcommand. */
+const INTERPRETERS = new Set([
+  "bash",
+  "bun",
+  "bunx",
+  "deno",
+  "env",
+  "eval",
+  "exec",
+  "node",
+  "npm",
+  "npx",
+  "perl",
+  "pipx",
+  "pnpm",
+  "python",
+  "python3",
+  "ruby",
+  "sh",
+  "uv",
+  "uvx",
+  "xargs",
+  "yarn",
+  "zsh",
+]);
 const LAUNCHER_RE =
   /(?:^|[\s`"'(])(npx|bunx|uvx|pnpm dlx|yarn dlx|pipx run|uv run)\s/m;
 const USAGE = `Usage: check-plugin [dir]
@@ -127,33 +163,64 @@ function checkMarketplaces(root, failures) {
 }
 
 /**
- * @param {string | string[] | undefined} value
- * @returns {string[]}
+ * Reads the allowed-tools rules in the one form this check accepts: a block
+ * list, one rule per `  - ` line, no comments or blank lines, so a rule a YAML
+ * parser would read can never be skipped here.
+ * @param {string} text
+ * @returns {{ rules: string[], unreadable: string[] }}
  */
-function toolRules(value) {
-  if (value === undefined) return [];
-  return Array.isArray(value)
-    ? value
-    : value.split(/[\s,]+(?![^(]*\))/).filter(Boolean);
+function readAllowedTools(text) {
+  const lines = (text.match(FRONTMATTER_LINES_RE)?.[1] ?? "").split(/\r?\n/);
+  /** @type {string[]} */
+  const rules = [];
+  /** @type {string[]} */
+  const unreadable = [];
+  let inList = false;
+  for (const line of lines) {
+    if (YAML_KEY_RE.test(line)) {
+      inList = line.startsWith(ALLOWED_TOOLS_KEY);
+      if (inList && line.slice(ALLOWED_TOOLS_KEY.length).trim() !== "")
+        unreadable.push(line);
+      continue;
+    }
+    if (!inList) continue;
+    const item = line.match(RULE_LINE_RE);
+    if (item) rules.push(item[1] ?? item[2]);
+    else unreadable.push(line);
+  }
+  return { rules, unreadable };
 }
 
 /**
+ * @param {string} root
+ * @param {string} rule
+ * @returns {boolean} whether the rule names one command of the plugin or one subcommand of a program
+ */
+function isExactRule(root, rule) {
+  const bash = rule.match(BASH_RULE_RE);
+  if (!bash) return !rule.startsWith("Bash");
+  const script = bash[1].match(SCRIPT_RULE_RE);
+  if (script) return existsSync(join(root, PLUGIN_DIR, "scripts", script[1]));
+  const program = bash[1].match(PROGRAM_RULE_RE);
+  return Boolean(program) && !INTERPRETERS.has(program?.[1] ?? "");
+}
+
+/**
+ * @param {string} root
  * @param {string} path
- * @param {Record<string, string | string[]>} data
+ * @param {string} text
  * @param {string[]} failures
  */
-function checkAllowedTools(path, data, failures) {
-  if (data["allowed-tools"] === "") {
+function checkAllowedTools(root, path, text, failures) {
+  const { rules, unreadable } = readAllowedTools(text);
+  for (const line of unreadable)
     failures.push(
-      `${path}: allowed-tools is empty or written in a form this check cannot read; list each rule on its own "- " line.`,
+      `${path}: allowed-tools line ${JSON.stringify(line)} is not a "  - <rule>" item; write one rule per line, with no comment or blank line.`,
     );
-    return;
-  }
-  for (const rule of toolRules(data["allowed-tools"]))
-    if (BROAD_BASH_RE.test(rule.trim()))
-      failures.push(
-        `${path}: allowed-tools "${rule}" pre-approves every command of a program; name the exact command, e.g. Bash(node "\${CLAUDE_SKILL_DIR}/../../scripts/x.mjs" show *).`,
-      );
+  for (const rule of rules.filter((entry) => !isExactRule(root, entry)))
+    failures.push(
+      `${path}: allowed-tools "${rule}" pre-approves more than one command; name a plugin script (Bash(node "\${CLAUDE_SKILL_DIR}/../../scripts/x.mjs" show *)) or a program's subcommand (Bash(ajs module init *)).`,
+    );
 }
 
 /**
@@ -167,9 +234,8 @@ function checkSkill(root, name, failures) {
     failures.push(`${path}: missing.`);
     return;
   }
-  const { data, body } = parseFrontmatter(
-    readFileSync(join(root, path), "utf8"),
-  );
+  const text = readFileSync(join(root, path), "utf8");
+  const { data, body } = parseFrontmatter(text);
   if (data.name !== name)
     failures.push(`${path}: "name" must be "${name}", the directory name.`);
   if (!data.description) failures.push(`${path}: "description" is missing.`);
@@ -178,7 +244,7 @@ function checkSkill(root, name, failures) {
     failures.push(
       `${path}: "${placeholder[0]}" is expanded by one tool only; take arguments from the request and reach scripts relative to the skill directory.`,
     );
-  checkAllowedTools(path, data, failures);
+  checkAllowedTools(root, path, text, failures);
 }
 
 /**

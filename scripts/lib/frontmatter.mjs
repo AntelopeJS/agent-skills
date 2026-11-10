@@ -3,7 +3,6 @@ const KEY_RE = /^([A-Za-z0-9_-]+):\s*(.*)$/;
 const BLOCK_SCALAR_RE = /^[>|][+-]?$/;
 const INLINE_LIST_RE = /^\[(.*)\]$/;
 const QUOTED_RE = /^(["'])([\s\S]*)\1$/;
-const SEQUENCE_ITEM_RE = /^\s+-\s+(.*)$/;
 
 /**
  * @param {string} value
@@ -49,8 +48,7 @@ function blockScalar(indicator, lines) {
 
 /**
  * Minimal YAML frontmatter reader for SKILL.md files: scalar keys, quoted
- * strings, inline lists, block sequences (`- item`) and block scalars (`>`, `|`).
- * No dependency.
+ * strings, inline lists and block scalars (`>`, `|`). No dependency.
  * @param {string} text
  * @returns {{ data: Record<string, string | string[]>, body: string }}
  */
@@ -64,15 +62,6 @@ export function parseFrontmatter(text) {
     const key = lines[index].match(KEY_RE);
     if (!key) continue;
     const [, name, rest] = key;
-    if (rest.trim() === "" && SEQUENCE_ITEM_RE.test(lines[index + 1] ?? "")) {
-      const items = [];
-      while (SEQUENCE_ITEM_RE.test(lines[index + 1] ?? ""))
-        items.push(
-          unquote(lines[(index += 1)].match(SEQUENCE_ITEM_RE)[1].trim()),
-        );
-      data[name] = items;
-      continue;
-    }
     if (!BLOCK_SCALAR_RE.test(rest.trim())) {
       data[name] = parseScalar(rest);
       continue;

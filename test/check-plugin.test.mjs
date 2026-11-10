@@ -28,7 +28,7 @@ let plugin;
  * @param {{ frontmatterName?: string, allowedTools?: string }} [options]
  */
 function writeSkill(name, body, options = {}) {
-  const { frontmatterName = name, allowedTools = `['${EXACT_RULE}']` } =
+  const { frontmatterName = name, allowedTools = `\n  - '${EXACT_RULE}'` } =
     options;
   writeFile(
     join(plugin, "skills", name, "SKILL.md"),
@@ -72,6 +72,7 @@ beforeEach(() => {
     version: "1.0.0",
     hooks: "./hooks/codex-hooks.json",
   });
+  writeFile(join(plugin, "scripts", "sync-skills.mjs"), "export {};\n");
   writeJson(join(plugin, "hooks", "codex-hooks.json"), {
     hooks: {
       SessionStart: [{ hooks: [{ type: "command", command: SYNC }] }],
@@ -156,32 +157,50 @@ for (const placeholder of ["$ARGUMENTS", "$1", "${CLAUDE_PLUGIN_ROOT}"]) {
   });
 }
 
-for (const rule of ["Bash", "Bash(node:*)", "Bash(pnpm *)", "Bash(*)"]) {
-  void test(`fails on allowed-tools ${rule}, which pre-approves a whole program`, () => {
-    writeSkill("interface", "Resolve.", { allowedTools: `['${rule}']` });
+/** @param {string} rule */
+const list = (rule) => `\n  - '${rule}'`;
+
+for (const rule of [
+  "Bash",
+  "Bash(node:*)",
+  "Bash(pnpm *)",
+  "Bash(*)",
+  "Bash(node -e *)",
+  "Bash(node * *)",
+  "Bash(sh -c *)",
+  "Bash(pnpm add *)",
+  'Bash(node "${CLAUDE_SKILL_DIR}/../../scripts/../../x.mjs" *)',
+  'Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/missing.mjs" *)',
+  'Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/sync-skills.mjs"; rm -rf *)',
+]) {
+  void test(`fails on allowed-tools ${rule}, which pre-approves more than one command`, () => {
+    writeSkill("interface", "Resolve.", { allowedTools: list(rule) });
     assertFails("interface/SKILL\\.md: allowed-tools .* pre-approves");
   });
 }
 
-void test("fails on allowed-tools it cannot read, so a broad rule cannot hide in them", () => {
-  writeSkill("interface", "Resolve.", {
-    allowedTools: "\n  [\n    'Bash(node:*)',\n  ]",
+for (const [name, allowedTools] of Object.entries({
+  "an inline list": " ['Bash(node:*)']",
+  "a trailing comment": "\n  - Bash(node:*) # debug",
+  "a comment line":
+    "\n  - Bash(ajs module init *)\n  # debug\n  - Bash(node:*)",
+  "a blank line": "\n  - Bash(ajs module init *)\n\n  - Bash(node:*)",
+})) {
+  void test(`fails on allowed-tools written with ${name}, where a YAML parser could read a rule this check skips`, () => {
+    writeSkill("interface", "Resolve.", { allowedTools });
+    assertFails("interface/SKILL\\.md: allowed-tools line .* is not a");
   });
-  assertFails(
-    "interface/SKILL\\.md: allowed-tools is empty or written in a form",
-  );
-});
+}
 
-void test("reads allowed-tools written as a block sequence", () => {
-  writeSkill("interface", "Resolve.", {
-    allowedTools: "\n  - Bash(ajs module init *)\n  - 'Bash(node:*)'",
-  });
-  assertFails('interface/SKILL\\.md: allowed-tools "Bash\\(node:\\*\\)"');
-});
-
-void test("passes allowed-tools that name a subcommand", () => {
+void test("passes allowed-tools that name a plugin script by either path or a program's subcommand", () => {
   writeSkill("new-module", "Scaffold.", {
-    allowedTools: "Bash(ajs module init *), Bash(ajs project modules install)",
+    allowedTools: [
+      "",
+      "  - Bash(ajs module init *)",
+      "  - Bash(ajs project modules install)",
+      `  - 'Bash(node "\${CLAUDE_SKILL_DIR}/../../scripts/sync-skills.mjs" --list *)'`,
+      `  - 'Bash(node "\${CLAUDE_PLUGIN_ROOT}/scripts/sync-skills.mjs" --list *)'`,
+    ].join("\n"),
   });
   assert.deepEqual(check(), { status: 0, output: "" });
 });
