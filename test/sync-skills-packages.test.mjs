@@ -87,6 +87,31 @@ void test("reads the dependencies of an installed module, not those of any insta
   assert.doesNotMatch(output, /library-interface--beta/);
 });
 
+void test("an installed module wins over a dependency copy of the same package", () => {
+  writeAntelopeConfig(root);
+  writeJson(join(root, ".antelope", "cache", "cached-module", "package.json"), {
+    name: "cached-module",
+    dependencies: { shared: "1" },
+  });
+  writeSkillPackage(
+    join(root, ".antelope", "cache", "cached-module", "node_modules", "shared"),
+    "shared",
+    ["from-dependency"],
+  );
+  writeSkillPackage(join(root, "node_modules", "shared"), "shared", [
+    "from-installed",
+  ]);
+  writeJson(join(root, "node_modules", "shared", "package.json"), {
+    name: "shared",
+    antelopeJs: { implements: ["@acme/interface"], skills: ["./skills"] },
+  });
+
+  const output = list(join(import.meta.dirname, ".."), root);
+
+  assert.match(output, /shared--from-installed/);
+  assert.doesNotMatch(output, /shared--from-dependency/);
+});
+
 void test("runs from a plugin checkout with no node_modules", () => {
   const checkout = join(root, "plugin");
   for (const dir of ["scripts", "packages"]) {
