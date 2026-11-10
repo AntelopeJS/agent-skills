@@ -10,8 +10,8 @@ import {
   writeJson,
   runScript,
 } from "./helpers.mjs";
-import { parseJson } from "../scripts/lib/json.mjs";
-import { isRecord } from "../scripts/lib/values.mjs";
+import { parseJson } from "../plugin/scripts/lib/json.mjs";
+import { isRecord } from "../plugin/scripts/lib/values.mjs";
 
 const SCRIPT = "resolve-interface.mjs";
 const OFFLINE = ["--offline"];

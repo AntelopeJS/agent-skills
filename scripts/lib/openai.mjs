@@ -1,4 +1,4 @@
-import { isRecord, isText } from "./values.mjs";
+import { isRecord, isText } from "../../plugin/scripts/lib/values.mjs";
 
 /** @typedef {import("./model.mjs").ModelRequest} ModelRequest */
 /** @typedef {import("./model.mjs").ModelBackend} ModelBackend */

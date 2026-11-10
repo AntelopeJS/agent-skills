@@ -37,6 +37,7 @@ import { fileURLToPath } from "node:url";
 const SCRIPTS_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
+  "plugin",
   "scripts",
 );
 

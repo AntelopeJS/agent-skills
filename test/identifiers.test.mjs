@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { extractApiReferences } from "../scripts/lib/identifiers.mjs";
-import { compareText } from "../scripts/lib/values.mjs";
+import { compareText } from "../plugin/scripts/lib/values.mjs";
 
 const fence = "```";
 

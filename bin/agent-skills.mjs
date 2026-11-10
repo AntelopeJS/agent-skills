@@ -8,11 +8,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SCRIPTS_DIR = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "scripts",
-);
+const ROOT_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 const FAILURE_EXIT_CODE = 1;
 /**
  * @typedef {object} Command
@@ -24,27 +20,27 @@ const FAILURE_EXIT_CODE = 1;
 /** @type {Record<string, Command>} */
 const COMMANDS = {
   sync: {
-    script: "sync-skills.mjs",
+    script: "plugin/scripts/sync-skills.mjs",
     args: [],
     help: "link package-shipped skills into .claude/skills and .agents/skills",
   },
   list: {
-    script: "sync-skills.mjs",
+    script: "plugin/scripts/sync-skills.mjs",
     args: ["--list"],
     help: "list package-shipped skills and their sync status",
   },
   interface: {
-    script: "resolve-interface.mjs",
+    script: "plugin/scripts/resolve-interface.mjs",
     args: [],
     help: "look up an interface contract (list, show, contract, versions…)",
   },
   verify: {
-    script: "verify.mjs",
+    script: "scripts/verify.mjs",
     args: [],
     help: "report API names an answer or diff uses that no installed package exports",
   },
   evals: {
-    script: "evals.mjs",
+    script: "scripts/evals.mjs",
     args: [],
     help: "score which skills a prompt triggers and the answers they produce (trigger, answers, prepare, exec, score, lift, check)",
   },
@@ -73,7 +69,7 @@ if (!command) {
 
 const child = spawnSync(
   process.execPath,
-  [join(SCRIPTS_DIR, command.script), ...command.args, ...rest],
+  [join(ROOT_DIR, command.script), ...command.args, ...rest],
   { stdio: "inherit" },
 );
 process.exit(child.status ?? FAILURE_EXIT_CODE);

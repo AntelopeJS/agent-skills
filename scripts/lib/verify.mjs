@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 
 import { extractApiReferences } from "./identifiers.mjs";
 import { ModuleResolver, splitSpecifier, STATUS } from "./exports.mjs";
-import { isText } from "./values.mjs";
+import { isText } from "../../plugin/scripts/lib/values.mjs";
 
 /**
  * @typedef {import("./identifiers.mjs").ApiReference} ApiReference

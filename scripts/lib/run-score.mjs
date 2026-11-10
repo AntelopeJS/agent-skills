@@ -1,8 +1,8 @@
 import { checkAnswer } from "./answers.mjs";
 import { scoreCase } from "./scoring.mjs";
 import { listTasks, readAnswer } from "./requests.mjs";
-import { parseJson } from "./json.mjs";
-import { fieldOf } from "./safe-read.mjs";
+import { parseJson } from "../../plugin/scripts/lib/json.mjs";
+import { fieldOf } from "../../plugin/scripts/lib/safe-read.mjs";
 
 /** @typedef {import("./dataset.mjs").EvalCase} EvalCase */
 /** @typedef {import("./matrix.mjs").MatrixEntry} MatrixEntry */

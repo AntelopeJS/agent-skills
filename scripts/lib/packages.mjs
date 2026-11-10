@@ -16,7 +16,7 @@ import { homedir } from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { isRecord, isText } from "./values.mjs";
+import { isRecord, isText } from "../../plugin/scripts/lib/values.mjs";
 
 const NPM_TIMEOUT_MS = 90_000;
 const MAX_BUFFER_BYTES = 16 * 1024 * 1024;

@@ -15,7 +15,7 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { verifyText, formatReport } from "./lib/verify.mjs";
-import { isRecord, isText } from "./lib/values.mjs";
+import { isRecord, isText } from "../plugin/scripts/lib/values.mjs";
 
 const EXIT = { ok: 0, unknown: 1, usage: 2 };
 const STDIN = "-";

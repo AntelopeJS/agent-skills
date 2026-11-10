@@ -10,9 +10,9 @@ import { fileURLToPath } from "node:url";
 
 import { parseFrontmatter } from "./frontmatter.mjs";
 import { fetchPackage } from "./packages.mjs";
-import { parseJson } from "./json.mjs";
-import { fieldOf } from "./safe-read.mjs";
-import { isRecord, isText } from "./values.mjs";
+import { parseJson } from "../../plugin/scripts/lib/json.mjs";
+import { fieldOf } from "../../plugin/scripts/lib/safe-read.mjs";
+import { isRecord, isText } from "../../plugin/scripts/lib/values.mjs";
 
 /**
  * @typedef {object} Skill
@@ -49,6 +49,9 @@ const SCAN_DEPTH = 4;
 const SYNC_SCRIPT = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
+  "..",
+  "plugin",
+  "scripts",
   "sync-skills.mjs",
 );
 

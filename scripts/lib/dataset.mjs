@@ -6,8 +6,8 @@
 
 import { fileURLToPath } from "node:url";
 
-import { readJsonFile } from "./json.mjs";
-import { isRecord, isText } from "./values.mjs";
+import { readJsonFile } from "../../plugin/scripts/lib/json.mjs";
+import { isRecord, isText } from "../../plugin/scripts/lib/values.mjs";
 
 /** @typedef {"framework" | "dms" | "dms-ai" | "modules" | "install" | "verify"} EvalArea */
 /** @typedef {"clean" | "casual"} EvalStyle */

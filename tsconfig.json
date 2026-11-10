@@ -8,5 +8,5 @@
     "moduleResolution": "nodenext",
     "types": ["node"]
   },
-  "include": ["bin", "evals", "scripts", "test"]
+  "include": ["bin", "evals", "plugin/scripts", "scripts", "test"]
 }

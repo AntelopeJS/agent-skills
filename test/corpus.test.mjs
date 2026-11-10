@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { parseFrontmatter } from "../scripts/lib/frontmatter.mjs";
 import { loadCorpus } from "../scripts/lib/corpus.mjs";
-import { compareText } from "../scripts/lib/values.mjs";
+import { compareText } from "../plugin/scripts/lib/values.mjs";
 import {
   makeTempDir,
   removeDir,
@@ -54,6 +54,27 @@ void test("frontmatter keeps plain, quoted, folded and list values", () => {
   assert.equal(data.summary, "First line second line");
   assert.deepEqual(data.tags, ["pages", "blocks"]);
   assert.equal(body, "# Body");
+});
+
+void test("parses a block sequence as a list, quoted items unquoted", () => {
+  const text = [
+    "---",
+    "name: interface",
+    "allowed-tools:",
+    "  - 'Bash(node \"x.mjs\" show *)'",
+    "  - Bash(ajs module init *)",
+    "description: Looks up a contract.",
+    "---",
+    "Body",
+  ].join("\n");
+
+  const { data } = parseFrontmatter(text);
+
+  assert.deepEqual(data["allowed-tools"], [
+    'Bash(node "x.mjs" show *)',
+    "Bash(ajs module init *)",
+  ]);
+  assert.equal(data.description, "Looks up a contract.");
 });
 
 void test("a file without frontmatter yields no data", () => {

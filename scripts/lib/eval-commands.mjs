@@ -38,6 +38,7 @@ const PLUGIN_SKILLS_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
   "..",
+  "plugin",
   "skills",
 );
 const DEFAULT_TIMEOUT_SECONDS = 300;

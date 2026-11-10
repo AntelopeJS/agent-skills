@@ -5,9 +5,9 @@
  * loaded only when a model-backed eval actually runs.
  */
 
-import { parseJson } from "./json.mjs";
-import { fieldOf } from "./safe-read.mjs";
-import { isText } from "./values.mjs";
+import { parseJson } from "../../plugin/scripts/lib/json.mjs";
+import { fieldOf } from "../../plugin/scripts/lib/safe-read.mjs";
+import { isText } from "../../plugin/scripts/lib/values.mjs";
 
 /** @typedef {"low" | "medium" | "high" | "xhigh" | "max"} Effort */
 

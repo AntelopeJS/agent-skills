@@ -2,7 +2,7 @@ import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 
-import { collectSkillPackages } from "../packages/agent-skills/index.mjs";
+import { collectSkillPackages } from "../plugin/packages/agent-skills/index.mjs";
 import {
   makeTempDir,
   removeDir,
@@ -36,7 +36,7 @@ function installedAt(base, name) {
   return join(base, "node_modules", ...name.split("/"));
 }
 
-/** @param {import("../packages/agent-skills/index.js").SkillPackage[]} packages */
+/** @param {import("../plugin/packages/agent-skills/index.js").SkillPackage[]} packages */
 function summary(packages) {
   return packages.map(({ name, kind }) => `${kind}:${name}`);
 }

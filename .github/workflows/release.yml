@@ -41,13 +41,13 @@ jobs:
             exit 1
           }
           node <<'NODE'
-          const pkg = require('./packages/agent-skills/package.json')
+          const pkg = require('./plugin/packages/agent-skills/package.json')
           const errors = []
           if (pkg.name !== '@antelopejs/agent-skills') errors.push('name must be @antelopejs/agent-skills')
           if (pkg.private === true) errors.push('private must not be true')
           if (pkg.license !== 'Apache-2.0') errors.push('license must be Apache-2.0')
           if (pkg.repository?.url !== 'git+https://github.com/AntelopeJS/agent-skills.git') errors.push('repository.url must point at AntelopeJS/agent-skills')
-          if (pkg.repository?.directory !== 'packages/agent-skills') errors.push('repository.directory must be packages/agent-skills')
+          if (pkg.repository?.directory !== 'plugin/packages/agent-skills') errors.push('repository.directory must be plugin/packages/agent-skills')
           if (pkg.publishConfig?.access !== 'public') errors.push('publishConfig.access must be public')
           if (pkg.publishConfig?.provenance !== true) errors.push('publishConfig.provenance must be true')
           if (pkg.publishConfig?.registry !== 'https://registry.npmjs.org/') errors.push('publishConfig.registry must be npmjs')
@@ -63,6 +63,6 @@ jobs:
     with:
       channel: ${{ inputs.channel }}
       release-version: ${{ inputs.release-version }}
-      package-directory: packages/agent-skills
+      package-directory: plugin/packages/agent-skills
     secrets:
       RELEASE_GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}

@@ -2,9 +2,9 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { readJsonFile } from "./json.mjs";
-import { fieldOf } from "./safe-read.mjs";
-import { isText } from "./values.mjs";
+import { readJsonFile } from "../../plugin/scripts/lib/json.mjs";
+import { fieldOf } from "../../plugin/scripts/lib/safe-read.mjs";
+import { isText } from "../../plugin/scripts/lib/values.mjs";
 
 export const RUBRIC_ROOT = fileURLToPath(
   new URL("../../evals/commands", import.meta.url),
