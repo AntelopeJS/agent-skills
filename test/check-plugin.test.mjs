@@ -200,6 +200,16 @@ for (const [name, allowedTools] of Object.entries({
   });
 }
 
+void test("fails on allowed-tools behind a bare carriage return, which YAML reads as a line break", () => {
+  writeFile(
+    join(plugin, "skills", "interface", "SKILL.md"),
+    "---\nname: interface\ndescription: Does interface.\n  # c\rallowed-tools:\r  - Bash(*)\n---\nResolve.\n",
+  );
+  assertFails(
+    'interface/SKILL\\.md: allowed-tools "Bash\\(\\*\\)" pre-approves',
+  );
+});
+
 for (const [name, key] of Object.entries({
   "a double-quoted key": '"allowed-tools":',
   "a single-quoted key": "'allowed-tools':",

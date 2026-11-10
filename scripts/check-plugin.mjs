@@ -149,7 +149,9 @@ function checkMarketplaces(root, failures) {
  * @returns {{ rules: string[], unreadable: string[] }}
  */
 function readAllowedTools(text) {
-  const lines = (text.match(FRONTMATTER_LINES_RE)?.[1] ?? "").split(/\r?\n/);
+  const lines = (text.match(FRONTMATTER_LINES_RE)?.[1] ?? "").split(
+    /\r\n|\r|\n/,
+  );
   /** @type {string[]} */
   const rules = [];
   /** @type {string[]} */
