@@ -1,6 +1,6 @@
 {
   "name": "agent-skills",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "description": "AntelopeJS agent tools for Claude Code and OpenAI Codex: the sync of the skills shipped by AntelopeJS packages and the interface contract resolver.",
   "license": "Apache-2.0",

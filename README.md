@@ -397,7 +397,7 @@ claude --plugin-dir ./plugin      # load this checkout in a Claude Code session
 codex plugin marketplace add .    # register this checkout as a Codex marketplace
 ```
 
-Bump `version` in `plugin/.claude-plugin/plugin.json`, `plugin/.codex-plugin/plugin.json` and `package.json` together on every release: installed copies only update when it changes.
+Bump `version` in `plugin/.claude-plugin/plugin.json`, `plugin/.codex-plugin/plugin.json` and `package.json` together on every release: installed copies only update when it changes. Add the release's user-facing changes to [`CHANGELOG.md`](./CHANGELOG.md).
 
 ## License
 
