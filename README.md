@@ -228,6 +228,7 @@ agent-skills/
     evals.mjs              # trigger and answer-quality evals
     lib/                   # corpus loader, dataset schema, baseline, scoring, backends, prepare/exec/score
       resolver/            # modules of resolve-interface.mjs: discovery, registry, surface, targets, commands
+  packages/agent-skills/   # @antelopejs/agent-skills: shared skill discovery for the plugin and dms-ai, published on its own
   evals/
     cases.json             # cross-package routing cases (the skills' own cases live beside them)
     commands/<skill>/      # rubric cases of the plugin's workflow skills
