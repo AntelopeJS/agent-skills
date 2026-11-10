@@ -95,6 +95,8 @@ export async function fetchPackage(spec, cacheRoot = packageCacheRoot()) {
     if (!isText(filename) || !filename)
       throw new Error(`npm pack gave no file for ${name}@${version}`);
     await execFileAsync("tar", ["-xzf", join(work, filename), "-C", work]);
+    if (!existsSync(join(dir, "package.json")))
+      rmSync(dir, { recursive: true, force: true });
     try {
       renameSync(join(work, "package"), dir);
     } catch (error) {

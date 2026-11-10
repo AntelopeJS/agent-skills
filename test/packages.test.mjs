@@ -52,3 +52,15 @@ void test("two specs of the same version fetched together share one extracted co
   ]);
   assert.ok(existsSync(join(dirs[0], "package.json")));
 });
+
+void test("replaces a partial copy left by an interrupted extraction", async () => {
+  const cache = join(root, "cache");
+  const dir = join(cache, "acme__kit", "1.0.0", "package");
+  writeFile(join(dir, "README.md"), "partial\n");
+
+  const fetched = await fetchPackage("@acme/kit@latest", cache);
+
+  assert.equal(fetched, dir);
+  assert.ok(existsSync(join(dir, "package.json")));
+  assert.ok(!existsSync(join(dir, "README.md")));
+});
