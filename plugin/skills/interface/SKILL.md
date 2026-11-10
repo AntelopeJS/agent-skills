@@ -2,7 +2,13 @@
 name: interface
 description: Look up an AntelopeJS interface contract (surface, versions, or full TSDoc) with the live resolver. Use when the person asks what an interface exports, which version to use, or how to import it.
 argument-hint: <name> [subpath]
-allowed-tools: Bash(node:*)
+allowed-tools:
+  - 'Bash(node "${CLAUDE_SKILL_DIR}/../../scripts/resolve-interface.mjs" show *)'
+  - 'Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" show *)'
+  - 'Bash(node "${CLAUDE_SKILL_DIR}/../../scripts/resolve-interface.mjs" contract *)'
+  - 'Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" contract *)'
+  - 'Bash(node "${CLAUDE_SKILL_DIR}/../../scripts/resolve-interface.mjs" list *)'
+  - 'Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" list *)'
 ---
 
 Resolve the AntelopeJS interface contract the person asked about and present it to them. The request names the interface and, optionally, a subpath; if it names no interface, ask which one.

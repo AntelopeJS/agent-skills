@@ -1,7 +1,9 @@
 ---
 name: skills
 description: List the skills synced from the project's AntelopeJS packages and where each comes from. Use when the person asks which AntelopeJS or DMS skills the project has.
-allowed-tools: Bash(node:*)
+allowed-tools:
+  - 'Bash(node "${CLAUDE_SKILL_DIR}/../../scripts/sync-skills.mjs" --list --target claude *)'
+  - 'Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/sync-skills.mjs" --list --target claude *)'
 ---
 
 List the package-shipped skills of this project. The sync script is `scripts/sync-skills.mjs` at the plugin root, two levels above the directory holding this file. Run it with `--target claude` in Claude Code and `--target codex` in Codex:

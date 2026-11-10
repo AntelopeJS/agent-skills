@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { parseFrontmatter } from "../scripts/lib/frontmatter.mjs";
 import { loadCorpus } from "../scripts/lib/corpus.mjs";
-import { compareText } from "../scripts/lib/values.mjs";
+import { compareText } from "../plugin/scripts/lib/values.mjs";
 import {
   makeTempDir,
   removeDir,

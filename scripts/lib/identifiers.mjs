@@ -1,4 +1,4 @@
-import { isText } from "./values.mjs";
+import { isText } from "../../plugin/scripts/lib/values.mjs";
 
 const FENCE_RE = /^\s*(```|~~~)/;
 const DIFF_RE = /^(diff --git |@@ -\d|\+\+\+ |--- a\/)/m;

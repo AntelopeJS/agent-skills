@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 
 import { verifyText } from "../scripts/lib/verify.mjs";
-import { compareText } from "../scripts/lib/values.mjs";
+import { compareText } from "../plugin/scripts/lib/values.mjs";
 import { makeTempDir, removeDir, writeFile, writeJson } from "./helpers.mjs";
 
 const fence = "```";

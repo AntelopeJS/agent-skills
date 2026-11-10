@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "antelopejs",
-      "source": "./",
+      "source": "./plugin",
       "description": "Tools for building with AntelopeJS: the sync of the agent skills shipped by the project's packages (the framework skills from @antelopejs/core and the DMS suite included), a live resolver for versioned interface contracts, and skills that drive the ajs CLI."
     }
   ]

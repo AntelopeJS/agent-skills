@@ -37,8 +37,8 @@ import {
   formatAnswers,
 } from "./lib/answers.mjs";
 import { verifyText } from "./lib/verify.mjs";
-import { fieldOf } from "./lib/safe-read.mjs";
-import { isCallable, isRecord } from "./lib/values.mjs";
+import { fieldOf } from "../plugin/scripts/lib/safe-read.mjs";
+import { isCallable, isRecord } from "../plugin/scripts/lib/values.mjs";
 
 /** @typedef {import("./lib/corpus.mjs").Skill} Skill */
 /** @typedef {import("./lib/dataset.mjs").EvalCase} EvalCase */

@@ -19,9 +19,9 @@ import {
   readRequest,
   writeAnswer,
 } from "./requests.mjs";
-import { parseJson, readJsonFile } from "./json.mjs";
-import { fieldOf, readJsonSafe } from "./safe-read.mjs";
-import { isRecord, isText } from "./values.mjs";
+import { parseJson, readJsonFile } from "../../plugin/scripts/lib/json.mjs";
+import { fieldOf, readJsonSafe } from "../../plugin/scripts/lib/safe-read.mjs";
+import { isRecord, isText } from "../../plugin/scripts/lib/values.mjs";
 
 /** @typedef {import("./matrix.mjs").MatrixEntry} MatrixEntry */
 /** @typedef {import("./model.mjs").ModelRequest} ModelRequest */

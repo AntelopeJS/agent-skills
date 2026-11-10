@@ -52,7 +52,7 @@ void test("a cached module that ships no skills hides the skills of the installe
   );
   writeSkillPackage(join(root, "node_modules", "other"), "other", ["beta"]);
 
-  const output = list(join(import.meta.dirname, ".."), root);
+  const output = list(join(import.meta.dirname, "..", "plugin"), root);
 
   assert.match(output, /other--beta/);
   assert.doesNotMatch(output, /dms--dms/);
@@ -81,7 +81,7 @@ void test("reads the dependencies of an installed module, not those of any insta
     ["beta"],
   );
 
-  const output = list(join(import.meta.dirname, ".."), root);
+  const output = list(join(import.meta.dirname, "..", "plugin"), root);
 
   assert.match(output, /module-interface--alpha/);
   assert.doesNotMatch(output, /library-interface--beta/);
@@ -106,20 +106,18 @@ void test("an installed module wins over a dependency copy of the same package",
     antelopeJs: { implements: ["@acme/interface"], skills: ["./skills"] },
   });
 
-  const output = list(join(import.meta.dirname, ".."), root);
+  const output = list(join(import.meta.dirname, "..", "plugin"), root);
 
   assert.match(output, /shared--from-installed/);
   assert.doesNotMatch(output, /shared--from-dependency/);
 });
 
-void test("runs from a plugin checkout with no node_modules", () => {
+void test("runs from a copy of the plugin folder alone, with no node_modules", () => {
   const checkout = join(root, "plugin");
-  for (const dir of ["scripts", "packages"]) {
-    cpSync(join(import.meta.dirname, "..", dir), join(checkout, dir), {
-      recursive: true,
-      filter: (source) => !source.split(sep).includes("node_modules"),
-    });
-  }
+  cpSync(join(import.meta.dirname, "..", "plugin"), checkout, {
+    recursive: true,
+    filter: (source) => !source.split(sep).includes("node_modules"),
+  });
   const project = join(root, "project");
   writeAntelopeConfig(project);
   writeSkillPackage(join(project, "node_modules", "mod-a"), "mod-a", ["alpha"]);

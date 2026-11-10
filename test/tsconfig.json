@@ -8,7 +8,7 @@
     "noEmit": true,
     "strict": true,
     "types": ["node"],
-    "typeRoots": ["../packages/agent-skills/node_modules/@types"]
+    "typeRoots": ["../plugin/packages/agent-skills/node_modules/@types"]
   },
   "include": [
     "packages.test.mjs",

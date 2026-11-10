@@ -4,11 +4,11 @@ import { DEFAULT_JOBS } from "./executors.mjs";
 import { MATRIX } from "./matrix.mjs";
 import { loadCases } from "./cases.mjs";
 import { loadCorpus } from "./corpus.mjs";
-import { readJsonFile } from "./json.mjs";
+import { readJsonFile } from "../../plugin/scripts/lib/json.mjs";
 import { modelFromEnv } from "./model.mjs";
 import { openaiModelFromEnv } from "./openai.mjs";
-import { fieldOf } from "./safe-read.mjs";
-import { isText } from "./values.mjs";
+import { fieldOf } from "../../plugin/scripts/lib/safe-read.mjs";
+import { isText } from "../../plugin/scripts/lib/values.mjs";
 
 /** @typedef {import("./cases.mjs").SourcedCase} SourcedCase */
 /** @typedef {import("./corpus.mjs").Skill} Skill */

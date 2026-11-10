@@ -3,7 +3,7 @@
  * the installed package: `exports` map (conditions and `*` patterns), or the
  * legacy `types` field, following `export *` chains across files and packages.
  * Interface packages that are not installed are fetched through the contract
- * resolver (scripts/resolve-interface.mjs), which reads them from npm.
+ * resolver (plugin/scripts/resolve-interface.mjs), which reads them from npm.
  */
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -12,12 +12,15 @@ import { execFileSync } from "node:child_process";
 import { isBuiltin } from "node:module";
 import { fileURLToPath } from "node:url";
 
-import { parseJson } from "./json.mjs";
-import { readManifest, typesTarget } from "./resolver/support.mjs";
-import { isRecord, isText } from "./values.mjs";
+import { parseJson } from "../../plugin/scripts/lib/json.mjs";
+import {
+  readManifest,
+  typesTarget,
+} from "../../plugin/scripts/lib/resolver/support.mjs";
+import { isRecord, isText } from "../../plugin/scripts/lib/values.mjs";
 
 /**
- * @typedef {import("./resolver/support.mjs").PackageManifest} PackageManifest
+ * @typedef {import("../../plugin/scripts/lib/resolver/support.mjs").PackageManifest} PackageManifest
  */
 
 /**
@@ -51,6 +54,9 @@ import { isRecord, isText } from "./values.mjs";
 const RESOLVER_SCRIPT = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
+  "..",
+  "plugin",
+  "scripts",
   "resolve-interface.mjs",
 );
 const INTERFACE_PACKAGE_RE = /^@[^/]+\/interface-/;

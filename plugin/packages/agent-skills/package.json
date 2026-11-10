@@ -8,7 +8,7 @@
     "claude-code",
     "codex"
   ],
-  "homepage": "https://github.com/AntelopeJS/agent-skills/tree/main/packages/agent-skills#readme",
+  "homepage": "https://github.com/AntelopeJS/agent-skills/tree/main/plugin/packages/agent-skills#readme",
   "bugs": {
     "url": "https://github.com/AntelopeJS/agent-skills/issues"
   },
@@ -16,7 +16,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AntelopeJS/agent-skills.git",
-    "directory": "packages/agent-skills"
+    "directory": "plugin/packages/agent-skills"
   },
   "files": [
     "index.mjs",

@@ -34,7 +34,7 @@ importers:
         specifier: ^7.0.2005
         version: 7.0.2005
 
-  packages/agent-skills:
+  plugin/packages/agent-skills:
     devDependencies:
       '@types/node':
         specifier: ^24.0.0

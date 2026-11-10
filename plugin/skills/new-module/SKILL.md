@@ -2,7 +2,12 @@
 name: new-module
 description: Scaffold a new AntelopeJS module and wire its interface dependencies. Use when the person wants to create a module with ajs module init.
 argument-hint: <path> [interfaces to import]
-allowed-tools: Bash(ajs:*), Bash(node:*), Bash(pnpm:*)
+allowed-tools:
+  - Bash(ajs module init *)
+  - Bash(ajs project modules add *)
+  - Bash(ajs project modules install)
+  - 'Bash(node "${CLAUDE_SKILL_DIR}/../../scripts/resolve-interface.mjs" show *)'
+  - 'Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-interface.mjs" show *)'
 ---
 
 Help the person scaffold a new AntelopeJS module. The request gives the module's path and, optionally, the interfaces it imports; if it gives no path, ask for one.

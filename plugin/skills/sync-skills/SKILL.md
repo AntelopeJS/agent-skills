@@ -1,10 +1,12 @@
 ---
 name: sync-skills
 description: Sync the skills shipped by the project's AntelopeJS packages into the project now. Use when the person asks to sync or refresh the AntelopeJS skills, or after installing packages when a skill is missing.
-allowed-tools: Bash(node:*)
+allowed-tools:
+  - 'Bash(node "${CLAUDE_SKILL_DIR}/../../scripts/sync-skills.mjs" --target claude *)'
+  - 'Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/sync-skills.mjs" --target claude *)'
 ---
 
-Sync the skills shipped by the project's AntelopeJS packages into the project, and report what changed. The sync script is `scripts/sync-skills.mjs` at the plugin root, two levels above the directory holding this file. Run it verbosely, with `--target claude` in Claude Code (into `.claude/skills/`) and `--target codex` in Codex (into `.agents/skills/`):
+Sync the skills shipped by the project's AntelopeJS packages into the project, and report what changed. The sync script is `scripts/sync-skills.mjs` at the plugin root, two levels above the directory holding this file. Run it without `--quiet`, so it reports each change, with `--target claude` in Claude Code (into `.claude/skills/`) and `--target codex` in Codex (into `.agents/skills/`):
 
 ```
 node "<skill-dir>/../../scripts/sync-skills.mjs" --target <claude|codex>
@@ -18,7 +20,7 @@ Then report to the person:
 - Any warnings (e.g. a name collision with an entry the script does not manage: those are skipped, never overwritten).
 - If the script prints "Not an AntelopeJS project", explain that skills are synced per project: run it from a directory holding `antelope.config.*`, or from an app that depends on `@antelopejs/core`.
 
-The sync also runs on its own through the plugin's hooks (at session start and after Bash commands), so a manual run is only a fallback. When you are Codex and this run added skills, the hooks probably did not run: Codex runs them only once they are trusted, and asks again after every plugin update. Tell the person to open `/hooks` and trust the `antelopejs` hooks so the sync keeps running on its own.
+In Claude Code this skill is the only way the sync runs: the plugin has no hooks there. Run it again after the person installs or updates packages. In Codex the sync also runs on its own through the plugin's hooks (at session start and after Bash commands), so a manual run is only a fallback. When you are Codex and this run added skills, the hooks probably did not run: Codex runs them only once they are trusted, and asks again after every plugin update. Tell the person to open `/hooks` and trust the `antelopejs` hooks so the sync keeps running on its own.
 
 Skills synced mid-session load on their own, except when the skills directory did not exist when the session started: then tell the person to run `/reload-skills` in Claude Code, or to restart Codex.
 

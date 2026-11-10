@@ -1,9 +1,9 @@
 import { runScript } from "../helpers.mjs";
-import { parseJson } from "../../scripts/lib/json.mjs";
-import { isRecord, isText } from "../../scripts/lib/values.mjs";
+import { parseJson } from "../../plugin/scripts/lib/json.mjs";
+import { isRecord, isText } from "../../plugin/scripts/lib/values.mjs";
 
 /**
- * @typedef {import("../../scripts/sync-skills.mjs").SyncResult & { project: boolean, dryRun?: boolean }} SyncOutput
+ * @typedef {import("../../plugin/scripts/sync-skills.mjs").SyncResult & { project: boolean, dryRun?: boolean }} SyncOutput
  */
 
 /**
