@@ -13,7 +13,7 @@ The mockup is done when the user approves it. Building the real pages from it is
 
 - **The block catalog.** With the builder MCP (`builder_catalog` among your tools, see **dms-builder-mcp**), `builder_catalog`. Without it, the catalog of the running DMS (`GET /api/block-preview/types`, or the spec schema at `GET /api/mockup/schema`), else the schema file `@antelopejs/dms` ships ([SPEC.md](SPEC.md) _Schema_). The running DMS lists the blocks of the installed modules too; the file lists the core blocks only.
 - **The preview.** `/mockup?name=<name>` answers while `ajs project dev` runs. When it does not, write and validate the spec all the same, show the user each page as a text outline (one line per block, sketches marked _Custom_), and tell them `ajs project dev` turns it into a live preview.
-- **Annotations.** With the MCP, `mockup_annotations` lists and resolves them. Without it, read and write `mockups/<name>/annotations.json` directly ([SPEC.md](SPEC.md) _Annotations_).
+- **Annotations.** With the DMS MCP, `mockup_annotations` lists them and `mockup_resolve_annotation` resolves one. Without it, read and write `mockups/<name>/annotations.json` directly ([SPEC.md](SPEC.md) _annotations.json_).
 - **The asking tool**: `ask_user` in the dms-assistant chat, your harness's question tool elsewhere (`AskUserQuestion` in Claude Code), else one closed question in chat. Batch questions: up to 4 per call.
 
 ## 1. Interview
@@ -56,7 +56,7 @@ When the user says they commented, or asks what is left, list the open annotatio
 
 1. Find the node its path names, and the wish behind it.
 2. Change the spec. A request the DMS blocks cannot meet goes through step 2 again, never straight to a sketch.
-3. Resolve the annotation, with a one-line reply saying what changed.
+3. Resolve the annotation, and note what changed for the report.
 
 Save after each batch: the preview redraws on its own. Report the annotations you resolved and those you left open, with the question each one raises.
 

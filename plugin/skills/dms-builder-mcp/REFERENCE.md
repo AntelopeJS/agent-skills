@@ -28,7 +28,7 @@ installed engine doesn't support it — explain the limitation instead of retryi
      whose routes you left out, or bind a `Form` instead for a singleton.
 3. **Edit fields** with `builder_add_field` / `builder_configure_field <ref>#<field>` /
    `builder_remove_field`; field name is immutable (rename = remove + add). **Delete**
-   with `builder_delete_resource`: removes the files, unwires the barrel, and by default
+   with `builder_delete_resource` (refused in Safe mode): removes the files, unwires the barrel, and by default
    clears the resource's database table so a name reuse re-seeds cleanly rather than
    showing stale rows (`keepData: true` to keep them).
 4. **Fields are semantic aspects, not decorators:** `dataType`, `label`, `listable`

@@ -16,7 +16,7 @@ Settle these three before the first edit. They decide every later branch.
 1. **The builder MCP.** Look for `builder_catalog` among your tools. Claude Code prefixes MCP tools with their server (`mcp__dms__builder_catalog`); the bare name is what counts. When it is missing:
    - The project's `.mcp.json` names a DMS server, but the tools are absent: the DMS writes that entry under `ajs project dev`, and the tools answer only while it runs. Ask the user to start `ajs project dev`, then to reload the MCP servers (`/mcp` in Claude Code, a restart in Codex).
    - No such entry, or the user wants to go on without the dev server: **code path**. Edit the TypeScript yourself with **dms-pages**, then verify as _Verify_ below says.
-2. **Safe mode.** The MCP server answers a write outside the builder tools with a Safe mode refusal, or the user says Safe mode is on. Then the builder tools are the only way to write: never fall back to a file edit. A step they cannot do (_Errors_ below) goes to the user.
+2. **Safe mode.** The DMS MCP refuses its project tools (`builder_configure_project`, `builder_delete_resource`) with a Safe mode error, or the user says Safe mode is on. The server cannot stop your harness from editing files, so the rule is yours to hold: write only through the builder tools, never by a file edit. A step they cannot do (_Errors_ below) goes to the user.
 3. **The asking tool.** In the dms-assistant chat, `ask_user` asks the user a closed question. Elsewhere, use your harness's own question tool (`AskUserQuestion` in Claude Code), or ask one closed question in chat.
 
 ## Addressing

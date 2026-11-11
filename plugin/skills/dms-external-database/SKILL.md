@@ -48,7 +48,8 @@ Call `database_connections`.
   generated module `erp-tables`, variable `ERP_DATABASE_URL`, and for MongoDB
   `ERP_DATABASE_NAME`. Ask the integrator for the version of the engine's module to install
   (`@antelopejs/postgres`, `@antelopejs/mongodb`, `@antelopejs/rethinkdb`): you cannot look it
-  up. The user approves the diff.
+  up. The user approves the diff. Safe mode refuses `builder_configure_project`: ask the
+  integrator to turn it off for this one call.
   - Then tell the integrator to put the URL in `.env` (`ERP_DATABASE_URL=postgres://…`,
     `mongodb://…`, or `rethinkdb://…/<database>`; for MongoDB also `ERP_DATABASE_NAME`), or in the
     builder's _Database_ workspace when the project has one, which writes it there, and to restart the project. Every

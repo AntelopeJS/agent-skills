@@ -113,6 +113,6 @@ A node is `{ type, options?, children? }`; a child also takes `id`, `slot` (a `T
 
 Read and resolve them, by the first way available:
 
-1. The `mockup_annotations` MCP tool: `list`, then `resolve` each one.
+1. The DMS MCP: `mockup_annotations` with `{ "mockup": "<name>", "status": "open" }` (and `page` to narrow) lists them; `mockup_resolve_annotation` with `{ "mockup": "<name>", "id": "<id>" }` resolves one. Both work in Safe mode.
 2. The HTTP API of the running DMS: `GET /api/mockup/<name>/annotations`, and `PATCH /api/mockup/<name>/annotations/<id>` with `{ "status": "resolved" }`.
 3. The file itself, when no server runs: set `status` and `resolvedAt`, keep the rest as it is.
