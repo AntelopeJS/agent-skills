@@ -8,7 +8,12 @@
       "title": "Orders",
       "fixtures": {
         "orders": [
-          { "_id": "o1", "customer": "Acme", "total": 120, "status": "paid" },
+          {
+            "_id": "o1",
+            "customer": "Acme",
+            "total": 120,
+            "status": "paid"
+          },
           {
             "_id": "o2",
             "customer": "Globex",
@@ -21,15 +26,15 @@
             "total": 342,
             "status": "refunded"
           }
-        ],
-        "revenue": { "value": 549.5, "delta": 8.1 }
+        ]
       },
       "tree": [
         {
           "type": "KpiCard",
           "options": {
             "title": "Revenue",
-            "fetchUrl": "fixture:revenue",
+            "staticValue": 549.5,
+            "staticDelta": 8.1,
             "valueFormat": "currency",
             "currencyCode": "EUR"
           }
@@ -44,8 +49,15 @@
                 "type": "string",
                 "sortable": true
               },
-              "total": { "name": "Total", "type": "number", "sortable": true },
-              "status": { "name": "Status", "type": "select" }
+              "total": {
+                "name": "Total",
+                "type": "number",
+                "sortable": true
+              },
+              "status": {
+                "name": "Status",
+                "type": "select"
+              }
             }
           }
         },

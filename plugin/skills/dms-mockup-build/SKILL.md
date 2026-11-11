@@ -22,8 +22,8 @@ Read `mockups/<name>/spec.json` and its open annotations ([SPEC.md](../dms-mocku
 Map every spec page and node, and present the plan before you write:
 
 - **Page** → a `PageController`: `id` and title from the spec page, an icon and a description as **dms-page-design** _Name every page_ says, a category the user confirms.
-- **Block** → the same `type` and options. Keep each child's `id` as the block's name.
-- **Fixture** → the real data it stands for, by the first that holds:
+- **Block** → the same `type` and options. Keep each child's `id` as the block's name; a child whose `id` names a block option (a `ChartCard`'s `chart`) becomes that option.
+- **Fixture**, or a `static*` option → the real data it stands for, by the first that holds:
   1. an existing resource or route serves it (`builder_list_resources`, the project's controllers): bind to it;
   2. rows of one entity: a new resource (`builder_create_resource`), its fields and types read from the fixture's rows, seeded with those rows only when the user wants sample data;
   3. a figure, a series or a ranking: a query on that resource (`builder_add_query`) whose `response` matches the block, as **dms-builder-mcp** _Data resources and queries_ says.

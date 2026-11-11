@@ -1,10 +1,10 @@
 # Mockup file formats
 
-The formats of `mockups/<name>/spec.json` and `mockups/<name>/annotations.json`, for **dms-mockup** and **dms-mockup-build**. `<name>` matches `^[a-z0-9][a-z0-9-]{0,63}$`, and so does every page `id`.
+The formats of `mockups/<name>/spec.json` and `mockups/<name>/annotations.json`, for **dms-mockup** and **dms-mockup-build**. `<name>` matches `^[a-z0-9][a-z0-9-]{0,63}$`, and so does every page `id`. Never name a mockup `schema`: `/api/mockup/schema` answers the schema, so that mockup's routes never answer.
 
 ## Schema
 
-`@antelopejs/dms` ships the JSON Schema of the spec at `node_modules/@antelopejs/dms/data/mockup-spec.schema.json`, and a running DMS serves the same schema, built from the blocks of the installed modules, at `GET /api/mockup/schema`. Point the spec's `$schema` at the file, so an editor checks it as the user types. When the schema and this page disagree, the schema wins.
+`@antelopejs/dms` ships the JSON Schema of the spec at `node_modules/@antelopejs/dms/data/mockup-spec.schema.json`, and a running DMS serves the same schema, built from the blocks of the installed modules, at `GET /api/mockup/schema`. Point the spec's `$schema` at the file, so an editor checks it as the user types. When the schema and this page disagree, the schema wins. `node_modules/@antelopejs/dms/data/mockup-example/spec.json` is a two-page spec that compiles with no issue: model a new spec on it.
 
 ## spec.json
 
@@ -28,17 +28,36 @@ The formats of `mockups/<name>/spec.json` and `mockups/<name>/annotations.json`,
             "status": "pending"
           }
         ],
-        "revenue": { "value": 48210, "delta": 12.4 }
+        "revenue": {
+          "value": 48210,
+          "delta": 12.4,
+          "series": [
+            {
+              "name": "Revenue",
+              "data": [
+                { "x": "2026-01-05T00:00:00.000Z", "y": 5800 },
+                { "x": "2026-01-06T00:00:00.000Z", "y": 6400 }
+              ]
+            }
+          ]
+        }
       },
       "tree": [
         {
-          "type": "KpiCard",
+          "type": "ChartCard",
           "options": {
             "title": "Revenue",
             "fetchUrl": "fixture:revenue",
             "valueFormat": "currency",
             "currencyCode": "EUR"
-          }
+          },
+          "children": [
+            {
+              "id": "chart",
+              "type": "ChartArea",
+              "options": { "xaxisType": "datetime" }
+            }
+          ]
         },
         {
           "type": "TableView",
@@ -74,14 +93,21 @@ The formats of `mockups/<name>/spec.json` and `mockups/<name>/annotations.json`,
 - `fixtures`: a key (`^[A-Za-z0-9_-]{1,64}$`) to any JSON value, the data the page's blocks read.
 - `tree`: the page's blocks, top to bottom, in the `DmsBlockPreview` tree format below.
 
+The envelope is strict: a key this page does not list is an issue.
+
 ## Nodes
 
-A node is `{ type, options?, children? }`; a child also takes `id`, `slot` (a `Tab` or `Card` slot) and `colSpan` (inside a `GridRow`). `type` is a block type of the catalog and `options` its factory options. Name every child with an `id`: the builder and the roles editor key blocks by name.
+A node is `{ type, options?, children? }`; a child also takes `id`, `slot` (a `Tab` or `Card` slot) and `colSpan` (inside a `GridRow`). `type` is a block type of the catalog (it wins over a `componentName`) and `options` its factory options, with two exceptions:
+
+- An option that holds a block, such as a `ChartCard`'s `chart`, is a child whose `id` is the option's name.
+- A `Form` with `sections` keeps every field in `fields`, and each section lists its fields by id in `fieldIds`.
+
+Name every child with an `id`: the builder and the roles editor key blocks by name. A block that only shows a figure can take its `static*` options (`staticValue`, `staticDelta`) in place of a fixture.
 
 - **Fixture reference.** Any string option of the form `fixture:<key>`, at any depth, reads that key of the page's `fixtures`. Use it for every `fetchUrl`, so the block draws data with no route.
-- **`TableView`** takes the options of `TableView.fromSource`: `fetchUrl: "fixture:<key>"` naming an array of rows, and `columns` keyed by row field, each with its `name` and its `type`, a data type id (`string`, `number`, `date`, `boolean`, `select`, …). Paging, search and sort work over the fixture.
+- **`TableView`** takes the options of `TableView.fromSource`: `fetchUrl: "fixture:<key>"` naming an array of rows, and `columns` keyed by row field, each with its `name` and its `type`, a data type id (`string`, `number`, `date`, `boolean`, `select`, …). Paging, search and sort work over the fixture; filters (tabs, quick filters, `queryParamFilters`) draw but do not narrow the rows, and a column takes no `display`.
 - **`ResourceForm`** takes its `fields` and `fetchUrl: "fixture:<key>"` naming the record object, with no `submitUrl`.
-- **Sketch.** `{ "type": "sketch", "options": { "html", "css"?, "height"?, "caption"? } }`, with no children: the static HTML and CSS of one custom part, drawn hatched, outlined and labelled _Custom_. `height` is 80 to 1200 px (default 320); `caption` (up to 200 characters) says what the part does. It runs in a sandbox with no script: the spec refuses `<script>`, embedding elements, `on*` handlers, `javascript:` URLs, `@import`, and any `url()`, `src` or `href` that is not a `data:` URL. Keep it to the element alone; the blocks around it stay blocks.
+- **Sketch.** `{ "type": "sketch", "options": { "html", "css"?, "height"?, "caption"? } }`, with no children: the static HTML and CSS of one custom part, drawn hatched, outlined and labelled _Custom_. `height` is 80 to 1200 px (default 320); `caption` (up to 200 characters) says what the part does. It runs in a sandbox with no script: the spec refuses `<script>`, embedding elements, `on*` handlers, `<meta http-equiv>`, `@import`, `javascript:` and `vbscript:` URLs, and any `url()`, `src` or `href` that is not a `data:` URL or an `#anchor`. Keep it to the element alone; the blocks around it stay blocks.
 
 ## Validation
 
