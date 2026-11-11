@@ -42,12 +42,12 @@ translation takes the page's route and query parameters (`"Download {locale}.jso
 `availability` reads `context.query` and the route parameters in `context.params` (`:id`),
 asked again when either changes (a detail page hides "Edit" for a missing record) — no need to build
 the header in Vue with `usePageHeaderActions` to carry the scope —
-`node_modules/@antelopejs/interface-dms/docs/3.base/6.layout.md#buttons-that-follow-the-page-url`. An `availability`
+`node_modules/@antelopejs/interface-dms/docs/3.base/11.page-layouts.md#buttons-that-follow-the-page-url`. An `availability`
 answering `{ hidden: true }` leaves the button out for that query (`{ reason }` only
 disables it): no Vue header to hide "Add key" on a read-only workspace. `order` on a
 header button and `usePageHeaderActions(render, { order })` interleave served buttons with a
 component's client-side ones (default `0`, served first on a tie: `order: -1` puts a Vue
-"Export" before a served "Add key") — `node_modules/@antelopejs/interface-dms/docs/3.base/6.layout.md#ordering-the-header`.
+"Export" before a served "Add key") — `node_modules/@antelopejs/interface-dms/docs/3.base/11.page-layouts.md#ordering-the-header`.
 
 A button or row action (`customButtons`, `rowActions.custom`, a page's `headerActions`)
 points at an `ActionTarget`. A detail or record panel (an inspector, a request, a run) is a
@@ -95,7 +95,7 @@ A row that must stay on top of a table under any sort (a base language, a defaul
 workspace) takes `pinnedRows: { field: "isBase", equals: true }` — never sort on the
 server for it. A row action names its row with `{field}` braces in its `label`
 (`"Translate {name}"`), and `rowActions.menuLabel` (`"Actions for {name}"`) names the
-row's ⋯ button — `docs/components/tables#pinned-rows`.
+row's ⋯ button — `docs/components/tables/columns-and-displays#pinned-rows`.
 
 ## Patterns by topic
 
@@ -202,7 +202,7 @@ LayoutBannerScope.EVERYWHERE` to a workspace-wide state (billing past due, suspe
   `FormFunctions.SET_FIELD_VALUE` with `{ targetField, valueMap: { won: 100, lost: 0 } }` (or a fixed
   `value`) on `FIELD_CHANGE` keyed on the source `fieldId` — never a custom component. It writes on a
   change only, never over the values a record opens with; a rule that must hold stays in the write
-  route — `docs/components/forms#setting-a-value-from-another-field`.
+  route — `docs/components/forms/validation-and-watches#setting-a-value-from-another-field`.
 - A short number or text field (an estimate, a count, a code) takes `width: "compact"` on its
   `NumberType` / `StringType` rather than filling the row; one bounded to 6 digits or a
   `maxLength` of 16 or less is compact already, and `width: "full"` opts out. Phones keep the

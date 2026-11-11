@@ -13,7 +13,8 @@ The mockup is done when the user approves it. Building the real pages from it is
 
 - **The block catalog.** With the builder MCP (`builder_catalog` among your tools, see **dms-builder-mcp**), `builder_catalog`. Without it, the catalog of the running DMS (`GET /api/block-preview/types`, or the spec schema at `GET /api/mockup/schema`), else the schema file `@antelopejs/dms` ships ([SPEC.md](SPEC.md) _Schema_). The running DMS lists the blocks of the installed modules too; the file lists the core blocks only.
 - **The preview.** `/mockup?name=<name>` answers while `ajs project dev` runs. When it does not, write and validate the spec all the same, show the user each page as a text outline (one line per block, sketches marked _Custom_), and tell them `ajs project dev` turns it into a live preview.
-- **Annotations.** With the DMS MCP, `mockup_annotations` lists them and `mockup_resolve_annotation` resolves one. Without it, read and write `mockups/<name>/annotations.json` directly ([SPEC.md](SPEC.md) _annotations.json_).
+- **Annotations.** When `mockup_annotations` is among your tools, it lists them and `mockup_resolve_annotation` resolves one. Without them, use the HTTP API of the running DMS, else edit `mockups/<name>/annotations.json` directly ([SPEC.md](SPEC.md) _annotations.json_).
+- **Safe mode** (see **dms-builder-mcp**). The spec is a file under `mockups/`, and no builder tool writes it: ask the user whether to turn Safe mode off for the files under `mockups/` before step 3. Resolving an annotation through `mockup_resolve_annotation` needs no such step.
 - **The asking tool**: `ask_user` in the dms-assistant chat, your harness's question tool elsewhere (`AskUserQuestion` in Claude Code), else one closed question in chat. Batch questions: up to 4 per call.
 
 ## 1. Interview
