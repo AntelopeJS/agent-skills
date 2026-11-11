@@ -1,5 +1,6 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const MANIFEST_FILE = "package.json";
 const NODE_MODULES_DIR = "node_modules";
@@ -279,3 +280,13 @@ export function collectSkillPackages(input) {
   }
   return found;
 }
+
+/**
+ * The DMS workflow skills of the `antelopejs` plugin, copied into this package
+ * when it is packed: one directory per skill, each holding a `SKILL.md`.
+ * @type {string}
+ */
+export const workflowSkillsDir = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "skills",
+);

@@ -56,3 +56,12 @@ export interface CollectSkillPackagesInput {
 export function collectSkillPackages(
   input: CollectSkillPackagesInput,
 ): SkillPackage[];
+
+/**
+ * Absolute path of the DMS workflow skills (`dms-pages`, `dms-builder-mcp`,
+ * `dms-mockup`, …) of the `antelopejs` plugin, copied into the published
+ * package: one directory per skill, each holding a `SKILL.md`. A caller loads
+ * them like the skills of {@link collectSkillPackages}. A source checkout has
+ * no such directory until the package is packed.
+ */
+export declare const workflowSkillsDir: string;

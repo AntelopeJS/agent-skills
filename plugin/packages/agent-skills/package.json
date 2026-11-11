@@ -21,6 +21,7 @@
   "files": [
     "index.mjs",
     "index.d.ts",
+    "skills",
     "LICENSE",
     "README.md"
   ],
@@ -41,6 +42,8 @@
   },
   "scripts": {
     "typecheck": "tsc -p .",
+    "prepack": "node scripts/pack-skills.mjs",
+    "postpack": "node scripts/pack-skills.mjs --clean",
     "release": "release-it"
   },
   "devDependencies": {
