@@ -41,6 +41,9 @@ Call `database_connections`.
 - **A connection is listed** with an `engine`: use its id and go to 2.
 - **An entry answers `error`**: say what it says (an owned instance, the catalog not enabled, a
   role that cannot read) and stop.
+- **A database tool answers `unreachable_connection`**: the DMS MCP reaches only the catalog
+  connection `dms` imports. The connection exists, but step 4 of REFERENCE.md _Connecting_ is
+  missing: propose that step alone, with the same approval and restart.
 - **Nothing is listed**: the project is not connected yet. Ask the integrator which engine the
   database runs: PostgreSQL, MongoDB or RethinkDB. Propose one `builder_configure_project` call
   with that engine's steps in REFERENCE.md _Connecting_. Pick the names with the integrator, for
@@ -139,7 +142,7 @@ profile of the whole database again: the Builder did it.
   - a default period computed from the data's real dates, never assumed;
   - every page built with one `builder_compose_page` call, previewed first, and every block whose
     preview is empty, zero or failed dropped or changed;
-  - every page opened with `navigate_to_page` and its block report read before you report.
+  - every page checked as `dms-builder-mcp` _Verify_ says before you report.
 - **Not possible yet:** breakdowns by a related entity's name, such as revenue per customer.
   Templates read one relation, so they would show ids. List them under _Not possible yet_,
   never as pages.
@@ -187,14 +190,14 @@ change made: a mapped relation is rewritten from the choices sent, and its page 
 
 - Navigate only once every page is written. Pages register when the host reloads the generated
   module: under `ajs project dev` its watcher rebuilds the module after your writes.
-- `navigate_to_page` to each page. If it answers `unknown_route`, the reload has not happened.
+- `navigate_to_page` for each page. If it answers `unknown_route`, the reload has not happened.
   - Read `query_logs` once, for a reload error.
   - Then tell the integrator the pages appear once the module reloads. Do not wait, retry or
     investigate further.
 - `query_logs` for registration warnings (lossy fields, unserved indexes) and for the errors of
   the routes the pages called.
-- On each analytics page, fix or remove every block `navigate_to_page` reports as empty or
-  failed, and navigate again, as in `dms-page-design` _Build a page in one call, and check it first_.
+- On each analytics page, check every block as `dms-builder-mcp` _Verify_ says, fix or remove
+  each one that shows no data or an error, and check again, as in `dms-page-design` _Build a page in one call, and check it first_.
 
 Then report:
 

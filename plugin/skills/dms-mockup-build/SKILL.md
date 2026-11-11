@@ -42,7 +42,7 @@ Per page, in the spec's order:
 - **Code:** write the page class, its routes and DataControllers with **dms-pages**, then run the typecheck.
 - **Custom components:** with **dms-pages**, after the builder's write; then `builder_refresh` on the page when the builder MCP answers.
 
-A page is built when it typechecks and `navigate_to_page` (or the browser) shows every block with data.
+A page is built when it typechecks and, checked as **dms-builder-mcp** _Verify_ says, shows every block with data.
 
 ## 4. Compare and fix
 

@@ -83,4 +83,4 @@ A `docs/<path>` link is `https://dms.antelopejs.com/docs/<path>`.
 - Locale values escape vue-i18n's special characters as literals (`{'@'}`, `{'{'}`, `{'}'}`, `{'|'}`): a raw `@` or brace breaks the message's compilation (`docs/building/localization`, Special characters).
 - Data comes from routes (`fetchUrl`) rather than options computed at registration; a custom block reads its route with `useApiData` (server-rendered, refreshed with the page) and writes with `$authFetch`.
 - Publish tenant data with the tenant id: a `PublishMessage` about one workspace's data passes `{ tenantId }`, or it wakes the page of every workspace.
-- Verified live: `navigate_to_page` and `query_logs` with the builder MCP, the browser otherwise (**dms-project**). The build typechecks `src/` only.
+- Verified live, as **dms-builder-mcp** _Verify_ says, or in the browser without the MCP (**dms-project**). The build typechecks `src/` only.

@@ -192,8 +192,8 @@ Use the single-block tools only for a small fix afterwards.
    fix those and call again; nothing was written.
 3. KPI cards above a table: `pageRef` of the table page, `placement: { "before": "table" }`,
    and the `GridRow` of `KpiCard`s as `blocks`. A later remap keeps them.
-4. After the last page, `navigate_to_page` once per page and fix any block it reports as empty
-   or failed.
+4. After the last page, check each page as `dms-builder-mcp` _Verify_ says, and fix any block
+   that shows no data or an error.
 5. Your report names every block that still shows no data, and why.
 
 The page is done when every block has data in the default period, the page meets the
