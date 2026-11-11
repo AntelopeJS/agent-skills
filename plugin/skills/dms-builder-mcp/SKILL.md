@@ -1,6 +1,6 @@
 ---
 name: dms-builder-mcp
-description: Drives the AntelopeJS DMS builder MCP tools (builder_catalog, builder_add_block, builder_compose_page, …), whose typechecked operations change a project's pages, and detects whether the project has them. Use when adding, configuring, moving or removing DMS blocks, pages or categories through the builder, when Safe mode is on, or when a builder tool answers an error.
+description: Drives the AntelopeJS DMS builder MCP tools (builder_catalog, builder_add_block, builder_compose_page, …), whose typechecked operations change a project's pages, and detects whether the project has them. Use when adding, configuring, moving or removing DMS blocks, pages or categories through the builder, changing the dashboard's brand colours, logo or theme, when Safe mode is on, or when a builder tool answers an error.
 ---
 
 # Building DMS pages through the builder MCP
@@ -52,6 +52,12 @@ A **resource** is the data a table or form shows: a `Table` + `Model` and a `Dat
 A **query** is a derived-data endpoint on a page: an aggregate or one point per group, backed by a generated model method. Its `response` matches the block: `value` for a `KpiCard`, `card` for a `ChartCard`, `items` for a `TopListCard`, `series` for a bare chart. Run `builder_query_templates` and `builder_preview_query` first, add it with `builder_add_query` on the page that shows it, and wire the returned `route` as the block's `fetchUrl`.
 
 [REFERENCE.md](REFERENCE.md) has the resource and query workflows, field rules, `$param` binding and opaque queries.
+
+## Theme and branding
+
+Brand colours, logos and the other design tokens belong to the theme, never to a page's blocks. `builder_get_theme` reads it; `builder_set_theme` changes it; `builder_create_theme_layer` first makes the frontend layer that holds it when the project has none. All three work in Safe mode. Read the theme before you set it, and change only what the user asked.
+
+On the code path, edit the theme yourself in the `app/app.config.ts` of the project's frontend layer: `branding.logo` for the logos (files in the layer's `public/`), `ui.colors` for the palette (`primary: "violet"`, or a brand palette declared in a stylesheet of the layer), as https://dms.antelopejs.com/docs/extending-the-dashboard/theming-and-branding says.
 
 ## Errors
 

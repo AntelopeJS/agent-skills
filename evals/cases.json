@@ -460,6 +460,18 @@
         "skills": ["dms-mockup-build"],
         "acceptable": ["dms-builder-mcp", "dms-pages", "dms-best-practices"]
       }
+    },
+    {
+      "id": "plugin-dms-builder-mcp-brand-colour",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "change our dashboard brand colour to violet and swap the logo for ours, the dms mcp is running",
+      "expect": {
+        "skills": ["dms-builder-mcp"],
+        "acceptable": ["dms-best-practices", "dms-frontend"],
+        "avoid": ["dms-page-design"],
+        "mustMention": ["builder_set_theme"]
+      }
     }
   ]
 }
