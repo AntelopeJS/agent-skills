@@ -31,7 +31,7 @@ Material for [SKILL.md](SKILL.md): mapping design elements to DMS blocks, the `p
 
 Nothing matches — a canvas, a map, a bespoke visualization — → a custom block, under the rules of SKILL.md.
 
-## `preview_blocks` (builder MCP)
+## `preview_blocks`
 
 `preview_blocks({ title, description?, label?, tree?, sketch?, reference?, variants?: [{ label, tree?, sketch? }] })` — non-blocking; it renders the real blocks next to the reference image (in the dms-assistant chat, as an attachment card the user opens; elsewhere, show the user what the tool answers), one tab for the main view (named by `label`, default "Proposed") and one per variant. Every view needs a `tree`, a `sketch` or both (both are drawn side by side). `reference` is `{ attachmentId?, url?, caption? }`: `attachmentId` is the file name of an image the user attached in the dms-assistant chat, or `"latest"`; `url` is a same-origin path. `tree` is one `PreviewNode` or a list: `{ type, options?, children? }`, children also taking `id`, `slot` and `colSpan`. Use `static*` options (`staticValue`, `staticDataset`, `staticItems`, `items`) so the preview shows data without a route; URL options must be relative paths. `TableView` and `ResourceForm` need a backend class and render as a notice — describe them in the question instead.
 
@@ -104,7 +104,7 @@ ask_user({
 
 ## Safe mode: a custom block is out of reach
 
-The builder tools cannot write Vue. Show the closest composition with `preview_blocks`, then:
+The builder tools cannot write Vue. Show the closest composition with `preview_blocks` (the text table when it is missing), then:
 
 ```ts
 ask_user({

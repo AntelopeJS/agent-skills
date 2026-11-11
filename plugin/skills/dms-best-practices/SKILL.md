@@ -9,7 +9,7 @@ Three rules hold for every page, a path runs before any custom block, and a prot
 
 Three facts about the project change the steps below. **dms-builder-mcp** _Detect what the project has_ tells how to settle them:
 
-- **The builder MCP** answers (`builder_catalog` and `preview_blocks` are among your tools), or not.
+- **The builder MCP** answers (`builder_catalog` is among your tools), or not. **The preview** is a tool of its own: `preview_blocks` is among your tools, or not (an older DMS serves it to the dms-assistant chat only).
 - **Safe mode** is on (the builder tools are the only way to write), or not.
 - **The asking tool**: `ask_user` in the dms-assistant chat, your harness's question tool elsewhere, else one closed question in chat.
 
@@ -50,7 +50,7 @@ A custom block is a deviation, and you **propose** it: the user decides, after t
 Run this path before writing a `CustomComponent` or its Vue, one element at a time:
 
 1. **Search the catalog.** With the builder MCP, `builder_catalog`; otherwise the block catalog of the running DMS (`GET /api/block-preview/types`), else `ListBlockTypes()` from `@antelopejs/interface-dms/base/block-types` or the exports of `@antelopejs/interface-dms/base`. Try the block's options first, then a composition of blocks (`Card` + `KeyValueList`, `ChartCard` + a chart, `Grid` of `KpiCard`).
-2. **Show the comparison.** With the builder MCP, call `preview_blocks` with the closest DMS option as `tree`, the user's design as `reference`, and a **sketch variant** of the custom block, then show the user what it answers. Without it, write the text table of [REFERENCE.md](REFERENCE.md). When the page belongs to a mockup, the sketch goes in the spec instead (**dms-mockup**).
+2. **Show the comparison.** When `preview_blocks` is among your tools, call it with the closest DMS option as `tree`, the user's design as `reference`, and a **sketch variant** of the custom block, then show the user what it answers. Without it, write the text table of [REFERENCE.md](REFERENCE.md). When the page belongs to a mockup, the sketch goes in the spec instead (**dms-mockup**).
 3. **Ask.** One closed question with the asking tool, three options: _Keep the DMS block_ / _Adjust it through its options_ / _Build a custom block_.
 4. **Build.** On _Adjust_, change the block's options and preview again. Only on _Build a custom block_, build that block alone, under the rules above, with `.meta()`; the rest of the page stays blocks.
 
