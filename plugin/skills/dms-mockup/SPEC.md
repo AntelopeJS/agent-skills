@@ -111,7 +111,7 @@ Name every child with an `id`: the builder and the roles editor key blocks by na
 
 ## Validation
 
-`mockup_write_spec` with `{ "mockup": "<name>", "spec": { … } }` validates the spec, writes `spec.json` when it holds, and answers `{ ok, errors }`. Without that tool, `GET /api/mockup/<name>` answers the compiled state: `pages`, a `revision` that grows on each good read, and `issues`, each `{ path, message }` with `path` a JSON pointer into `spec.json` (`/pages/0/tree/1/children/0/options/title`). The spec validates when `issues` is empty. A node with bad options still draws what it can, so a page that looks right can still hold issues: read them.
+`mockup_write_spec` with `{ "mockup": "<name>", "spec": { … } }`, or `mockup_patch_spec` with `{ "mockup": "<name>", "patch": [ RFC 6902 operations ] }`, validates the resulting spec, writes `spec.json` when it holds, and answers `{ ok, errors }`, each error `{ path, message }`. A refused spec answers `ok: false`; a bad name, a failed patch operation or a missing target answers a tool error. Nothing is written in either case. Without that tool, `GET /api/mockup/<name>` answers the compiled state: `pages`, a `revision` that grows on each good read, and `issues`, each `{ path, message }` with `path` a JSON pointer into `spec.json` (`/pages/0/tree/1/children/0/options/title`). The spec validates when `issues` is empty. A node with bad options still draws what it can, so a page that looks right can still hold issues: read them.
 
 ## The preview
 
