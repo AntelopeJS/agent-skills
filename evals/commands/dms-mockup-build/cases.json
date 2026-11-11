@@ -1,0 +1,68 @@
+{
+  "cases": [
+    {
+      "id": "plan-before-build",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "prompt": "The order-desk mockup is approved. Build the real pages from it.",
+      "rubric": [
+        {
+          "id": "reads-spec",
+          "text": "The agent reads mockups/order-desk/spec.json and checks its annotations before planning."
+        },
+        {
+          "id": "plan-presented",
+          "text": "Before writing any page, the agent presents a plan naming the page, its blocks, the resource that replaces the orders fixture and the custom component for the drivers map, and waits for approval."
+        },
+        {
+          "id": "no-fixture-urls",
+          "text": "No planned or written block keeps a fixture: URL; each reads a resource, a query or a route."
+        }
+      ]
+    },
+    {
+      "id": "code-path-without-mcp",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "prompt": "Build the order-desk mockup into real pages. I approve your plan in advance, go.",
+      "rubric": [
+        {
+          "id": "detects-no-mcp",
+          "text": "The agent finds no builder MCP tools and writes the TypeScript itself: a PageController class registered with @RegisterPage."
+        },
+        {
+          "id": "table-on-controller",
+          "text": "The orders table is a TableView backed by a DataController over a registered Table, with the spec's customer, total and status columns."
+        },
+        {
+          "id": "sketch-to-custom",
+          "text": "The drivers map sketch becomes a CustomComponent declared with .meta({ name, description, icon }), and the rest of the page stays DMS blocks."
+        },
+        {
+          "id": "kpi-reads-route",
+          "text": "The revenue KpiCard reads a route that computes the revenue, named with pageRoutePath when the route lives on the page class."
+        }
+      ]
+    },
+    {
+      "id": "compare-after-build",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "prompt": "Build the orders page of the order-desk mockup (plan approved in advance), then check that it matches the mockup and fix what differs.",
+      "rubric": [
+        {
+          "id": "side-by-side",
+          "text": "The agent compares the mockup render (/mockup?name=order-desk&page=orders) with the real page at the same width, or, without a browser tool, the spec's tree with the page's code node by node."
+        },
+        {
+          "id": "lists-differences",
+          "text": "The agent lists each difference it finds (a missing, extra or reordered block, another option, an empty block) before fixing it."
+        },
+        {
+          "id": "data-values-ignored",
+          "text": "Values that differ only because real data replaced a fixture are not reported as differences."
+        }
+      ]
+    }
+  ]
+}

@@ -78,7 +78,19 @@ beforeEach(() => {
       SessionStart: [{ hooks: [{ type: "command", command: SYNC }] }],
     },
   });
-  for (const name of ["interface", "new-module", "skills", "sync-skills"])
+  for (const name of [
+    "dms-best-practices",
+    "dms-builder-mcp",
+    "dms-external-database",
+    "dms-mockup",
+    "dms-mockup-build",
+    "dms-page-design",
+    "dms-pages",
+    "interface",
+    "new-module",
+    "skills",
+    "sync-skills",
+  ])
     writeSkill(
       name,
       "Run `node <skill-dir>/../../scripts/sync-skills.mjs --list`.",

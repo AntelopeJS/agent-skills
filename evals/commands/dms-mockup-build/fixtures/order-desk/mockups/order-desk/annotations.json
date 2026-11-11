@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "annotations": [
+    {
+      "id": "a1",
+      "page": "orders",
+      "path": "/pages/0/tree/1",
+      "text": "Show the status as coloured badges",
+      "status": "resolved",
+      "createdAt": "2026-11-10T09:00:00.000Z",
+      "resolvedAt": "2026-11-10T09:05:00.000Z"
+    }
+  ]
+}
