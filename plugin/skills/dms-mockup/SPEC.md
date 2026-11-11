@@ -85,7 +85,7 @@ A node is `{ type, options?, children? }`; a child also takes `id`, `slot` (a `T
 
 ## Validation
 
-`GET /api/mockup/<name>` answers the compiled state: `pages`, a `revision` that grows on each good read, and `issues`, each `{ path, message }` with `path` a JSON pointer into `spec.json` (`/pages/0/tree/1/children/0/options/title`). The spec validates when `issues` is empty. A node with bad options still draws what it can, so a page that looks right can still hold issues: read them.
+`mockup_write_spec` with `{ "mockup": "<name>", "spec": { … } }` validates the spec, writes `spec.json` when it holds, and answers `{ ok, errors }`. Without that tool, `GET /api/mockup/<name>` answers the compiled state: `pages`, a `revision` that grows on each good read, and `issues`, each `{ path, message }` with `path` a JSON pointer into `spec.json` (`/pages/0/tree/1/children/0/options/title`). The spec validates when `issues` is empty. A node with bad options still draws what it can, so a page that looks right can still hold issues: read them.
 
 ## The preview
 

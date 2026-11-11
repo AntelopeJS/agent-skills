@@ -14,7 +14,7 @@ The mockup is done when the user approves it. Building the real pages from it is
 - **The block catalog.** With the builder MCP (`builder_catalog` among your tools, see **dms-builder-mcp**), `builder_catalog`. Without it, the catalog of the running DMS (`GET /api/block-preview/types`, or the spec schema at `GET /api/mockup/schema`), else the schema file `@antelopejs/dms` ships ([SPEC.md](SPEC.md) _Schema_). The running DMS lists the blocks of the installed modules too; the file lists the core blocks only.
 - **The preview.** `/mockup?name=<name>` answers while `ajs project dev` runs. When it does not, write and validate the spec all the same, show the user each page as a text outline (one line per block, sketches marked _Custom_), and tell them `ajs project dev` turns it into a live preview.
 - **Annotations.** When `mockup_annotations` is among your tools, it lists them and `mockup_resolve_annotation` resolves one. Without them, use the HTTP API of the running DMS, else edit `mockups/<name>/annotations.json` directly ([SPEC.md](SPEC.md) _annotations.json_).
-- **Safe mode** (see **dms-builder-mcp**). The spec is a file under `mockups/`, and no builder tool writes it: ask the user whether to turn Safe mode off for the files under `mockups/` before step 3. Resolving an annotation through `mockup_resolve_annotation` needs no such step.
+- **Writing the spec.** When `mockup_write_spec` is among your tools, every write of the spec goes through it: it validates and writes `spec.json` only, and Safe mode allows it, as it allows `mockup_resolve_annotation`. Without it, write the file directly.
 - **The asking tool**: `ask_user` in the dms-assistant chat, your harness's question tool elsewhere (`AskUserQuestion` in Claude Code), else one closed question in chat. Batch questions: up to 4 per call.
 
 ## 1. Interview
@@ -42,14 +42,14 @@ This step is done when every wish maps to a block, a composition, or a sketch th
 
 ## 3. Write the spec
 
-Write `mockups/<name>/spec.json` (`<name>` in kebab case, from the app or the area: `crm`, `stock-dashboard`), following [SPEC.md](SPEC.md):
+Write `mockups/<name>/spec.json` with `mockup_write_spec` or as a file (`<name>` in kebab case, from the app or the area: `crm`, `stock-dashboard`), following [SPEC.md](SPEC.md):
 
 - one entry per page, its tree in the order the page reads, every block with a name;
 - **fixtures** for every block that reads data, realistic and coherent across pages (the order total on the list matches the KPI), sized like the real data (a dozen rows, not two);
 - a **sketch** for each custom part the user chose, kept to that element;
 - texts in the user's language.
 
-Validate it: `GET /api/mockup/<name>` answers every issue with the JSON pointer of its node ([SPEC.md](SPEC.md) _Validation_); without a running DMS, check the file against the schema. The step is done when the spec has no issue. Then give the user the link: `/mockup?name=<name>` on the running DMS.
+Validate it: `mockup_write_spec` answers its `errors`; otherwise `GET /api/mockup/<name>` answers every issue with the JSON pointer of its node ([SPEC.md](SPEC.md) _Validation_); without a running DMS, check the file against the schema. The step is done when the spec has no issue. Then give the user the link: `/mockup?name=<name>` on the running DMS.
 
 ## 4. Iterate on annotations
 
@@ -59,6 +59,6 @@ When the user says they commented, or asks what is left, list the open annotatio
 2. Change the spec. A request the DMS blocks cannot meet goes through step 2 again, never straight to a sketch.
 3. Resolve the annotation, and note what changed for the report.
 
-Save after each batch: the preview redraws on its own. Report the annotations you resolved and those you left open, with the question each one raises.
+Save after each batch, through `mockup_write_spec` when it is among your tools: the preview redraws on its own. Report the annotations you resolved and those you left open, with the question each one raises.
 
 The mockup is done when no annotation is open and the user approves it. Then offer **dms-mockup-build**.
