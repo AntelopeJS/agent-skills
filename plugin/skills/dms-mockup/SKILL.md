@@ -47,6 +47,7 @@ Write `mockups/<name>/spec.json` with `mockup_write_spec` or as a file (`<name>`
 - one entry per page, its tree in the order the page reads, every block with a name;
 - **fixtures** for every block that reads data, realistic and coherent across pages (the order total on the list matches the KPI), sized like the real data (a dozen rows, not two);
 - a **sketch** for each custom part the user chose, kept to that element;
+- `source`, on a new spec only: `claude-code` in Claude Code, `codex` in Codex, left out when you cannot tell which harness runs you;
 - texts in the user's language.
 
 Validate it: `mockup_write_spec` answers its `errors`; otherwise `GET /api/mockup/<name>` answers every issue with the JSON pointer of its node ([SPEC.md](SPEC.md) _Validation_); without a running DMS, check the file against the schema. The step is done when the spec has no issue. Then give the user the link: `/mockup?name=<name>` on the running DMS.

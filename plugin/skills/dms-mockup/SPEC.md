@@ -92,6 +92,9 @@ The formats of `mockups/<name>/spec.json` and `mockups/<name>/annotations.json`,
 - `pages`: 1 to 50 pages. `options` is optional: `theme` (`light` or `dark`), `locale`, `padding` (default `true`).
 - `fixtures`: a key (`^[A-Za-z0-9_-]{1,64}$`) to any JSON value, the data the page's blocks read.
 - `tree`: the page's blocks, top to bottom, in the `DmsBlockPreview` tree format below.
+- `livePage` and `liveRoutes` (optional, per page): set by "Edit as mockup" on a page converted from a live page, `livePage: { ref, version }` and `liveRoutes` a fixture key to the live route it stands for. **dms-mockup-build** reads them.
+- `source` (optional): the harness that created the spec, `claude-code` or `codex`.
+- `built` (optional): written by **dms-mockup-build** after a build, `{ at, pages }`: `at` an ISO date, `pages` one `{ path, title? }` per page built, `path` its dashboard path.
 
 The envelope is strict: a key this page does not list is an issue.
 

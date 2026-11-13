@@ -462,6 +462,70 @@
       }
     },
     {
+      "id": "plugin-dms-mockup-build-verify",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Build the order-desk mockup into real DMS pages (plan approved in advance) and prove every page works before you hand them back. The dms MCP is running.",
+      "expect": {
+        "skills": ["dms-mockup-build"],
+        "acceptable": [
+          "dms-builder-mcp",
+          "dms-pages",
+          "dms-best-practices",
+          "dms-page-design"
+        ],
+        "mustMention": ["page_verify", "pages pass, "]
+      }
+    },
+    {
+      "id": "plugin-dms-mockup-build-no-verify-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "build the order-desk mockup into pages, plan's approved. our dms mcp is old, no page_verify tool in it",
+      "expect": {
+        "skills": ["dms-mockup-build"],
+        "acceptable": [
+          "dms-builder-mcp",
+          "dms-pages",
+          "dms-best-practices",
+          "dms-page-design"
+        ],
+        "mustMention": ["(compared visually, page_verify is not available)"]
+      }
+    },
+    {
+      "id": "plugin-dms-mockup-build-live-page",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Build mockup orders-redesign into the existing page /orders with the dms-mockup-build skill. Update that page; do not create a new one.",
+      "expect": {
+        "skills": ["dms-mockup-build"],
+        "acceptable": [
+          "dms-builder-mcp",
+          "dms-pages",
+          "dms-best-practices",
+          "dms-page-design"
+        ],
+        "mustMention": ["liveRoutes"]
+      }
+    },
+    {
+      "id": "plugin-dms-mockup-build-live-page-stale",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Build mockup orders-redesign into the existing page /orders with the dms-mockup-build skill. Update that page; do not create a new one. builder_page_structure on /orders answers version 9c41e0, and the spec's livePage.version is 3fa2b7.",
+      "expect": {
+        "skills": ["dms-mockup-build"],
+        "acceptable": [
+          "dms-builder-mcp",
+          "dms-pages",
+          "dms-best-practices",
+          "dms-page-design"
+        ],
+        "mustMention": ["mockup_from_page"]
+      }
+    },
+    {
       "id": "plugin-dms-builder-mcp-brand-colour",
       "area": "dms",
       "style": "casual",
