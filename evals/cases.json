@@ -494,6 +494,22 @@
       }
     },
     {
+      "id": "plugin-dms-mockup-build-live-page",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Build mockup orders-redesign into the existing page /orders with the dms-mockup-build skill. Update that page; do not create a new one.",
+      "expect": {
+        "skills": ["dms-mockup-build"],
+        "acceptable": [
+          "dms-builder-mcp",
+          "dms-pages",
+          "dms-best-practices",
+          "dms-page-design"
+        ],
+        "mustMention": ["livePage", "builder_configure_block"]
+      }
+    },
+    {
       "id": "plugin-dms-builder-mcp-brand-colour",
       "area": "dms",
       "style": "casual",

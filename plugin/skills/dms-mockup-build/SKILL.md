@@ -18,6 +18,8 @@ The spec is the contract: the pages it lists, their blocks in its order, their o
 
 Read `mockups/<name>/spec.json` and its open annotations ([SPEC.md](../dms-mockup/SPEC.md) _annotations.json_). An open annotation is a change the user still wants: ask whether to apply it first with **dms-mockup**, or to build the spec as it stands.
 
+A spec page that carries `livePage: { ref, version }` was converted from a live page: build it into that page, as _Pages converted from a live page_ says.
+
 ## 2. Plan
 
 Map every spec page and node, and present the plan before you write:
@@ -39,11 +41,21 @@ The plan lists per page its blocks, the resources and queries to create, and the
 
 Per page, in the spec's order:
 
-- **Builder MCP:** `builder_create_page`, then one `builder_compose_page` call with the page's whole tree, previewed first (`"preview": true`) as **dms-page-design** _Build a page in one call_ says. Create the resources and queries the page reads before the page.
+- **Builder MCP:** for a new page, `builder_create_page`, then one `builder_compose_page` call with the page's whole tree, previewed first (`"preview": true`) as **dms-page-design** _Build a page in one call_ says. Create the resources and queries the page reads before the page.
 - **Code:** write the page class, its routes and DataControllers with **dms-pages**, then run the typecheck.
 - **Custom components:** with **dms-pages**, after the builder's write; then `builder_refresh` on the page when the builder MCP answers.
 
 A page is built when it typechecks and, checked as **dms-builder-mcp** _Verify_ says, shows every block with data.
+
+### Pages converted from a live page
+
+A page with `livePage` already exists at `livePage.ref`: update it, never create another.
+
+- **Plan** the changes to that page (blocks to configure, move, remove or add), not a new `PageController`.
+- **Data:** a `fixture:<key>` whose key is in the page's `liveRoutes` reads that live route on the built page, before any rule of _Fixture_.
+- **Sketches:** a Custom sketch whose `id` names a block of the live page stands for code the conversion could not express: leave that block untouched.
+- **Build** with `builder_configure_block`, `builder_move_block`, `builder_remove_block` and `builder_add_block` on `livePage.ref`, or `builder_compose_page` with that `pageRef` when its tree keeps the untouched blocks. Never call `builder_create_page`. Without the builder MCP, edit the existing page class.
+- **Verify** with `page_verify({ page: "<livePage.ref>", … })`.
 
 ## 4. Verify and fix
 
