@@ -31,7 +31,7 @@ export class RecipesPage extends PageController("recipes", {
 }) {}
 ```
 
-`options` is the `MenuOptions` shape: `displayName`, `icon`, `module` and/or `category` (at least one; a module page's explicit category descends from the module's root), `urlSlug` (defaults to the id), `order`, `description`, `hidden`, `type`, plus auth options (`publicAccess`, `authOnly`, `memberAccess`, `permission`, `noComponentPermissions`; see **dms-auth**). `Category(id, options)` returns a `CategoryInfo` for a page's `category`; `RegisterModule({ id, … })` creates a module root that pages join with `module: "<id>"`. Module pages live under `/modules/<moduleId>/<urlSlug>` and are **owner-only by design**: a screen for regular users goes under `pagesCategory` or a normal `Category`.
+`options` is the `MenuOptions` shape: `displayName`, `icon`, `module` and/or `category` (at least one; a module page's explicit category descends from the module's root), `urlSlug` (defaults to the id), `order`, `description`, `hidden`, `type`, plus auth options (`publicAccess`, `authOnly`, `memberAccess`, `permission`, `noComponentPermissions`, `ownerOnly`; see **dms-auth**). `ownerOnly: true` opens the page to the platform owner only, as on a module page: no role can be granted it, and the Roles editor does not list it. `Category(id, options)` returns a `CategoryInfo` for a page's `category`; `RegisterModule({ id, … })` creates a module root that pages join with `module: "<id>"`. Module pages live under `/modules/<moduleId>/<urlSlug>` and are **owner-only by design**: a screen for regular users goes under `pagesCategory` or a normal `Category`.
 
 ## Composing blocks
 

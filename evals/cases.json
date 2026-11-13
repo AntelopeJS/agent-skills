@@ -19,6 +19,23 @@
       }
     },
     {
+      "id": "owner-only-page",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a platform settings page under the dashboard's Settings category that only the platform owner can open. It must not be a module page, and no role should ever be able to grant it.",
+      "expect": {
+        "skills": ["dms-pages"],
+        "acceptable": [
+          "dms",
+          "dms-auth",
+          "dms-best-practices",
+          "dms-builder-mcp"
+        ],
+        "mustMention": ["ownerOnly"],
+        "mustNotMention": ["RegisterModule"]
+      }
+    },
+    {
       "id": "orders-table-casual",
       "area": "dms",
       "style": "casual",
