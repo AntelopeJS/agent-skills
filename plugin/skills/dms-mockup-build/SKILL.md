@@ -1,6 +1,6 @@
 ---
 name: dms-mockup-build
-description: Builds the real AntelopeJS DMS pages from an approved mockup (mockups/<name>/spec.json): PageControllers through the builder MCP or TypeScript, real data in place of the fixtures, custom components for the sketches, then a verify and fix loop against the mockup (page_verify, at most three rounds) that reports every page left failing. Use when the user wants to build or implement a mockup, or turn its spec into pages.
+description: Builds the real AntelopeJS DMS pages from an approved mockup (mockups/<name>/spec.json): PageControllers through the builder MCP or TypeScript, real data in place of the fixtures, custom components for the sketches (or updates the live page a converted mockup page names), then a verify and fix loop against the mockup (page_verify, at most three rounds) that reports every page left failing. Use when the user wants to build or implement a mockup, or turn its spec into pages.
 ---
 
 # Building pages from a mockup
@@ -18,14 +18,14 @@ The spec is the contract: the pages it lists, their blocks in its order, their o
 
 Read `mockups/<name>/spec.json` and its open annotations ([SPEC.md](../dms-mockup/SPEC.md) _annotations.json_). An open annotation is a change the user still wants: ask whether to apply it first with **dms-mockup**, or to build the spec as it stands.
 
-A spec page that carries `livePage: { ref, version }` was converted from a live page: build it into that page, as _Pages converted from a live page_ says.
-
 ## 2. Plan
 
 Map every spec page and node, and present the plan before you write:
 
+- **Converted page:** a spec page with `livePage: { ref, version }` was converted from the live page at `livePage.ref` (a route). Read that page with `builder_page_structure` and plan the changes that turn it into the spec page (blocks to configure, move, remove or add), not a new `PageController`. A **live sketch**, a Custom sketch whose `id` names a block of the live page, stands for code the conversion could not express: keep that block as it is, with no component to write and no Safe mode question. `livePage.version` is not the `version` hash of `builder_page_structure`.
 - **Page** → a `PageController`: `id` and title from the spec page, an icon and a description as **dms-page-design** _Name every page_ says, a category the user confirms.
 - **Block** → the same `type` and options. Keep each child's `id` as the block's name; a child whose `id` names a block option (a `ChartCard`'s `chart`) becomes that option.
+- **Live route:** on a converted page, a `fixture:<key>` whose key is in the page's `liveRoutes` becomes that route as the option's value (such as `fetchUrl`), before the _Fixture_, `TableView` and `ResourceForm` rules.
 - **Fixture**, or a `static*` option → the real data it stands for, by the first that holds:
   1. an existing resource or route serves it (`builder_list_resources`, the project's controllers): bind to it;
   2. rows of one entity: a new resource (`builder_create_resource`), its fields and types read from the fixture's rows, seeded with those rows only when the user wants sample data;
@@ -49,21 +49,15 @@ A page is built when it typechecks and, checked as **dms-builder-mcp** _Verify_ 
 
 ### Pages converted from a live page
 
-A page with `livePage` already exists at `livePage.ref`: update it, never create another.
-
-- **Plan** the changes to that page (blocks to configure, move, remove or add), not a new `PageController`.
-- **Data:** a `fixture:<key>` whose key is in the page's `liveRoutes` reads that live route on the built page, before any rule of _Fixture_.
-- **Sketches:** a Custom sketch whose `id` names a block of the live page stands for code the conversion could not express: leave that block untouched.
-- **Build** with `builder_configure_block`, `builder_move_block`, `builder_remove_block` and `builder_add_block` on `livePage.ref`, or `builder_compose_page` with that `pageRef` when its tree keeps the untouched blocks. Never call `builder_create_page`. Without the builder MCP, edit the existing page class.
-- **Verify** with `page_verify({ page: "<livePage.ref>", … })`.
+Update the page at `livePage.ref`, never create another: no `builder_create_page`. Change its existing blocks with `builder_configure_block`, `builder_move_block` and `builder_remove_block`; add the spec's new blocks with `builder_add_block`, or with `builder_compose_page` on that `pageRef` and a `placement`, previewed first (`"preview": true`). Move a live sketch's neighbours around it, never the block itself. Without the builder MCP, edit the existing page class. A `not_found` or `stale` answer: read the page again with `builder_page_structure`, and ask the user when it is still missing; never create it.
 
 ## 4. Verify and fix
 
-A **round** verifies pages, then fixes what failed. Keep going while a page fails, up to **three rounds**: round 1 verifies every page of the plan, each later round the pages that failed before and every page a fix changed, and after the third verify you fix nothing more. A page passes when its last verify reports it `ok` (with `page_verify`) and finds no difference from the mockup, or only differences the user accepted. A page of the plan that was never built, or does not typecheck, fails with that error. A **difference** is a block missing, extra or out of order, another type, another option (title, format, variant, span, columns), a sketch whose component looks otherwise, or a block empty on the real page. Values that differ because real data replaced a fixture are no difference; a block empty where its fixture had data is one.
+A **round** verifies pages, then fixes what failed. Keep going while a page fails, up to **three rounds**: round 1 verifies every page of the plan, each later round the pages that failed before and every page a fix changed, and after the third verify you fix nothing more. A page passes when its last verify reports it `ok` (with `page_verify`) and finds no difference from the mockup, or only differences the user accepted. A page of the plan that was never built, or does not typecheck, fails with that error. A **difference** is a block missing, extra or out of order, another type, another option (title, format, variant, span, columns), a sketch whose component looks otherwise, or a block empty on the real page. Values that differ because real data replaced a fixture are no difference; a block empty where its fixture had data is one. A live sketch is never a difference nor a fix target.
 
 **With `page_verify`**, per page:
 
-1. Call `page_verify({ page: "<route>", mockup: "<name>", mockupPage: "<spec page id>" })`, with the route as `list_pages` answers it (a concrete one for `:params`, such as `/orders/42`). Keep the defaults: the owner, desktop and mobile, writes held back. The first call can take minutes while it installs its browser. An answer without `pages`: check the route with `list_pages` and call once more; if it still has none, verify that page without `page_verify`.
+1. Call `page_verify({ page: "<route>", mockup: "<name>", mockupPage: "<spec page id>" })`, with the route as `list_pages` answers it (`livePage.ref` for a converted page) (a concrete one for `:params`, such as `/orders/42`). Keep the defaults: the owner, desktop and mobile, writes held back. The first call can take minutes while it installs its browser. An answer without `pages`: check the route with `list_pages` and call once more; if it still has none, verify that page without `page_verify`.
 2. Read `pages[].failures` first: one line per failed check (a block in error or empty, a console error, a failed request, an interaction, a permission, a mockup block with no counterpart), and `notes`. Then read `pages[].render.mockup`: absent, or `unavailable` set, means the page was not compared, so compare it as without `page_verify` (by its tree when the dashboard has no `/mockup` viewer); otherwise each `extraPageBlocks` entry is a difference, so is a relative order of the matched blocks that differs from their order in the desktop viewport's `render.viewports[].blocks`, and the `mockupScreenshot` and `pageScreenshot` of each matched block show the option differences the tool does not check.
 3. Fix each failure where it starts: the route, resource or query a block in error reads (its `data[].source`), the block tree with the builder tools, or the code.
 
@@ -83,4 +77,4 @@ Open with one summary line, the same in the dms-assistant chat and in any harnes
 
 Then list every page still failing after the last round, never fewer: its route, each failure line or difference, the error behind it (the console text, the failed request with its status, the typecheck error), and its screenshots: the page's `render.viewports[].screenshot`, the block's `render.viewports[].blocks[].screenshot`, `pageScreenshot` and `mockupScreenshot`, all project-relative, or your own screenshots in the visual comparison. Then the `notes` that qualify a pass (a role checked as the owner, writes held back), and the differences the user accepted, each with its reason.
 
-Then, per page: the blocks built, the resources and queries created, and the custom components. Leave `mockups/<name>/` in place: it is the record of what the user approved.
+Then, per page: the blocks built (for a converted page, the blocks configured, moved, removed and added, and the live sketches kept), the resources and queries created, and the custom components. Leave `mockups/<name>/` in place: it is the record of what the user approved.

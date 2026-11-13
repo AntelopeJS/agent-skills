@@ -506,7 +506,7 @@
           "dms-best-practices",
           "dms-page-design"
         ],
-        "mustMention": ["livePage", "builder_configure_block"]
+        "mustMention": ["livePage.ref", "liveRoutes"]
       }
     },
     {
