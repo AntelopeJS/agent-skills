@@ -522,8 +522,7 @@
           "dms-best-practices",
           "dms-page-design"
         ],
-        "mustMention": ["mockup_from_page"],
-        "behaviour": "asks-first"
+        "mustMention": ["mockup_from_page"]
       }
     },
     {
