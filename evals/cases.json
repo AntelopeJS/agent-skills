@@ -462,6 +462,38 @@
       }
     },
     {
+      "id": "plugin-dms-mockup-build-verify",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Build the order-desk mockup into real DMS pages (plan approved in advance) and prove every page works before you hand them back. The dms MCP is running.",
+      "expect": {
+        "skills": ["dms-mockup-build"],
+        "acceptable": [
+          "dms-builder-mcp",
+          "dms-pages",
+          "dms-best-practices",
+          "dms-page-design"
+        ],
+        "mustMention": ["page_verify", "pages pass"]
+      }
+    },
+    {
+      "id": "plugin-dms-mockup-build-no-verify-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "build the order-desk mockup into pages, plan's approved. our dms mcp is old, no page_verify tool in it",
+      "expect": {
+        "skills": ["dms-mockup-build"],
+        "acceptable": [
+          "dms-builder-mcp",
+          "dms-pages",
+          "dms-best-practices",
+          "dms-page-design"
+        ],
+        "mustMention": ["compared visually", "pages pass"]
+      }
+    },
+    {
       "id": "plugin-dms-builder-mcp-brand-colour",
       "area": "dms",
       "style": "casual",

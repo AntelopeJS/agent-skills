@@ -1,6 +1,6 @@
 ---
 name: dms-mockup-build
-description: Builds the real AntelopeJS DMS pages from an approved mockup (mockups/<name>/spec.json): PageControllers through the builder MCP or TypeScript, real data in place of the fixtures, custom components for the sketches, then a side-by-side comparison with the mockup render until they match. Use when the user wants to build or implement a mockup, or turn its spec into pages.
+description: Builds the real AntelopeJS DMS pages from an approved mockup (mockups/<name>/spec.json): PageControllers through the builder MCP or TypeScript, real data in place of the fixtures, custom components for the sketches, then a verify and fix loop against the mockup (page_verify, at most three rounds) that reports every page left failing. Use when the user wants to build or implement a mockup, or turn its spec into pages.
 ---
 
 # Building pages from a mockup
@@ -10,7 +10,8 @@ The spec is the contract: the pages it lists, their blocks in its order, their o
 ## Detect what the project has
 
 - **The builder MCP and Safe mode**, as **dms-builder-mcp** _Detect what the project has_ says. With the builder MCP, build through it; without it, write the TypeScript with **dms-pages**.
-- **A browser tool** that opens a URL and takes a screenshot: a browser MCP, agent-browser, Playwright. It drives step 4.
+- **`page_verify`** among your tools (the DMS development MCP): it opens each page in a headless browser and reports its render against the mockup, its data, errors, interactions and permissions. It drives step 4. Without it, step 4 falls back to the visual comparison, with **a browser tool** that opens a URL and takes a screenshot (a browser MCP, agent-browser, Playwright) when you have one.
+- **`preview_blocks`** among your tools: step 4 shows each comparison through it.
 - **The asking tool**: `ask_user` in the dms-assistant chat, your harness's question tool elsewhere, else one closed question in chat.
 
 ## 1. Read the mockup
@@ -44,17 +45,28 @@ Per page, in the spec's order:
 
 A page is built when it typechecks and, checked as **dms-builder-mcp** _Verify_ says, shows every block with data.
 
-## 4. Compare and fix
+## 4. Verify and fix
 
-For each page, put the spec's render and the real page side by side, at the same width and theme:
+Verify every built page, fix what fails, and verify again: at most **three rounds**. Each round after the first verifies the pages that failed in the round before and every page a fix changed. A page passes when a round reports it `ok` and finds no difference from the mockup, or only differences the user accepted. A **difference** is a block missing, extra or out of order, another type, another option (title, format, variant, span, columns), a sketch whose component looks otherwise, or a block empty on the real page. Values that differ because real data replaced a fixture are no difference; a block empty where its fixture had data is one.
+
+**With `page_verify`**, per page:
+
+1. Call `page_verify({ page: "<route>", mockup: "<name>", mockupPage: "<spec page id>" })`, with the route as `list_pages` answers it (a concrete one for `:params`, such as `/orders/42`). Keep the defaults: the owner, desktop and mobile, writes held back.
+2. Read `pages[].failures` first: one line per failed check (a block in error or empty, a console error, a failed request, an interaction, a permission, a mockup block with no counterpart). Then compare the `mockupScreenshot` and `pageScreenshot` of each matched block in `render.mockup.blocks` for the option differences the tool does not check. The screenshot paths are project-relative.
+3. Fix each failure where it starts: the route, resource or query a block in error reads (its `data[].source`), the block tree with the builder tools, or the code.
+
+**Without `page_verify`**, compare visually and tell the user that `page_verify` is not available, so the pages were compared with the mockup but not tested:
 
 1. **With a browser tool:** screenshot `/mockup?name=<name>&page=<id>` and the real page, at the desktop width, then at the mobile width (`&width=mobile`, and the same viewport for the real page).
 2. **Without one:** compare the spec's tree with `builder_page_structure` (or the page class), node by node, and ask the user to look at both pages.
-3. List every **difference**: a block missing, extra or out of order, another type, another option (title, format, variant, span, columns), a sketch whose component looks otherwise, a block empty on the real page. Values that differ because real data replaced a fixture are no difference; a block empty where its fixture had data is one.
-4. Fix each difference with the builder tools or a code edit, then compare again.
+3. Fix each difference with the builder tools or a code edit.
 
-The page is done when a fresh comparison finds no difference, or only differences the user accepted.
+Each time you compare a page with the mockup, and `preview_blocks` is among your tools, call it with the page's tree as built (`static*` options in place of its data) and the mockup as `reference`: `{ url: "/mockup?name=<name>&page=<id>", caption: "Mockup <name>, page <id>" }`. The dms-assistant build dialog shows the latest preview that carries a mockup reference beside the mockup; elsewhere, show the user what the tool answers.
 
 ## 5. Report
 
-Report per page: the blocks built, the resources and queries created, the custom components, and every difference left with its reason. Leave `mockups/<name>/` in place: it is the record of what the user approved.
+Open with one summary line, the same in the dms-assistant build dialog and in any harness: `<passing>/<built> pages pass, <n> errors`, where `<n>` counts the failure lines and differences left, such as `3/3 pages pass, 0 errors`. Without `page_verify`, add `(compared visually, page_verify is not available)`.
+
+Then list every page still failing after the third round, never fewer: its route, each failure line or difference, the error behind it (the console text, the failed request with its status), and the screenshot paths of the page and of the mockup block. Differences the user accepted follow, each with its reason.
+
+Then, per page: the blocks built, the resources and queries created, and the custom components. Leave `mockups/<name>/` in place: it is the record of what the user approved.

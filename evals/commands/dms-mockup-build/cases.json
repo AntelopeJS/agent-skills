@@ -45,11 +45,43 @@
       ]
     },
     {
-      "id": "compare-after-build",
+      "id": "verify-loop",
       "harness": "claude",
       "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
-      "prompt": "Build the orders page of the order-desk mockup (plan approved in advance), then check that it matches the mockup and fix what differs.",
+      "prompt": "Build the orders page of the order-desk mockup (plan approved in advance), then prove it works and fix what fails. The dms MCP with page_verify is running.",
       "rubric": [
+        {
+          "id": "verifies-against-mockup",
+          "text": "After building, the agent calls page_verify on the orders page with mockup order-desk and mockupPage orders."
+        },
+        {
+          "id": "reads-failures-first",
+          "text": "The agent reads pages[].failures first and fixes each failure where it starts (the route, resource or query, the block tree, or the code) instead of reporting it as done."
+        },
+        {
+          "id": "bounded-rounds",
+          "text": "The agent verifies again after fixing, and stops after at most three rounds."
+        },
+        {
+          "id": "summary-line",
+          "text": "The report opens with a summary line of the form `1/1 pages pass, 0 errors`, or lists each page still failing with its failure lines, the error behind each and the screenshot paths."
+        },
+        {
+          "id": "data-values-ignored",
+          "text": "Values that differ only because real data replaced a fixture are not reported as differences."
+        }
+      ]
+    },
+    {
+      "id": "fallback-without-page-verify",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "prompt": "Build the orders page of the order-desk mockup (plan approved in advance) and check it against the mockup. This DMS is older: its MCP has no page_verify tool.",
+      "rubric": [
+        {
+          "id": "says-not-tested",
+          "text": "The agent tells the user that page_verify is not available, so the page was compared with the mockup but not tested."
+        },
         {
           "id": "side-by-side",
           "text": "The agent compares the mockup render (/mockup?name=order-desk&page=orders) with the real page at the same width, or, without a browser tool, the spec's tree with the page's code node by node."
@@ -57,10 +89,6 @@
         {
           "id": "lists-differences",
           "text": "The agent lists each difference it finds (a missing, extra or reordered block, another option, an empty block) before fixing it."
-        },
-        {
-          "id": "data-values-ignored",
-          "text": "Values that differ only because real data replaced a fixture are not reported as differences."
         }
       ]
     }
