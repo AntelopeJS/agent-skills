@@ -14,7 +14,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test \"test/*.test.mjs\"",
-    "evals:baseline": "node scripts/evals.mjs --published --min-recall 0.5 --min-precision 0.5",
+    "evals:baseline": "node scripts/evals.mjs --published --skills plugin/skills --min-recall 0.5 --min-precision 0.5",
     "evals:check": "node scripts/evals.mjs check",
     "prepare": "if [ -e .git ] && command -v git >/dev/null 2>&1 && command -v lefthook >/dev/null 2>&1 && GIT_DIR=.git GIT_WORK_TREE=. git rev-parse --git-dir >/dev/null 2>&1; then GIT_DIR=.git GIT_WORK_TREE=. lefthook install; fi",
     "checks": "antelopejs-checks",

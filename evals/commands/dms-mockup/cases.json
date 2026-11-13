@@ -1,0 +1,72 @@
+{
+  "cases": [
+    {
+      "id": "interview-before-spec",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "prompt": "Mock up the admin for our order desk before we build anything.",
+      "rubric": [
+        {
+          "id": "asks-first",
+          "text": "Before writing any file, the agent asks the user about the pages, the data each page shows and the actions, in one or two batches of closed or short questions."
+        },
+        {
+          "id": "no-page-code",
+          "text": "No PageController, route or Vue file is written: the only file the agent writes is under mockups/."
+        },
+        {
+          "id": "detects-tools",
+          "text": "The agent checks whether the builder MCP tools are available and, finding none, says the spec is still written and that ajs project dev gives the live preview."
+        }
+      ]
+    },
+    {
+      "id": "custom-wish-proposed",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "prompt": "Mock up an orders page: revenue KPI, the orders table with customer, total and status, and a live map of our delivery drivers. That's all I need, go ahead.",
+      "rubric": [
+        {
+          "id": "blocks-for-covered-wishes",
+          "text": "The revenue figure and the orders table become DMS blocks (a KpiCard and a TableView), with no question about them."
+        },
+        {
+          "id": "map-proposed",
+          "text": "For the drivers map, which no DMS block covers, the agent proposes the choice between the closest DMS option and a custom sketch and asks the user before writing a sketch node."
+        },
+        {
+          "id": "spec-path",
+          "text": "The spec is written, or planned, at mockups/<name>/spec.json with a kebab-case name."
+        },
+        {
+          "id": "fixtures-for-data",
+          "text": "Every block that reads data gets its data from a fixture of the page (fetchUrl set to fixture:<key>), with several realistic rows for the table."
+        }
+      ]
+    },
+    {
+      "id": "apply-annotations",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/annotated" },
+      "prompt": "I left comments on the order-desk mockup, apply them.",
+      "rubric": [
+        {
+          "id": "reads-annotations",
+          "text": "The agent reads mockups/order-desk/annotations.json (the MCP tool and the HTTP API are not available) and works on the open annotations only."
+        },
+        {
+          "id": "date-column-added",
+          "text": "The order date column is added to the TableView in spec.json, as the first column, with order dates in the orders fixture."
+        },
+        {
+          "id": "globe-goes-through-catalog",
+          "text": "The 3D globe request is checked against the block catalog and put to the user as a choice before any sketch replaces the KPI card."
+        },
+        {
+          "id": "resolves-applied",
+          "text": "The applied annotation is set to resolved with a resolvedAt date; the one waiting on the user stays open, and the report says so."
+        }
+      ]
+    }
+  ]
+}

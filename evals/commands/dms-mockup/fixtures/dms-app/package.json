@@ -1,0 +1,9 @@
+{
+  "name": "order-desk",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@antelopejs/core": "^1.21.0",
+    "@antelopejs/interface-dms": "^0.13.0"
+  }
+}

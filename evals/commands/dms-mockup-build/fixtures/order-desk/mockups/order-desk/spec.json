@@ -1,0 +1,76 @@
+{
+  "$schema": "../../node_modules/@antelopejs/dms/data/mockup-spec.schema.json",
+  "version": 1,
+  "title": "Order desk",
+  "pages": [
+    {
+      "id": "orders",
+      "title": "Orders",
+      "fixtures": {
+        "orders": [
+          {
+            "_id": "o1",
+            "customer": "Acme",
+            "total": 120,
+            "status": "paid"
+          },
+          {
+            "_id": "o2",
+            "customer": "Globex",
+            "total": 87.5,
+            "status": "pending"
+          },
+          {
+            "_id": "o3",
+            "customer": "Initech",
+            "total": 342,
+            "status": "refunded"
+          }
+        ]
+      },
+      "tree": [
+        {
+          "type": "KpiCard",
+          "options": {
+            "title": "Revenue",
+            "staticValue": 549.5,
+            "staticDelta": 8.1,
+            "valueFormat": "currency",
+            "currencyCode": "EUR"
+          }
+        },
+        {
+          "type": "TableView",
+          "options": {
+            "fetchUrl": "fixture:orders",
+            "columns": {
+              "customer": {
+                "name": "Customer",
+                "type": "string",
+                "sortable": true
+              },
+              "total": {
+                "name": "Total",
+                "type": "number",
+                "sortable": true
+              },
+              "status": {
+                "name": "Status",
+                "type": "select"
+              }
+            }
+          }
+        },
+        {
+          "type": "sketch",
+          "options": {
+            "html": "<div class='map'>Delivery map</div>",
+            "css": ".map{height:100%;display:grid;place-items:center}",
+            "height": 240,
+            "caption": "Live map of the drivers delivering today's orders"
+          }
+        }
+      ]
+    }
+  ]
+}

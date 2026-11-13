@@ -1,6 +1,6 @@
 # @antelopejs/agent-skills
 
-Finds the agent skills that AntelopeJS packages ship. The Claude Code and Codex plugin of [AntelopeJS/agent-skills](https://github.com/AntelopeJS/agent-skills) and the dms-ai assistant both call it, so they see the same skills.
+Finds the agent skills that AntelopeJS packages ship. The Claude Code and Codex plugin of [AntelopeJS/agent-skills](https://github.com/AntelopeJS/agent-skills) and the dms-assistant module both call it, so they see the same skills.
 
 A package ships skills by declaring `antelopeJs.skills` in its `package.json`: directories (relative to the package root) whose subdirectories each hold a `SKILL.md`. This package decides which packages count and which copy of each wins. Reading the skills inside the directories, and naming them, stays with the caller.
 

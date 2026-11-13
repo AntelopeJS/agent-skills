@@ -26,7 +26,19 @@ const SKILL_FILE = "SKILL.md";
 const CONTEXT_FILE = "CLAUDE.md";
 const SKIPPED_DIRS = new Set(["node_modules"]);
 const TEXT_FILE_RE = /\.(?:md|json|mjs|cjs|js|ts|sh|ya?ml|toml|txt)$/;
-const PLUGIN_SKILLS = ["interface", "new-module", "skills", "sync-skills"];
+const PLUGIN_SKILLS = [
+  "dms-best-practices",
+  "dms-builder-mcp",
+  "dms-external-database",
+  "dms-mockup",
+  "dms-mockup-build",
+  "dms-page-design",
+  "dms-pages",
+  "interface",
+  "new-module",
+  "skills",
+  "sync-skills",
+];
 const TOOL_SPECIFIC_RE = /\$ARGUMENTS|\$\d|\$\{(?:CLAUDE_)?PLUGIN_ROOT\}/;
 const FRONTMATTER_LINES_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const ALLOWED_TOOLS_KEY = "allowed-tools";
@@ -242,7 +254,7 @@ function checkSkills(root, failures) {
     : [];
   for (const name of present.filter((entry) => !PLUGIN_SKILLS.includes(entry)))
     failures.push(
-      `${SKILLS_DIR}/${name}: the plugin ships only ${PLUGIN_SKILLS.join(", ")}; AntelopeJS knowledge ships with the packages and reaches projects through the sync, so a copy here would shadow the version a project installs.`,
+      `${SKILLS_DIR}/${name}: the plugin ships only ${PLUGIN_SKILLS.join(", ")}; a module's own API skill ships with the module and reaches projects through the sync, so a copy here would shadow the version a project installs.`,
     );
   for (const name of PLUGIN_SKILLS) checkSkill(root, name, failures);
 }

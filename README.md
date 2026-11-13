@@ -12,7 +12,7 @@
 
 ![Screen recording from the AntelopeJS DMS film. A dashboard page is written as a TypeScript class under the caption Code. Your editor. Your repo., edited on the page with Ctrl B, then described to the assistant running Claude Code under the caption Or describe it. A git diff then shows the hand-written line, the Builder line and the assistant line in the same dashboard/page.ts under the caption One codebase. No export step.](./.github/assets/three-ways.gif)
 
-Tools for coding agents building with [AntelopeJS](https://github.com/AntelopeJS) — the Node.js framework where a tight core + `ajs` CLI orchestrate modules that communicate **only** through versioned _interface_ contracts — and with the AntelopeJS DMS. Every skill ships inside an npm package (the framework skills in `@antelopejs/core`, the DMS suite in `@antelopejs/dms`, one per module or interface); this plugin syncs them into your project, resolves interface contracts live, and adds four skills of its own.
+Tools for coding agents building with [AntelopeJS](https://github.com/AntelopeJS) — the Node.js framework where a tight core + `ajs` CLI orchestrate modules that communicate **only** through versioned _interface_ contracts — and with the AntelopeJS DMS. Every skill ships inside an npm package (the framework skills in `@antelopejs/core`, the DMS suite in `@antelopejs/dms`, one per module or interface); this plugin syncs them into your project, resolves interface contracts live, and adds skills of its own: four that drive the sync and the resolver, and the DMS workflow skills that build pages, through the DMS builder MCP or in code.
 
 The repository is one plugin, `antelopejs`, packaged for **Claude Code** and **OpenAI Codex**, from one marketplace also named `antelopejs`.
 
@@ -75,13 +75,20 @@ npx -y github:AntelopeJS/agent-skills sync
 | Skill  | `antelopejs:new-module <path>`          | Scaffold a module and wire its interfaces                                                        |
 | Skill  | `antelopejs:skills`                     | List the skills synced from the project's packages and where each comes from                     |
 | Skill  | `antelopejs:sync-skills`                | Sync those skills now                                                                            |
+| Skill  | `antelopejs:dms-best-practices`         | The rules of a DMS page: blocks only, custom for the missing block, design fidelity              |
+| Skill  | `antelopejs:dms-pages`                  | Declare pages and compose blocks in TypeScript                                                   |
+| Skill  | `antelopejs:dms-builder-mcp`            | Build pages through the DMS builder MCP tools, Safe mode included                                |
+| Skill  | `antelopejs:dms-page-design`            | Choose the charts, KPIs, period, names and table features of a data page                         |
+| Skill  | `antelopejs:dms-external-database`      | Connect a client's existing database and generate its pages and dashboard                        |
+| Skill  | `antelopejs:dms-mockup`                 | Interview, then mock up an app in `mockups/<name>/spec.json` and iterate on annotations          |
+| Skill  | `antelopejs:dms-mockup-build`           | Build the real pages from a mockup, then compare them with it                                    |
 | Hooks  | `SessionStart`, `PostToolUse` (Bash)    | Codex only: run the skill sync automatically once trusted in `/hooks`                            |
 | Script | `plugin/scripts/resolve-interface.mjs`  | The interface contract resolver, also run as `npx -y github:AntelopeJS/agent-skills interface …` |
 | CLI    | `verify`, `evals`                       | Report invented API names in an answer or a diff; score which skills a prompt triggers           |
 
 Invoke the plugin's skills as `/antelopejs:<name>` in Claude Code and `$antelopejs:<name>` in Codex; both tools also pick them on their own when a request matches. They take their arguments from the request and reach the plugin's scripts relative to their own directory, so the same files serve both tools.
 
-Beyond those four, the plugin carries no skill. The `eval-skills` skill that runs the model-backed evals lives in this repository (`.agents/skills/eval-skills`), not in the plugin: run it from a checkout of AntelopeJS/agent-skills. The framework skills — `antelopejs` (mental model and router), `ajs-cli`, `ajs-consume-interface` and `ajs-author-interface` — ship with `@antelopejs/core` and are synced like any package skill, as `core--<skill>`. They follow the core version the project installs.
+The DMS workflow skills work in any DMS project, with no module to install. Each one checks what the project has: the DMS builder MCP (served under `ajs project dev`), Safe mode, and the dms-assistant chat, and falls back to code edits or plain questions when one is missing. A module's own API skill still ships with the module and is synced. The `eval-skills` skill that runs the model-backed evals lives in this repository (`.agents/skills/eval-skills`), not in the plugin: run it from a checkout of AntelopeJS/agent-skills. The framework skills — `antelopejs` (mental model and router), `ajs-cli`, `ajs-consume-interface` and `ajs-author-interface` — ship with `@antelopejs/core` and are synced like any package skill, as `core--<skill>`. They follow the core version the project installs.
 
 > **Release dependency.** `@antelopejs/core` ships these skills from its first release after 1.15.2. With an older core, a project has no framework skills until it upgrades `@antelopejs/core`; plugin versions before 0.3.0 still bundled them.
 
@@ -96,14 +103,14 @@ Packages ship their own skills: a package declares `antelopeJs.skills` in its `p
   3. the **dependencies** of those packages, resolved from each package's own directory, which brings the interface packages a module installs for itself;
   4. **`node_modules`** of the project and of the workspace root (pnpm's symlinks into `.pnpm` included; the link goes through `node_modules/<pkg>` so it survives version bumps). An installed package that declares `antelopeJs.implements` counts as a module: it is checked right after `.antelope/cache`, before the dependencies, and its own dependencies join step 3.
 
-  A package is found once, at the first place that has it, even when that copy ships no skills: a cached module that declares none hides the installed copy, because the cached one is what runs. dms-ai calls the same code, [`@antelopejs/agent-skills`](plugin/packages/agent-skills), with the modules it has loaded, so the coding agent and the DMS assistant see the same copy of each skill. The two start from different module lists, so they can still differ: dms-ai asks the runtime which modules are loaded, while the plugin infers them from the layout above and treats an installed package that declares `antelopeJs.implements` as a module, whether or not the project's config loads it.
+  A package is found once, at the first place that has it, even when that copy ships no skills: a cached module that declares none hides the installed copy, because the cached one is what runs. dms-assistant calls the same code, [`@antelopejs/agent-skills`](plugin/packages/agent-skills), with the modules it has loaded, so the coding agent and the DMS assistant see the same copy of each skill. The two start from different module lists, so they can still differ: dms-assistant asks the runtime which modules are loaded, while the plugin infers them from the layout above and treats an installed package that declares `antelopeJs.implements` as a module, whether or not the project's config loads it.
 
 - **Which projects**: a directory holding `antelope.config.*`, or an app whose `package.json` depends on `@antelopejs/core` (an embedded runtime, like the AdonisJS DMS template). Anywhere else the sync does nothing.
 - **Safety**: only the entries the sync created are touched. Each skills directory tracks them in its own `.ajs-managed.json` and lists them in a generated `.gitignore`, so your repository stays clean; a skill of yours with the same entry name is skipped, never overwritten; entries whose package disappeared are removed.
 
-Every AntelopeJS project gets the framework skills this way (`core--antelopejs`, `core--ajs-cli`, `core--ajs-consume-interface`, `core--ajs-author-interface` from `@antelopejs/core`, a dependency of every project the sync acts on). In a **DMS project** it also brings the DMS suite: `dms` (the DMS router, start there), `dms-project`, `dms-module`, `dms-pages`, `dms-auth` and `dms-best-practices` from `@antelopejs/dms`, `dms-frontend` from `@antelopejs/dms-frontend`, plus one skill per installed `dms-*` module. Run the `antelopejs:skills` skill (or `npx -y github:AntelopeJS/agent-skills list`) to see them; the [skill catalog](https://dms.antelopejs.com/docs/ai-and-claude-code/skill-catalog) lists the whole suite, the package that ships each skill and when it triggers.
+Every AntelopeJS project gets the framework skills this way (`core--antelopejs`, `core--ajs-cli`, `core--ajs-consume-interface`, `core--ajs-author-interface` from `@antelopejs/core`, a dependency of every project the sync acts on). In a **DMS project** it also brings the DMS suite: `dms` (the DMS router, start there), `dms-project`, `dms-module` and `dms-auth` from `@antelopejs/dms` (which still ships its own `dms-pages` and `dms-best-practices` until it drops them for the plugin's copies), `dms-frontend` from `@antelopejs/dms-frontend`, plus one skill per installed `dms-*` module. Run the `antelopejs:skills` skill (or `npx -y github:AntelopeJS/agent-skills list`) to see them; the [skill catalog](https://dms.antelopejs.com/docs/ai-and-claude-code/skill-catalog) lists the whole suite, the package that ships each skill and when it triggers.
 
-**dms-ai** (the DMS AI assistant) needs none of this: it loads by itself the skills of every loaded module, of their dependencies, and of the project's own dependencies (the framework skills included). The plugin is for the coding agent working on the project's code.
+**dms-assistant** (the DMS assistant) needs none of this: it loads by itself the skills of every loaded module, of their dependencies, and of the project's own dependencies (the framework skills included). The plugin is for the coding agent working on the project's code.
 
 ## Prompt every contributor to install it
 
@@ -193,7 +200,7 @@ AntelopeJS's own architecture dictates how the knowledge is organized. The stabl
 | **3. Contracts** | The actual interface APIs, per name@version                             | `plugin/scripts/resolve-interface.mjs` — reads the `@antelopejs/interface-*` packages live                              |
 | **Products**     | DMS, dms-* modules, interface packages                                  | Skills shipped in each package                                                                                          |
 
-Every skill lives in the package whose version it describes and reaches the agent through `plugin/scripts/sync-skills.mjs` (or dms-ai's own loader); the plugin keeps only what no package can carry: the sync, the resolver, and the four skills that drive them.
+Every skill lives in the package whose version it describes and reaches the agent through `plugin/scripts/sync-skills.mjs` (or dms-assistant's own loader); the plugin keeps what no package can carry: the sync, the resolver, the four skills that drive them, and the DMS workflow skills, which span modules and must work before any is installed.
 
 Skills are split by **intent**, not audience: a framework user asking "how do I import the database interface" hits `ajs-consume-interface`; a core dev asking "how do I version this contract" hits `ajs-author-interface`. The router skill sends each to the right place and keeps context lean (progressive disclosure).
 
@@ -217,13 +224,14 @@ agent-skills/
       new-module/SKILL.md  # antelopejs:new-module <path>
       skills/SKILL.md      # antelopejs:skills
       sync-skills/SKILL.md # antelopejs:sync-skills
+      dms-*/               # the DMS workflow skills (pages, builder MCP, page design, external database, mockups)
     hooks/
       codex-hooks.json     # Codex: skill sync into .agents/skills
     scripts/
       resolve-interface.mjs  # Layer 3: live contract resolver
       sync-skills.mjs      # syncs package-shipped skills into .claude/skills and .agents/skills
       lib/                 # the modules those two import; resolver/ holds the resolver's
-    packages/agent-skills/ # @antelopejs/agent-skills: shared skill discovery for the plugin and dms-ai, published on its own
+    packages/agent-skills/ # @antelopejs/agent-skills: shared skill discovery for the plugin and dms-assistant, published on its own
   bin/
     agent-skills.mjs       # npx entry: sync, list, interface, verify, evals
   scripts/
@@ -307,11 +315,11 @@ A skill only helps when the agent loads it, and a loaded skill only helps when t
 
 A case is a user prompt, the skills an agent should load for it (`expect.skills`), the ones it may load without penalty (`expect.acceptable`), the ones it must not load (`expect.avoid`, for a prompt that belongs to a neighbour), and optionally API names the answer must or must not mention and an expected behaviour (`asks-first`: ask the user before writing code, as `dms-best-practices` requires before leaving DMS blocks). `style` is `clean` (well formed) or `casual` (as typed).
 
-Cases live beside their skill, in `skills/<name>/cases.json` of the package that ships it (`{ "version": 1, "cases": [...] }`); [`evals/cases.json`](evals/cases.json) is the place for routing cases no package ships (none today) and [`evals/verify-cases.json`](evals/verify-cases.json) the trigger cases of the verification skills (`verify-antelopejs`, `verify-dms` and the shared `verify-interface`, `verify-module`, `verify-template`), which no package ships: their cases are skipped until `--skills` points at a checkout holding them. The corpus loader collects both, and a skill's own case replaces a central case with the same id. `scripts/lib/dataset.mjs` is the schema; `pnpm test` rejects an invalid file.
+Cases live beside their skill, in `skills/<name>/cases.json` of the package that ships it (`{ "version": 1, "cases": [...] }`); [`evals/cases.json`](evals/cases.json) holds the cases of the plugin's DMS workflow skills, and routing cases no package ships, and [`evals/verify-cases.json`](evals/verify-cases.json) the trigger cases of the verification skills (`verify-antelopejs`, `verify-dms` and the shared `verify-interface`, `verify-module`, `verify-template`), which no package ships: their cases are skipped until `--skills` points at a checkout holding them. The corpus loader collects both, and a skill's own case replaces a central case with the same id. `scripts/lib/dataset.mjs` is the schema; `pnpm test` rejects an invalid file.
 
 Every skill needs the minimum, enforced by `evals check`: a clean and a casual should-trigger case, one should-not-trigger case (`avoid`) aimed at its nearest neighbour, and one answers case with `mustMention` or a `behaviour`. Write prompts the way users ask, from the package's docs and issues.
 
-The plugin's own workflow skills (`new-module`, `interface`) have rubric cases under [`evals/commands/<skill>/cases.json`](evals/commands): an organic prompt, a fixture and 3 to 6 criteria a judge scores from the transcript. `evals check` validates them; they run in the eval Thread, not in the deterministic harness.
+The plugin's own workflow skills (`new-module`, `interface`, `dms-mockup`, `dms-mockup-build`) have rubric cases under [`evals/commands/<skill>/cases.json`](evals/commands): an organic prompt, a fixture and 3 to 6 criteria a judge scores from the transcript. `evals check` validates them; they run in the eval Thread, not in the deterministic harness.
 
 ### The corpus
 
@@ -378,7 +386,7 @@ It extracts the API names a Markdown answer relies on (imports, code fences, inl
 
 ### In CI
 
-`.github/workflows/ci.yml` runs the tests, the plugin layout check (`pnpm check:plugin`), the case-file check (`pnpm evals:check`) and the baseline trigger eval (`pnpm evals:baseline`, against the skills of the `--published` packages) on every push and pull request. CI holds no secret and calls no model. Packages get the same two checks from the reusable Node CI workflow of `AntelopeJS/.github` (`skill-eval-offline`) when `skills/**` changes, with the pull request's package as a workspace override of the published corpus. The model-backed run is the repository's `eval-skills` skill, started by the maintainer's Bots or by an explicit ask.
+`.github/workflows/ci.yml` runs the tests, the plugin layout check (`pnpm check:plugin`), the case-file check (`pnpm evals:check`) and the baseline trigger eval (`pnpm evals:baseline`, against the plugin's skills and those of the `--published` packages) on every push and pull request. CI holds no secret and calls no model. Packages get the same two checks from the reusable Node CI workflow of `AntelopeJS/.github` (`skill-eval-offline`) when `skills/**` changes, with the pull request's package as a workspace override of the published corpus. The model-backed run is the repository's `eval-skills` skill, started by the maintainer's Bots or by an explicit ask.
 
 ### Background
 
@@ -388,7 +396,7 @@ The evals and `verify` come from docs-assistant, an internal retrieval experimen
 
 ```bash
 pnpm test                         # node:test suites (no install needed)
-pnpm evals:baseline               # trigger eval against the published skills, as CI runs it
+pnpm evals:baseline               # trigger eval against the plugin's and the published skills, as CI runs it
 pnpm evals:check                  # case files valid, rubric suites well formed
 pnpm check:plugin                 # the plugin loads in both tools and passes the directory review rules
 claude plugin validate --profile directory --strict ./plugin  # what the Claude plugin directory checks

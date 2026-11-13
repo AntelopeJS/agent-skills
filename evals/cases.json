@@ -1,4 +1,477 @@
 {
   "version": 1,
-  "cases": []
+  "cases": [
+    {
+      "id": "orders-table",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add an orders page to the dashboard with a table of the orders: customer, total and status.",
+      "expect": {
+        "skills": ["dms-pages", "dms-best-practices"],
+        "acceptable": [
+          "dms",
+          "dms-builder-mcp",
+          "data-api-interface",
+          "database-decorators-interface"
+        ],
+        "mustMention": ["TableView", "RegisterPage"],
+        "mustNotMention": ["CustomComponent"]
+      }
+    },
+    {
+      "id": "orders-table-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "need a table of all the orders in the admin asap",
+      "expect": {
+        "skills": ["dms-pages", "dms-best-practices"],
+        "acceptable": [
+          "dms",
+          "dms-builder-mcp",
+          "data-api-interface",
+          "database-decorators-interface"
+        ],
+        "mustMention": ["TableView"]
+      }
+    },
+    {
+      "id": "kpi-row-revenue",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a row of KPI cards at the top of the dashboard: revenue, number of orders and average basket.",
+      "expect": {
+        "skills": ["dms-pages", "dms-best-practices"],
+        "acceptable": [
+          "dms",
+          "dms-builder-mcp",
+          "data-api-interface",
+          "database-decorators-interface"
+        ],
+        "mustMention": ["KpiCard"],
+        "mustNotMention": ["CustomComponent"]
+      }
+    },
+    {
+      "id": "settings-form",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a settings page with a form to edit the company name, address and VAT number.",
+      "expect": {
+        "skills": ["dms-pages"],
+        "acceptable": ["dms-best-practices", "dms", "dms-builder-mcp"],
+        "mustMention": ["Form"]
+      }
+    },
+    {
+      "id": "dms-pages-fetch-url-404-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "my table fetch url 404s, the route is declared on the page class itself",
+      "expect": {
+        "skills": ["dms-pages"],
+        "acceptable": ["dms", "dms-best-practices"],
+        "mustMention": ["pageRoutePath"]
+      }
+    },
+    {
+      "id": "dms-pages-not-safe-mode-builder",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "we run the assistant in safe mode, just move the revenue kpi block above the orders table",
+      "expect": {
+        "skills": ["dms-builder-mcp"],
+        "acceptable": ["dms"],
+        "avoid": ["dms-pages"]
+      }
+    },
+    {
+      "id": "reproduce-mockup",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Here is a mockup of our analytics dashboard (screenshot attached). Reproduce it in the DMS.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": ["dms", "dms-pages", "dms-builder-mcp"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "reproduce-figma-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "can u make the customers screen look exactly like this figma frame",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": ["dms", "dms-pages", "dms-builder-mcp"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "kanban-board",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a drag-and-drop kanban board for the support tickets, one column per status.",
+      "expect": {
+        "skills": ["dms-best-practices", "dms-pages"],
+        "acceptable": ["dms", "dms-module", "dms-frontend"],
+        "mustMention": ["CustomComponent"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "gantt-chart-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "put a gantt chart of the project milestones on the projects page",
+      "expect": {
+        "skills": ["dms-best-practices", "dms-pages"],
+        "acceptable": ["dms", "dms-frontend"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "custom-block-role-editor",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "my custom block doesnt show up in the role editor, why",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": ["dms-auth", "dms-pages", "dms"],
+        "mustMention": ["CustomComponent"]
+      }
+    },
+    {
+      "id": "dms-best-practices-not-data-controller",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Which permission guards the audit-log export route, and how do I register it?",
+      "expect": {
+        "skills": ["dms-auth"],
+        "acceptable": ["dms", "dms-pages"],
+        "avoid": ["dms-best-practices"]
+      }
+    },
+    {
+      "id": "dms-page-design-dashboard",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Build a sales dashboard over the orders table with the Builder: KPIs, a trend over time and a breakdown by status.",
+      "expect": {
+        "skills": ["dms-page-design"],
+        "acceptable": ["dms-builder-mcp", "dms-best-practices", "dms-pages"]
+      }
+    },
+    {
+      "id": "dms-page-design-chart-choice",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "which chart should i use for orders by country, theres like 24 countries",
+      "expect": {
+        "skills": ["dms-page-design"],
+        "acceptable": ["dms-builder-mcp", "dms-pages"]
+      }
+    },
+    {
+      "id": "dms-page-design-period",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "The charts on the stats page are empty because the period defaults to the last 30 days and the data stops last year. Fix the default period.",
+      "expect": {
+        "skills": ["dms-page-design"],
+        "acceptable": ["dms-builder-mcp", "dms-pages", "dms-best-practices"],
+        "mustMention": ["PeriodSelector"]
+      }
+    },
+    {
+      "id": "dms-page-design-table-badges",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "On the orders table, show the status as coloured badges, the total as a price, and add a tab per status.",
+      "expect": {
+        "skills": ["dms-page-design"],
+        "acceptable": ["dms-builder-mcp", "dms-external-database", "dms-pages"]
+      }
+    },
+    {
+      "id": "dms-page-design-not-safe-mode-approval",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "In safe mode the Builder refuses to add a block to the sales page until I approve it. Where do I approve a pending Builder change?",
+      "expect": {
+        "skills": ["dms-builder-mcp"],
+        "acceptable": ["dms-pages"],
+        "avoid": ["dms-page-design"]
+      }
+    },
+    {
+      "id": "dms-external-database-connect-erp",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Our client already runs a PostgreSQL ERP database. I want admin pages over it in this DMS project without recreating the tables, and nothing is connected yet. How do we begin?",
+      "expect": {
+        "skills": ["dms-external-database"],
+        "acceptable": ["dms", "dms-builder-mcp"],
+        "mustMention": ["builder_configure_project"]
+      }
+    },
+    {
+      "id": "dms-external-database-finish-mapping",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "The Builder analysed the client's database and proposed a mapping with a few open items. Settle them, apply the mapping and add a page with monthly revenue.",
+      "expect": {
+        "skills": ["dms-external-database"],
+        "acceptable": ["dms-builder-mcp"]
+      }
+    },
+    {
+      "id": "dms-external-database-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "need admin screens for the clients old postgres db, dont wanna recreate the tables",
+      "expect": {
+        "skills": ["dms-external-database"],
+        "acceptable": ["dms", "dms-builder-mcp", "dms-database"]
+      }
+    },
+    {
+      "id": "dms-external-database-not-console",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Show me the schemas that my project's own modules registered as a diagram in the dashboard console.",
+      "expect": {
+        "skills": ["dms-database"],
+        "acceptable": ["dms"],
+        "avoid": ["dms-external-database"]
+      }
+    },
+    {
+      "id": "ai-builder-add-chart",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Using the Builder tools, add a revenue chart to the sales page.",
+      "expect": {
+        "skills": ["dms-builder-mcp"],
+        "acceptable": ["dms-pages", "dms-best-practices"]
+      }
+    },
+    {
+      "id": "dms-builder-mcp-table-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "add a table of the books to the catalog page, safe mode",
+      "expect": {
+        "skills": ["dms-builder-mcp"],
+        "acceptable": ["dms-pages", "dms-best-practices"]
+      }
+    },
+    {
+      "id": "dms-builder-mcp-opaque-target",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "In safe mode the Builder answered opaque_target when I tried to configure the nested chart of a ChartCard. How should the agent proceed?",
+      "expect": {
+        "skills": ["dms-builder-mcp"],
+        "acceptable": ["dms-best-practices", "dms-pages"]
+      }
+    },
+    {
+      "id": "plugin-dms-pages-orders-class",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Write the @RegisterPage class for an orders page in src/pages/orders.ts, with a TableView of the orders backed by a DataController.",
+      "expect": {
+        "skills": ["dms-pages"],
+        "acceptable": [
+          "dms-best-practices",
+          "dms",
+          "data-api-interface",
+          "database-decorators-interface"
+        ],
+        "avoid": ["dms-builder-mcp", "dms-page-design"],
+        "mustMention": ["RegisterPage", "TableView", "DataController"]
+      }
+    },
+    {
+      "id": "plugin-dms-pages-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "which datatype for a price column in my tableview page class",
+      "expect": {
+        "skills": ["dms-pages"],
+        "acceptable": ["dms", "dms-page-design"],
+        "avoid": ["dms-best-practices"]
+      }
+    },
+    {
+      "id": "plugin-dms-pages-page-route-404",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "my kpi card fetchUrl 404s, the route is declared on the page class itself",
+      "expect": {
+        "skills": ["dms-pages"],
+        "acceptable": ["dms", "dms-best-practices", "dms-builder-mcp"],
+        "mustMention": ["pageRoutePath"]
+      }
+    },
+    {
+      "id": "plugin-dms-builder-mcp-kpi-query",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "With the DMS builder MCP tools, add a KpiCard to the /sales/overview page that shows the total number of orders. Which builder tools do I call, in what order?",
+      "expect": {
+        "skills": ["dms-builder-mcp"],
+        "acceptable": ["dms-pages", "dms-best-practices", "dms-page-design"],
+        "mustMention": [
+          "builder_query_templates",
+          "builder_add_query",
+          "builder_add_block"
+        ]
+      }
+    },
+    {
+      "id": "plugin-dms-builder-mcp-opaque-target",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "The builder MCP answered opaque_target when I tried to configure the nested chart of a ChartCard. Safe mode is off. How should the agent proceed?",
+      "expect": {
+        "skills": ["dms-builder-mcp"],
+        "acceptable": ["dms-pages", "dms-best-practices"],
+        "mustMention": ["builder_refresh"]
+      }
+    },
+    {
+      "id": "plugin-dms-best-practices-seat-map",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Here is a screenshot of our venue's seat map widget. Reproduce it on the bookings page of the DMS.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": ["dms-pages", "dms", "dms-builder-mcp", "dms-mockup"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "plugin-dms-best-practices-custom-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "can i just write one custom vue component for the whole dashboard screen instead of blocks",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": ["dms-pages", "dms", "dms-frontend"],
+        "mustMention": ["CustomComponent", ".meta("]
+      }
+    },
+    {
+      "id": "plugin-dms-page-design-sales-dashboard",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Design the analytics page for our orders: which charts, KPI cards and default period should it have?",
+      "expect": {
+        "skills": ["dms-page-design"],
+        "acceptable": ["dms-pages", "dms-best-practices", "dms-builder-mcp"],
+        "avoid": ["dms-external-database"],
+        "mustMention": ["PeriodSelector", "KpiCard", "ChartCard"]
+      }
+    },
+    {
+      "id": "plugin-dms-page-design-table-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "tickets table page, should status be tabs or kanban? and saved views?",
+      "expect": {
+        "skills": ["dms-page-design"],
+        "acceptable": ["dms-pages", "dms-builder-mcp", "dms-best-practices"]
+      }
+    },
+    {
+      "id": "plugin-dms-external-database-postgres",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Plug our client's existing PostgreSQL database into the DMS and generate the admin pages for it.",
+      "expect": {
+        "skills": ["dms-external-database"],
+        "acceptable": [
+          "dms-page-design",
+          "dms-builder-mcp",
+          "dms-best-practices",
+          "dms"
+        ],
+        "mustMention": ["database_connections", "builder_analyse_database"]
+      }
+    },
+    {
+      "id": "plugin-dms-external-database-mongo-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "map their mongo db into the dms, finish what the builder proposed",
+      "expect": {
+        "skills": ["dms-external-database"],
+        "acceptable": ["dms-page-design", "dms-builder-mcp"]
+      }
+    },
+    {
+      "id": "plugin-dms-mockup-crm",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Mock up a CRM for my sales team in the DMS before we write any page code.",
+      "expect": {
+        "skills": ["dms-mockup"],
+        "acceptable": ["dms-best-practices", "dms-page-design", "dms"],
+        "avoid": ["dms-mockup-build"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "plugin-dms-mockup-annotations-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "i left comments on the mockup, apply them",
+      "expect": {
+        "skills": ["dms-mockup"],
+        "acceptable": ["dms-best-practices"],
+        "avoid": ["dms-mockup-build"],
+        "mustMention": ["annotations"]
+      }
+    },
+    {
+      "id": "plugin-dms-mockup-build-spec",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "The mockup is approved: build the real DMS pages from mockups/order-desk/spec.json.",
+      "expect": {
+        "skills": ["dms-mockup-build"],
+        "acceptable": [
+          "dms-builder-mcp",
+          "dms-pages",
+          "dms-best-practices",
+          "dms-page-design"
+        ],
+        "avoid": ["dms-mockup"],
+        "mustMention": ["builder_compose_page", "CustomComponent"]
+      }
+    },
+    {
+      "id": "plugin-dms-mockup-build-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "ok mockup looks good, turn the spec into real pages",
+      "expect": {
+        "skills": ["dms-mockup-build"],
+        "acceptable": ["dms-builder-mcp", "dms-pages", "dms-best-practices"]
+      }
+    },
+    {
+      "id": "plugin-dms-builder-mcp-brand-colour",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "change our dashboard brand colour to violet and swap the logo for ours, the dms mcp is running",
+      "expect": {
+        "skills": ["dms-builder-mcp"],
+        "acceptable": ["dms-best-practices", "dms-frontend"],
+        "avoid": ["dms-page-design"],
+        "mustMention": ["builder_set_theme"]
+      }
+    }
+  ]
 }
