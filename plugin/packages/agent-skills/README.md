@@ -30,6 +30,16 @@ A module or dependency with a readable manifest and a name reserves that name ev
 
 Only packages with at least one skill directory are returned. A skill directory outside its package is dropped and reported through `onWarning`. A missing or malformed `package.json` reads as absent and never throws.
 
+## Workflow skills
+
+The package also carries the DMS workflow skills of the `antelopejs` plugin (`dms-pages`, `dms-best-practices`, `dms-builder-mcp`, `dms-page-design`, `dms-external-database`, `dms-mockup`, `dms-mockup-build`), copied from `plugin/skills/` when it is packed. They teach building in the DMS and ship with no module, so a runtime that loads them gives its agent the same guidance as the plugin.
+
+```js
+import { workflowSkillsDir } from "@antelopejs/agent-skills";
+```
+
+`workflowSkillsDir` is the absolute path of their directory: one subdirectory per skill, each holding a `SKILL.md`. The package does not declare them in `antelopeJs.skills`, so the plugin's sync never links them a second time into a project that installs this package. A source checkout has the directory only while the package is packed.
+
 ## Requirements
 
 Node.js 20.19 or later. The package is an ES module with no dependencies and no top-level `await`, so a CommonJS caller loads it with `require()`.

@@ -9,5 +9,5 @@
     "strict": true,
     "types": ["node"]
   },
-  "include": ["index.mjs", "index.d.ts"]
+  "include": ["index.mjs", "index.d.ts", "scripts/pack-skills.mjs"]
 }

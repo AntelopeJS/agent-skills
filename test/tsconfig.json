@@ -11,6 +11,7 @@
     "typeRoots": ["../plugin/packages/agent-skills/node_modules/@types"]
   },
   "include": [
+    "agent-skills-pack.test.mjs",
     "packages.test.mjs",
     "skill-discovery.test.mjs",
     "sync-skills-packages.test.mjs"
