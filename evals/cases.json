@@ -474,7 +474,7 @@
           "dms-best-practices",
           "dms-page-design"
         ],
-        "mustMention": ["page_verify", "pages pass"]
+        "mustMention": ["page_verify", "pages pass, "]
       }
     },
     {
@@ -490,7 +490,7 @@
           "dms-best-practices",
           "dms-page-design"
         ],
-        "mustMention": ["compared visually", "pages pass"]
+        "mustMention": ["(compared visually, page_verify is not available)"]
       }
     },
     {

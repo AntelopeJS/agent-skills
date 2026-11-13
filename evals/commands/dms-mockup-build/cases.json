@@ -73,6 +73,30 @@
       ]
     },
     {
+      "id": "failure-left-after-three-rounds",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "prompt": "Build the orders page of the order-desk mockup (plan approved in advance) and prove it works. The dms MCP with page_verify and preview_blocks is running; the drivers API the map reads is down and stays down.",
+      "rubric": [
+        {
+          "id": "stops-after-three",
+          "text": "The agent verifies, fixes and verifies again at most three times, then stops instead of looping on the failure it cannot fix."
+        },
+        {
+          "id": "summary-shows-failure",
+          "text": "The report opens with `0/1 pages pass, <n> errors` (n at least 1), not a pass."
+        },
+        {
+          "id": "failure-detailed",
+          "text": "The failing page is listed with its failure lines, the failed request with its status, and the screenshot paths of the page and of the mockup block."
+        },
+        {
+          "id": "preview-carries-mockup",
+          "text": "Each preview_blocks call the agent makes while comparing carries reference.url /mockup?name=order-desk&page=orders."
+        }
+      ]
+    },
+    {
       "id": "fallback-without-page-verify",
       "harness": "claude",
       "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
