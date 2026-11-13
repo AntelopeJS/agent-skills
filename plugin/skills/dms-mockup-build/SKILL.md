@@ -81,4 +81,6 @@ Open with one summary line, the same in the dms-assistant chat and in any harnes
 
 Then list every page still failing after the last round, never fewer: its route, each failure line or difference, the error behind it (the console text, the failed request with its status, the typecheck error, a stale page with both versions), and its screenshots: the page's `render.viewports[].screenshot`, the block's `render.viewports[].blocks[].screenshot`, `pageScreenshot` and `mockupScreenshot`, all project-relative, or your own screenshots in the visual comparison. Then the `notes` that qualify a pass (a role checked as the owner, writes held back), and the differences the user accepted, each with its reason.
 
-Then, per page: the blocks built (for a converted page, the blocks configured, moved, removed and added, and the live sketches kept), the resources and queries created, and the custom components. Leave `mockups/<name>/` in place: it is the record of what the user approved.
+Then, per page: the blocks built (for a converted page, the blocks configured, moved, removed and added, and the live sketches kept), the resources and queries created, and the custom components.
+
+Record the build on the spec: `mockup_patch_spec` with `{ "mockup": "<name>", "patch": [{ "op": "add", "path": "/built", "value": { "at": "<ISO date>", "pages": [{ "path": "<dashboard path>", "title": "<title>" }] } }] }`, one entry per page the build wrote, or set `built` in `spec.json` without that tool. Leave `mockups/<name>/` in place: it is the record of what the user approved.
