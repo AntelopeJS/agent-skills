@@ -61,8 +61,9 @@ Call `database_connections`.
     environment needs the same variables, set where that environment keeps its secrets, never in
     git.
   - Recommend an account that can only read for the analysis: a PostgreSQL role with SELECT, a
-    MySQL or MariaDB account with SELECT on the database, a MongoDB user with the built-in `read`
-    role, a RethinkDB user with `read` permission.
+    MySQL or MariaDB account granted SELECT on the database directly (the module does not see a
+    grant through a role), a MongoDB user with the built-in `read` role, a RethinkDB user with
+    `read` permission.
   - Stop here: the connection exists only after the restart.
 
 The builder and you each have a connection to the database, under the same id: the builder for
@@ -75,7 +76,7 @@ its analysis and mapping, you for your probing.
 - It answers the proposal, or, when profiling takes longer, the job's progress and `id`: call it
   again with `job` until the proposal is in.
 - A `schemas` open item means the database is large: ask the integrator which schemas matter and
-  analyse again with `schemas`.
+  analyse again with `schemas`. On MySQL and MariaDB a schema is a database.
 - Relations the module mapped or excluded before are not proposed again. On a module mapped
   already, the proposal is what is left.
 
