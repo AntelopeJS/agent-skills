@@ -510,6 +510,23 @@
       }
     },
     {
+      "id": "plugin-dms-mockup-build-live-page-stale",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Build mockup orders-redesign into the existing page /orders with the dms-mockup-build skill. Update that page; do not create a new one. builder_page_structure on /orders answers version 9c41e0, and the spec's livePage.version is 3fa2b7.",
+      "expect": {
+        "skills": ["dms-mockup-build"],
+        "acceptable": [
+          "dms-builder-mcp",
+          "dms-pages",
+          "dms-best-practices",
+          "dms-page-design"
+        ],
+        "mustMention": ["mockup_from_page"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
       "id": "plugin-dms-builder-mcp-brand-colour",
       "area": "dms",
       "style": "casual",

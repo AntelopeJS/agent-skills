@@ -22,7 +22,7 @@ Read `mockups/<name>/spec.json` and its open annotations ([SPEC.md](../dms-mocku
 
 Map every spec page and node, and present the plan before you write:
 
-- **Converted page:** a spec page with `livePage: { ref, version }` was converted from the live page at `livePage.ref` (a route). Read that page with `builder_page_structure` (without the builder MCP, its page class) and plan the changes that turn it into the spec page (blocks to configure, move, remove or add), not a new `PageController`. A **live sketch**, a Custom sketch whose `id` names a block of the live page, stands for code the conversion could not express: keep that block as it is, with no component to write and no Safe mode question. `livePage.version` is not the `version` hash of `builder_page_structure`.
+- **Converted page:** a spec page with `livePage: { ref, version }` was converted from the live page at `livePage.ref` (a route). Read that page with `builder_page_structure` (without the builder MCP, its page class) and plan the changes that turn it into the spec page (blocks to configure, move, remove or add), not a new `PageController`. A **live sketch**, a Custom sketch whose `id` names a block of the live page, stands for code the conversion could not express: keep that block as it is, with no component to write and no Safe mode question. When the page's `version` differs from `livePage.version`, plan nothing: the page is stale, as _Pages converted from a live page_ says.
 - **Page** → a `PageController`: `id` and title from the spec page, an icon and a description as **dms-page-design** _Name every page_ says, a category the user confirms.
 - **Block** → the same `type` and options. Keep each child's `id` as the block's name; a child whose `id` names a block option (a `ChartCard`'s `chart`) becomes that option.
 - **Live route:** on a converted page, a `fixture:<key>` whose key is in the page's `liveRoutes` reads that route: the block's fetch option (such as `fetchUrl`) takes it in place of the fixture's `static*` option, and a live `TableView` or `ResourceForm` keeps its `controller`; a block the spec adds follows the _Fixture_ rules. This comes before the _Fixture_, `TableView` and `ResourceForm` rules.
@@ -49,7 +49,11 @@ A page is built when it typechecks and, checked as **dms-builder-mcp** _Verify_ 
 
 ### Pages converted from a live page
 
+`livePage.version` is the `version` (a hash of the page's source file) that `builder_page_structure` answered at conversion. Before the first write, call `builder_page_structure` on `livePage.ref`. A different `version` means the page changed in code since "Edit as mockup": build nothing, tell the user so, and offer with the asking tool to convert it again (`mockup_from_page` with `{ pageRef: livePage.ref, replace: true }`, which discards the mockup's edits: say so), or to build anyway. Build anyway only on the user's explicit go: read the structure again and apply the mockup's edits by block name only. Without the builder MCP there is no `version` to compare: tell the user the page could not be checked.
+
 Update the page at `livePage.ref`, never create another: no `builder_create_page`. Change its existing blocks with `builder_configure_block`, `builder_move_block` and `builder_remove_block`; add the spec's new blocks with `builder_add_block`, or with `builder_compose_page` on that `pageRef` and a `placement`, previewed first (`"preview": true`). Move a live sketch's neighbours around it, never the block itself. Without the builder MCP, edit the existing page class. A `stale` answer: read the page again with `builder_page_structure` and retry. A `not_found` answer for the page: ask the user; never create it.
+
+After a successful build, stamp the new version: `mockup_patch_spec` with `{ "op": "replace", "path": "/pages/<i>/livePage/version", "value": "<version>" }`, `<i>` the page's index in the spec, `<version>` from the last builder write or a fresh `builder_page_structure`.
 
 ## 4. Verify and fix
 
