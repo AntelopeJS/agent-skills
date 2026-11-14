@@ -18,7 +18,8 @@ integrator gave you:
           "version": "<version>"
         },
         "config": { "mode": "external", "statementTimeoutMs": 30000 },
-        "env": { "url": "ERP_DATABASE_URL" }
+        "env": { "url": "ERP_DATABASE_URL" },
+        "exportPriority": { "@antelopejs/interface-database": -1 }
       }
     },
     {
@@ -37,13 +38,6 @@ integrator gave you:
     },
     {
       "op": "ConfigureModule",
-      "id": "mongodb",
-      "entry": {
-        "exportPriority": { "@antelopejs/interface-database": 1 }
-      }
-    },
-    {
-      "op": "ConfigureModule",
       "id": "dms",
       "entry": {
         "importOverrides": [
@@ -54,20 +48,38 @@ integrator gave you:
           }
         ]
       }
+    },
+    {
+      "op": "ConfigureModule",
+      "id": "dms",
+      "entry": {
+        "importOverrides": [
+          {
+            "interface": "@antelopejs/interface-database",
+            "source": "<project database module>"
+          }
+        ]
+      }
     }
   ]
 }
 ```
 
 - **Step 1** is the client's database as an external instance of its engine's module. Its URL
-  comes from the variable.
+  comes from the variable. Its `exportPriority` of -1 ranks it below the project's own database,
+  so a module that does not pin `@antelopejs/interface-database` keeps the project's.
 - **Step 2** is the module the tables are generated into. It is bound to that instance, and
   `connection` records that it holds the tables of `erp`.
-- **Step 3** keeps the DMS and its modules on the project's own database. Leave it out if the
-  project already pins them.
-- **Step 4** gives the builder and the `database_*` tools the connection `erp`, the same id for
+- **Step 3** gives the builder and the `database_*` tools the connection `erp`, the same id for
   both. It configures the module that serves the DMS MCP: `dms`. A project whose builder tools
   still come from `dms-builder` and `dms-ai` takes one such step for each of them instead.
+- **Step 4** keeps the DMS on the project's own database. The DMS module is the one that provides
+  `@antelopejs/interface-dms`. Step 2 pins `@antelopejs/interface-database` and uses the DMS, so
+  the DMS inherits that pin and would be reached with two bindings. Its `source` is the module
+  core picks by default among those that provide `@antelopejs/interface-database`: the highest
+  `exportPriority` for it (0 when unset), the first id on a tie. Read it from
+  `antelope.config.ts`, never assume `mongodb`. Leave the step out when the DMS module already
+  pins `@antelopejs/interface-database`, provides it itself, or no other module provides it.
 
 For MongoDB and RethinkDB, step 1 changes, and the other steps name its id in place of
 `postgres-erp`. The `disabledExports` entry keeps the external instance from ever serving the raw
@@ -85,6 +97,7 @@ client other modules ask for:
     },
     "config": { "mode": "external", "statementTimeoutMs": 30000 },
     "env": { "url": "ERP_DATABASE_URL", "database": "ERP_DATABASE_NAME" },
+    "exportPriority": { "@antelopejs/interface-database": -1 },
     "disabledExports": ["@antelopejs/interface-mongodb"]
   }
 }
@@ -102,6 +115,7 @@ client other modules ask for:
     },
     "config": { "mode": "external", "statementTimeoutMs": 30000 },
     "env": { "url": "ERP_DATABASE_URL" },
+    "exportPriority": { "@antelopejs/interface-database": -1 },
     "disabledExports": ["@antelopejs/interface-rethinkdb"]
   }
 }
