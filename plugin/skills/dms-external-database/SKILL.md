@@ -42,7 +42,7 @@ Call `database_connections`.
 - **An entry answers `error`**: say what it says (an owned instance, the catalog not enabled, a
   role that cannot read) and stop.
 - **A database tool answers `unreachable_connection`**: the DMS MCP reaches only the catalog
-  connection `dms` imports. The connection exists, but step 4 of REFERENCE.md _Connecting_ is
+  connection `dms` imports. The connection exists, but step 3 of REFERENCE.md _Connecting_ is
   missing: propose that step alone, with the same approval and restart.
 - **Nothing is listed**: the project is not connected yet. Ask the integrator which engine the
   database runs: PostgreSQL, MySQL or MariaDB, MongoDB, or RethinkDB. Propose one
