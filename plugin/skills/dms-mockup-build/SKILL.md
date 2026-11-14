@@ -23,7 +23,7 @@ Read `mockups/<name>/spec.json` and its open annotations ([SPEC.md](../dms-mocku
 Map every spec page and node, and present the plan before you write:
 
 - **Converted page:** a spec page with `livePage: { ref, version }` was converted from the live page at `livePage.ref` (a route). Read that page with `builder_page_structure` (without the builder MCP, its page class) and plan the changes that turn it into the spec page (blocks to configure, move, remove or add), not a new `PageController`. A **live sketch**, a Custom sketch whose `id` names a block of the live page, stands for code the conversion could not express: keep that block as it is, with no component to write and no Safe mode question. Check its version first, as _Pages converted from a live page_ says: a stale page goes in the plan as stopped, with no changes.
-- **Page** → a `PageController`: `id` and title from the spec page, an icon and a description as **dms-page-design** _Name every page_ says, a category the user confirms.
+- **Page** → a `PageController` (with `RegisterPage`, from `@antelopejs/interface-dms/page`): `id` and title from the spec page, an icon and a description as **dms-page-design** _Name every page_ says, a category the user confirms.
 - **Block** → the same `type` and options. Keep each child's `id` as the block's name; a child whose `id` names a block option (a `ChartCard`'s `chart`) becomes that option.
 - **Live route:** on a converted page, a `fixture:<key>` whose key is in the page's `liveRoutes` reads that route: the block's fetch option (such as `fetchUrl`) takes it in place of the fixture's `static*` option, and a live `TableView` or `ResourceForm` keeps its `controller`; a block the spec adds follows the _Fixture_ rules. This comes before the _Fixture_, `TableView` and `ResourceForm` rules.
 - **Fixture**, or a `static*` option → the real data it stands for, by the first that holds:
@@ -33,7 +33,7 @@ Map every spec page and node, and present the plan before you write:
      A fixture none of these can serve goes in the plan as a question.
 - **`TableView` over a fixture** → a `TableView` bound to the resource (`controller` = its ref), its columns from the spec's `columns`.
 - **`ResourceForm` over a fixture** → a `ResourceForm` on the resource, with the spec's fields.
-- **Sketch** → a `CustomComponent` with `.meta({ name, description, icon })`, its Vue drawn from the sketch's HTML and CSS with the DMS UI components and theme variables, its data from a route. In Safe mode this is out of reach: ask whether to turn Safe mode off for these components, or to leave each one as a `Placeholder` named after its caption.
+- **Sketch** → a `CustomComponent` (from `@antelopejs/interface-dms/base/custom`) with `.meta({ name, description, icon })`, its Vue drawn from the sketch's HTML and CSS with the DMS UI components and theme variables, its data from a route. In Safe mode this is out of reach: ask whether to turn Safe mode off for these components, or to leave each one as a `Placeholder` named after its caption.
 
 The plan lists per page its blocks, the resources and queries to create, and the custom components. Write nothing before the user approves it.
 
@@ -42,7 +42,7 @@ The plan lists per page its blocks, the resources and queries to create, and the
 Per page, in the spec's order:
 
 - **Builder MCP:** for a new page, `builder_create_page`, then one `builder_compose_page` call with the page's whole tree, previewed first (`"preview": true`) as **dms-page-design** _Build a page in one call_ says. Create the resources and queries the page reads before the page.
-- **Code:** write the page class, its routes and DataControllers with **dms-pages**, then run the typecheck.
+- **Code:** write the page class, its routes and DataControllers with **dms-pages**, then run the typecheck. Page code imports from `@antelopejs/interface-dms` and the other interface packages **dms-pages** names, never from `@antelopejs/dms`, which exports no page API.
 - **Custom components:** with **dms-pages**, after the builder's write; then `builder_refresh` on the page when the builder MCP answers.
 
 A page is built when it typechecks and, checked as **dms-builder-mcp** _Verify_ says, shows every block with data.
