@@ -1,0 +1,90 @@
+{
+  "$schema": "../../node_modules/@antelopejs/dms/data/mockup-spec.schema.json",
+  "version": 1,
+  "title": "Ops desk",
+  "pages": [
+    {
+      "id": "orders",
+      "title": "Orders",
+      "livePage": { "ref": "/orders", "version": "3fa2b7" },
+      "liveRoutes": { "orders": "/api/orders" },
+      "fixtures": {
+        "orders": [
+          { "_id": "o1", "customer": "Acme", "total": 120, "status": "paid" },
+          {
+            "_id": "o2",
+            "customer": "Globex",
+            "total": 87.5,
+            "status": "late"
+          }
+        ],
+        "late": { "value": 4, "delta": -2 }
+      },
+      "tree": [
+        {
+          "id": "revenue",
+          "type": "KpiCard",
+          "options": {
+            "title": "Revenue this week",
+            "staticValue": 207.5,
+            "valueFormat": "currency",
+            "currencyCode": "EUR"
+          }
+        },
+        {
+          "id": "late_orders",
+          "type": "KpiCard",
+          "options": { "title": "Late orders", "fetchUrl": "fixture:late" }
+        },
+        {
+          "id": "orders_table",
+          "type": "TableView",
+          "options": {
+            "fetchUrl": "fixture:orders",
+            "columns": {
+              "customer": { "name": "Customer", "type": "string" },
+              "total": { "name": "Total", "type": "number" },
+              "status": { "name": "Status", "type": "select" }
+            }
+          }
+        },
+        {
+          "id": "drivers_map",
+          "type": "sketch",
+          "options": {
+            "html": "<div class='map'>Delivery map</div>",
+            "css": ".map{height:100%;display:grid;place-items:center}",
+            "height": 240,
+            "caption": "Live map of the drivers delivering today's orders"
+          }
+        }
+      ]
+    },
+    {
+      "id": "customers",
+      "title": "Customers",
+      "livePage": { "ref": "/customers", "version": "7d10c4" },
+      "liveRoutes": { "customers": "/api/customers" },
+      "fixtures": {
+        "customers": [
+          { "_id": "c1", "name": "Acme", "country": "FR", "orders": 12 },
+          { "_id": "c2", "name": "Globex", "country": "DE", "orders": 3 }
+        ]
+      },
+      "tree": [
+        {
+          "id": "customers_table",
+          "type": "TableView",
+          "options": {
+            "fetchUrl": "fixture:customers",
+            "columns": {
+              "name": { "name": "Name", "type": "string" },
+              "country": { "name": "Country", "type": "string" },
+              "orders": { "name": "Orders", "type": "number" }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

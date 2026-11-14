@@ -115,6 +115,30 @@
           "text": "The agent lists each difference it finds (a missing, extra or reordered block, another option, an empty block) before fixing it."
         }
       ]
+    },
+    {
+      "id": "converted-page-apply-first",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/ops-desk" },
+      "prompt": "Build the ops-desk mockup into its live pages (plan approved in advance). The builder MCP and the dms MCP are running, with page_verify and mockup_apply_to_page among their tools. builder_page_structure answers version 3fa2b7 for /orders and b2c9f0 for /customers. mockup_apply_to_page answers { mockup: \"ops-desk\", page: \"orders\" } with{ \"ok\": true, \"outcome\": \"applied\", \"livePage\": { \"ref\": \"/orders\", \"version\": \"5e88a1\" }, \"stamped\": true, \"preserved\": [\"orders_table\"], \"written\": [\"revenue\"], \"added\": [\"late_orders\", \"drivers_map\"], \"removed\": [], \"wiring\": [{ \"pointer\": \"/pages/0/tree/1\", \"id\": \"late_orders\", \"type\": \"KpiCard\", \"reason\": \"data\" }, { \"pointer\": \"/pages/0/tree/3\", \"id\": \"drivers_map\", \"type\": \"sketch\", \"reason\": \"custom-component\" }] }, and { mockup: \"ops-desk\", page: \"customers\" } with { \"ok\": false, \"error\": \"stale\", \"livePage\": { \"ref\": \"/customers\", \"version\": \"7d10c4\" }, \"currentVersion\": \"b2c9f0\" }.",
+      "rubric": [
+        {
+          "id": "apply-first",
+          "text": "The agent itself calls mockup_apply_to_page with mockup ops-desk and page orders as its first write for /orders (taking the prompt's answer as already applied is no call): no builder_configure_block, builder_move_block, builder_remove_block, builder_add_block, builder_compose_page, builder_create_resource or builder_add_query for that page, its resources or its queries comes before it."
+        },
+        {
+          "id": "wiring-only",
+          "text": "On /orders the agent then builds only the two wiring entries, a query or route behind the late_orders KpiCard and a custom component for drivers_map, and does not write the revenue, orders_table or other blocks the tool already wrote or preserved."
+        },
+        {
+          "id": "updates-live-page",
+          "text": "Every write goes to the live pages /orders and /customers; the agent never calls builder_create_page and never creates a new page for either spec page."
+        },
+        {
+          "id": "stale-asks-user",
+          "text": "For customers, the agent writes nothing to /customers and asks the user one question saying the page changed in code (version 7d10c4 against b2c9f0), offering to convert it again with mockup_from_page { pageRef: \"/customers\", replace: true } or to build anyway."
+        }
+      ]
     }
   ]
 }
