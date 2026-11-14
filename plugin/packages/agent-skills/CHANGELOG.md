@@ -1,6 +1,36 @@
 # Changelog
 
 
+## v0.3.1
+
+[compare changes](https://github.com/AntelopeJS/agent-skills/compare/agent-skills-v0.3.0...v0.3.1)
+
+### 🚀 Enhancements
+
+- **evals:** Accept the dms-assistant eval area beside dms-ai ([#80](https://github.com/AntelopeJS/agent-skills/pull/80))
+
+### 🩹 Fixes
+
+- **plugin:** Link each new page to its built page in dms-mockup-build so the mockup reads Out of sync ([#75](https://github.com/AntelopeJS/agent-skills/pull/75))
+- **plugin:** Read versioned .antelope/cache directories in the interface resolver ([#76](https://github.com/AntelopeJS/agent-skills/pull/76))
+- **release:** Count commits to the packed skills as changes of the package ([#81](https://github.com/AntelopeJS/agent-skills/pull/81))
+
+### 📖 Documentation
+
+- **plugin:** Name chat as a dms-mockup spec source ([#77](https://github.com/AntelopeJS/agent-skills/pull/77))
+
+### ✅ Tests
+
+- **evals:** Add @antelopejs/dms-assistant to the published eval corpus ([#78](https://github.com/AntelopeJS/agent-skills/pull/78))
+
+### 🤖 CI
+
+- Opt out of Windows jobs in ci-node ([#79](https://github.com/AntelopeJS/agent-skills/pull/79))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.3.0
 
 [compare changes](https://github.com/AntelopeJS/agent-skills/compare/agent-skills-v0.2.0...v0.3.0)
