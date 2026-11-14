@@ -72,7 +72,7 @@ integrator gave you:
   `connection` records that it holds the tables of `erp`.
 - **Step 3** gives the builder and the `database_*` tools the connection `erp`, the same id for
   both. It configures the module that serves the DMS MCP: `dms`. A project whose builder tools
-  still come from `dms-builder` and `dms-ai` takes one such step for each of them instead.
+  still come from `dms-builder` and `dms-assistant` takes one such step for each of them instead.
 - **Step 4** keeps the DMS on the project's own database. The DMS module is the one that provides
   `@antelopejs/interface-dms`. Step 2 pins `@antelopejs/interface-database` and uses the DMS, so
   the DMS inherits that pin and would be reached with two bindings. Its `source` is the module
