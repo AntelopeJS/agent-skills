@@ -5,6 +5,7 @@
     "@antelopejs/dms",
     "@antelopejs/dms-frontend",
     "@antelopejs/dms-api",
+    "@antelopejs/dms-assistant",
     "@antelopejs/dms-automation",
     "@antelopejs/interface-dms-automation",
     "@antelopejs/dms-database",
