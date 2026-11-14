@@ -76,10 +76,14 @@ integrator gave you:
 - **Step 4** keeps the DMS on the project's own database. The DMS module is the one that provides
   `@antelopejs/interface-dms`. Step 2 pins `@antelopejs/interface-database` and uses the DMS, so
   the DMS inherits that pin and would be reached with two bindings. Its `source` is the module
-  core picks by default among those that provide `@antelopejs/interface-database`: the highest
-  `exportPriority` for it (0 when unset), the first id on a tie. Read it from
-  `antelope.config.ts`, never assume `mongodb`. Leave the step out when the DMS module already
-  pins `@antelopejs/interface-database`, provides it itself, or no other module provides it.
+  core picks by default among the modules of `antelope.config.ts` that provide
+  `@antelopejs/interface-database` before this call (a module's `package.json` lists what it
+  provides under `antelopeJs.implements`): the highest `exportPriority` for it (0 when unset),
+  the alphabetically first id on a tie. Never assume `mongodb`. Leave the step out when the DMS
+  module already pins `@antelopejs/interface-database`, provides it itself, or no module
+  provided it before this call. When an `environments` entry of the configuration sets an
+  `exportPriority`, or a provider's priority is not a plain number, stop and ask the integrator
+  which module the DMS uses.
 
 For MongoDB and RethinkDB, step 1 changes, and the other steps name its id in place of
 `postgres-erp`. The `disabledExports` entry keeps the external instance from ever serving the raw
