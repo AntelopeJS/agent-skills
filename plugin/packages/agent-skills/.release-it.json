@@ -3,7 +3,7 @@
     "commitMessage": "chore(release): @antelopejs/agent-skills v${version}",
     "tagName": "agent-skills-v${version}",
     "requireCommits": true,
-    "commitsPath": "."
+    "commitsPath": ". ../../skills/dms-*"
   },
   "github": {
     "release": true,
