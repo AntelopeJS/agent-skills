@@ -156,7 +156,7 @@ export function fetchToCache(fullName, version) {
  * local copy when present and no version pinned / --remote off, else npm. Throws.
  * @param {string} fullName
  * @param {string | undefined} wanted
- * @param {(name: string) => PackageEntry | null} localLookup
+ * @param {(name: string, wanted?: string) => PackageEntry | null} localLookup
  * @returns {PackageEntry}
  */
 export function resolvePackageEntry(fullName, wanted, localLookup) {
@@ -165,7 +165,7 @@ export function resolvePackageEntry(fullName, wanted, localLookup) {
     if (hit) return hit;
   }
   if (OFFLINE) {
-    const hit = localLookup(fullName);
+    const hit = localLookup(fullName, wanted);
     if (hit) {
       if (
         wanted &&

@@ -171,23 +171,55 @@ function isDmsHost(pkg) {
 }
 
 /**
+ * @param {string} dir
+ * @returns {PackageEntry | null}
+ */
+function packageEntryAt(dir) {
+  const pkg = readJsonSafe(join(dir, "package.json"));
+  return isRecord(pkg) ? { dir, pkg } : null;
+}
+
+/**
+ * A package the CLI cached for antelope.config, one directory per version
+ * (`.antelope/cache/<pkg>@<version>`): the wanted version, else the highest.
+ * @param {string} pkgName
+ * @param {string | undefined} wanted
+ * @returns {PackageEntry | null}
+ */
+function cachedPackageEntry(pkgName, wanted) {
+  const slash = pkgName.lastIndexOf("/");
+  const parent = join(
+    process.cwd(),
+    ".antelope",
+    "cache",
+    pkgName.slice(0, slash + 1),
+  );
+  if (!isDirectorySafe(parent)) return null;
+  const prefix = `${pkgName.slice(slash + 1)}@`;
+  const versions = readdirSync(parent)
+    .filter((entry) => entry.startsWith(prefix))
+    .map((entry) => entry.slice(prefix.length))
+    .sort((a, b) => b.localeCompare(a, "en", { numeric: true }));
+  const pinned = wanted?.replace(/^v/, "");
+  const version = versions.find((v) => v === pinned) ?? versions[0];
+  return version === undefined
+    ? null
+    : packageEntryAt(join(parent, `${prefix}${version}`));
+}
+
+/**
  * A package by name as installed in the current project: node_modules first,
  * then the CLI's `.antelope/cache` (modules from antelope.config live there).
  * @param {string} pkgName
+ * @param {string} [wanted] The version to prefer among cached copies.
  * @returns {PackageEntry | null}
  */
-function installedPackageEntry(pkgName) {
-  const parts = pkgName.split("/");
-  const bases = [
-    join(process.cwd(), "node_modules"),
-    join(process.cwd(), ".antelope", "cache"),
-  ];
-  for (const base of bases) {
-    const dir = join(base, ...parts);
-    const pkg = readJsonSafe(join(dir, "package.json"));
-    if (isRecord(pkg)) return { dir, pkg };
-  }
-  return null;
+function installedPackageEntry(pkgName, wanted) {
+  return (
+    packageEntryAt(
+      join(process.cwd(), "node_modules", ...pkgName.split("/")),
+    ) ?? cachedPackageEntry(pkgName, wanted)
+  );
 }
 
 /** @type {Map<string, PackageEntry> | null} */
@@ -256,10 +288,13 @@ export function discoverDmsHosts() {
 
 /**
  * @param {string} pkgName
+ * @param {string} [wanted] The version to prefer among cached copies.
  * @returns {PackageEntry | null}
  */
-export function findLocalPackage(pkgName) {
+export function findLocalPackage(pkgName, wanted) {
   return (
-    installedPackageEntry(pkgName) ?? discoverDmsHosts().get(pkgName) ?? null
+    installedPackageEntry(pkgName, wanted) ??
+    discoverDmsHosts().get(pkgName) ??
+    null
   );
 }
