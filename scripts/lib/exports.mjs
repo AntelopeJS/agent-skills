@@ -65,7 +65,7 @@ const PATTERN_SCAN_DEPTH = 6;
 const DTS_RE = /\.d\.[mc]?ts$/;
 const COMMENT_RE = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
 const DECLARATION_RE =
-  /\bexport\s+(?:declare\s+)?(?:default\s+)?(?:abstract\s+)?(?:async\s+)?(?:const\s+enum|class|interface|type|enum|const|function\*?|namespace|module|let|var)\s+([A-Za-z_$][\w$]*)/g;
+  /\bexport\s+(?:declare\s+)?(?:default\s+)?(?:abstract\s+)?(?:async\s+)?(?:const\s+enum|class|interface|type|enum|const|function\*?|namespace|module|let|var|import)\s+([A-Za-z_$][\w$]*)/g;
 const NAMED_EXPORT_RE = /\bexport\s+(?:type\s+)?\{([^}]*)\}/g;
 const STAR_AS_RE = /\bexport\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from/g;
 const STAR_RE = /\bexport\s+\*\s+from\s*["']([^"']+)["']/g;

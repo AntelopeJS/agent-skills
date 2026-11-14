@@ -63,6 +63,15 @@ before(() => {
   );
   writePackage(
     project,
+    "@antelopejs/interface-api",
+    { types: "dist/index.d.ts" },
+    {
+      "dist/index.d.ts":
+        'import * as routeDecorators from "./route-decorators";\nimport * as parameterDecorators from "./parameter-decorators";\nexport import Get = routeDecorators.Get;\nexport import Post = routeDecorators.Post;\nexport import JSONBody = parameterDecorators.JSONBody;\n',
+    },
+  );
+  writePackage(
+    project,
     "untyped-lib",
     { main: "index.js" },
     { "index.js": "module.exports = {};\n" },
@@ -113,6 +122,14 @@ void test("accepts names exported through export *, aliases and directory indexe
 
   assert.deepEqual(report.findings, []);
   assert.equal(report.checked, 7);
+});
+
+void test("accepts names exported through export import aliases", async () => {
+  const report = await verify(
+    `${fence}ts\nimport { Get, Post, JSONBody, Patch } from "@antelopejs/interface-api";\n${fence}`,
+  );
+
+  assert.deepEqual(unknownNames(report), ["Patch"]);
 });
 
 void test("reports a name the module does not export, ignoring commented-out declarations", async () => {
