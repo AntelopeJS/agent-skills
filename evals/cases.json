@@ -481,7 +481,7 @@
       "id": "plugin-dms-mockup-build-spec",
       "area": "dms",
       "style": "clean",
-      "prompt": "The mockup is approved: build the real DMS pages from mockups/order-desk/spec.json.",
+      "prompt": "The mockup and the build plan are approved: build the real DMS pages from mockups/order-desk/spec.json. The builder MCP is running.",
       "expect": {
         "skills": ["dms-mockup-build"],
         "acceptable": [
