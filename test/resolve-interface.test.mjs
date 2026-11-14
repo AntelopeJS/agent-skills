@@ -240,3 +240,42 @@ void test("show of a registry copy picks the version and lists versions from a s
     removeDir(cache);
   }
 });
+
+void test("an offline pinned host resolves the matching version the CLI cached", () => {
+  const root = makeTempDir();
+  try {
+    writeJson(join(root, "package.json"), { name: "consumer" });
+    for (const version of ["1.0.0", "2.0.0"]) {
+      const dir = join(
+        root,
+        ".antelope",
+        "cache",
+        "@acme",
+        `module-billing@${version}`,
+      );
+      writeJson(join(dir, "package.json"), {
+        name: "@acme/module-billing",
+        version,
+        exports: { "./interface": { types: "./dist/interface.d.ts" } },
+      });
+      writeFile(
+        join(dir, "dist", "interface.d.ts"),
+        "export declare const a: number;\n",
+      );
+    }
+
+    const shown = parseJson(
+      runScript(SCRIPT, root, [
+        "show",
+        "@acme/module-billing@2.0.0/interface",
+        ...OFFLINE,
+        "--json",
+      ]),
+    );
+
+    if (!isRecord(shown)) assert.fail("show printed no object");
+    assert.equal(shown.version, "2.0.0");
+  } finally {
+    removeDir(root);
+  }
+});
