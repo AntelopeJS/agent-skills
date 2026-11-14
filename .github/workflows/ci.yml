@@ -22,6 +22,7 @@ jobs:
         plugin/packages/agent-skills/README.md
       renovate-sync: false
       test-job: true
+      windows: false
     permissions:
       contents: read
   renovate-sync:
