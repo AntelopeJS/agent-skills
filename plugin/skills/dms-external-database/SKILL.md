@@ -1,6 +1,6 @@
 ---
 name: dms-external-database
-description: Connects an AntelopeJS DMS project to a client's existing database, runs the builder's analysis of it, settles what the analysis could not decide from the catalog and aggregates, generates TableViews through the builder, names them and gives each the table features its data supports, and always builds an analytics dashboard first in the menu. Use when the user wants pages over a database the project does not own, PostgreSQL, MongoDB or RethinkDB ("plug in our client's Postgres", "map their Mongo database", "generate the admin for this database", "finish the mapping the builder proposed").
+description: Connects an AntelopeJS DMS project to a client's existing database, runs the builder's analysis of it, settles what the analysis could not decide from the catalog and aggregates, generates TableViews through the builder, names them and gives each the table features its data supports, and always builds an analytics dashboard first in the menu. Use when the user wants pages over a database the project does not own, PostgreSQL, MySQL, MariaDB, MongoDB or RethinkDB ("plug in our client's Postgres", "connect their MySQL database", "map their Mongo database", "generate the admin for this database", "finish the mapping the builder proposed").
 ---
 
 # Pages over a client's existing database
@@ -45,21 +45,25 @@ Call `database_connections`.
   connection `dms` imports. The connection exists, but step 4 of REFERENCE.md _Connecting_ is
   missing: propose that step alone, with the same approval and restart.
 - **Nothing is listed**: the project is not connected yet. Ask the integrator which engine the
-  database runs: PostgreSQL, MongoDB or RethinkDB. Propose one `builder_configure_project` call
-  with that engine's steps in REFERENCE.md _Connecting_. Pick the names with the integrator, for
-  example connection `erp`, provider module `postgres-erp` (`mongodb-erp`, `rethinkdb-erp`),
-  generated module `erp-tables`, variable `ERP_DATABASE_URL`, and for MongoDB
-  `ERP_DATABASE_NAME`. Ask the integrator for the version of the engine's module to install
-  (`@antelopejs/postgres`, `@antelopejs/mongodb`, `@antelopejs/rethinkdb`): you cannot look it
-  up. The user approves the diff. Safe mode refuses `builder_configure_project`: ask the
-  integrator to turn it off for this one call.
+  database runs: PostgreSQL, MySQL or MariaDB, MongoDB, or RethinkDB. Propose one
+  `builder_configure_project` call with that engine's steps in REFERENCE.md _Connecting_. Pick
+  the names with the integrator, for example connection `erp`, provider module `postgres-erp`
+  (`mysql-erp`, `mongodb-erp`, `rethinkdb-erp`), generated module `erp-tables`, variable
+  `ERP_DATABASE_URL`, and for MongoDB `ERP_DATABASE_NAME`. Ask the integrator for the version of
+  the engine's module to install (`@antelopejs/postgres`, `@antelopejs/mysql` for MySQL and
+  MariaDB alike, `@antelopejs/mongodb`, `@antelopejs/rethinkdb`): you cannot look it up. The user
+  approves the diff. Safe mode refuses `builder_configure_project`: ask the integrator to turn it
+  off for this one call.
   - Then tell the integrator to put the URL in `.env` (`ERP_DATABASE_URL=postgres://…`,
-    `mongodb://…`, or `rethinkdb://…/<database>`; for MongoDB also `ERP_DATABASE_NAME`), or in the
-    builder's _Database_ workspace when the project has one, which writes it there, and to restart the project. Every
-    deployed environment needs the same variables, set where that environment keeps its secrets,
-    never in git.
+    `mysql://…/<database>` for MySQL and MariaDB, `mongodb://…`, or `rethinkdb://…/<database>`;
+    for MongoDB also `ERP_DATABASE_NAME`), or in the builder's _Database_ workspace when the
+    project has one, which writes it there, and to restart the project. Every deployed
+    environment needs the same variables, set where that environment keeps its secrets, never in
+    git.
   - Recommend an account that can only read for the analysis: a PostgreSQL role with SELECT, a
-    MongoDB user with the built-in `read` role, a RethinkDB user with `read` permission.
+    MySQL or MariaDB account granted SELECT on the database directly (the module does not see a
+    grant through a role), a MongoDB user with the built-in `read` role, a RethinkDB user with
+    `read` permission.
   - Stop here: the connection exists only after the restart.
 
 The builder and you each have a connection to the database, under the same id: the builder for
@@ -72,7 +76,7 @@ its analysis and mapping, you for your probing.
 - It answers the proposal, or, when profiling takes longer, the job's progress and `id`: call it
   again with `job` until the proposal is in.
 - A `schemas` open item means the database is large: ask the integrator which schemas matter and
-  analyse again with `schemas`.
+  analyse again with `schemas`. On MySQL and MariaDB a schema is a database.
 - Relations the module mapped or excluded before are not proposed again. On a module mapped
   already, the proposal is what is left.
 

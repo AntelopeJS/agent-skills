@@ -69,9 +69,30 @@ integrator gave you:
   both. It configures the module that serves the DMS MCP: `dms`. A project whose builder tools
   still come from `dms-builder` and `dms-ai` takes one such step for each of them instead.
 
-For MongoDB and RethinkDB, step 1 changes, and the other steps name its id in place of
-`postgres-erp`. The `disabledExports` entry keeps the external instance from ever serving the raw
-client other modules ask for:
+For MySQL, MariaDB, MongoDB and RethinkDB, step 1 changes, and the other steps name its id in
+place of `postgres-erp`.
+
+MySQL and MariaDB share one module, `@antelopejs/mysql`, which tells them apart when it connects.
+Its URL holds the database as its path: `mysql://user:password@host:3306/erp`.
+
+```json
+{
+  "op": "AddModule",
+  "id": "mysql-erp",
+  "entry": {
+    "source": {
+      "type": "package",
+      "package": "@antelopejs/mysql",
+      "version": "<version>"
+    },
+    "config": { "mode": "external", "statementTimeoutMs": 30000 },
+    "env": { "url": "ERP_DATABASE_URL" }
+  }
+}
+```
+
+For MongoDB and RethinkDB, the `disabledExports` entry keeps the external instance from ever
+serving the raw client other modules ask for:
 
 ```json
 {
@@ -189,7 +210,7 @@ The rules, in the order they apply to a relation:
 
 For columns: F1 and F2 leave out a column no type reads and one named like a secret, F3 proposes
 the first accepted declaration, F4 makes a reference the database declares a relation column
-(PostgreSQL only), F5 one found whole by `CheckReference`. L1 chooses labels, L2 titles, FL the four flags, W1 read-only.
+(PostgreSQL, MySQL and MariaDB), F5 one found whole by `CheckReference`. L1 chooses labels, L2 titles, FL the four flags, W1 read-only.
 
 ## Plan
 

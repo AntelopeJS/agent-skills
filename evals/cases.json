@@ -428,6 +428,32 @@
       }
     },
     {
+      "id": "plugin-dms-external-database-mysql",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Our client keeps their orders in a MySQL database. Connect it to the DMS project and generate the admin pages over it.",
+      "expect": {
+        "skills": ["dms-external-database"],
+        "acceptable": [
+          "dms-page-design",
+          "dms-builder-mcp",
+          "dms-best-practices",
+          "dms"
+        ],
+        "mustMention": ["@antelopejs/mysql", "builder_configure_project"]
+      }
+    },
+    {
+      "id": "plugin-dms-external-database-mariadb-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "client runs mariadb, want dms pages on top of it without copying the tables",
+      "expect": {
+        "skills": ["dms-external-database"],
+        "acceptable": ["dms", "dms-builder-mcp", "dms-database"]
+      }
+    },
+    {
       "id": "plugin-dms-mockup-crm",
       "area": "dms",
       "style": "clean",
