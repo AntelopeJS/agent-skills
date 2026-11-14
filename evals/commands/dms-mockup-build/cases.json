@@ -120,7 +120,7 @@
       "id": "converted-page-apply-first",
       "harness": "claude",
       "fixture": { "type": "skeleton", "dir": "fixtures/ops-desk" },
-      "prompt": "Build the ops-desk mockup into its live pages (plan approved in advance). The builder MCP and the dms MCP are running, with page_verify and mockup_apply_to_page among their tools. builder_page_structure answers version 3fa2b7 for /orders and b2c9f0 for /customers. mockup_apply_to_page answers { mockup: \"ops-desk\", page: \"orders\" } with{ \"ok\": true, \"outcome\": \"applied\", \"livePage\": { \"ref\": \"/orders\", \"version\": \"5e88a1\" }, \"stamped\": true, \"preserved\": [\"orders_table\"], \"written\": [\"revenue\"], \"added\": [\"late_orders\", \"drivers_map\"], \"removed\": [], \"wiring\": [{ \"pointer\": \"/pages/0/tree/1\", \"id\": \"late_orders\", \"type\": \"KpiCard\", \"reason\": \"data\" }, { \"pointer\": \"/pages/0/tree/3\", \"id\": \"drivers_map\", \"type\": \"sketch\", \"reason\": \"custom-component\" }] }, and { mockup: \"ops-desk\", page: \"customers\" } with { \"ok\": false, \"error\": \"stale\", \"livePage\": { \"ref\": \"/customers\", \"version\": \"7d10c4\" }, \"currentVersion\": \"b2c9f0\" }.",
+      "prompt": "Build the ops-desk mockup into its live pages (plan approved in advance). The builder MCP and the dms MCP are running, with page_verify and mockup_apply_to_page among their tools. No tool has been called yet; when you call them, they answer as follows. builder_page_structure returns version 3fa2b7 for /orders and b2c9f0 for /customers. mockup_apply_to_page called with { mockup: \"ops-desk\", page: \"orders\" } returns { \"ok\": true, \"outcome\": \"applied\", \"livePage\": { \"ref\": \"/orders\", \"version\": \"5e88a1\" }, \"stamped\": true, \"preserved\": [\"orders_table\"], \"written\": [\"revenue\"], \"added\": [\"late_orders\", \"drivers_map\"], \"removed\": [], \"wiring\": [{ \"pointer\": \"/pages/0/tree/1\", \"id\": \"late_orders\", \"type\": \"KpiCard\", \"reason\": \"data\" }, { \"pointer\": \"/pages/0/tree/3\", \"id\": \"drivers_map\", \"type\": \"sketch\", \"reason\": \"custom-component\" }] }, and called with { mockup: \"ops-desk\", page: \"customers\" } returns { \"ok\": false, \"error\": \"stale\", \"livePage\": { \"ref\": \"/customers\", \"version\": \"7d10c4\" }, \"currentVersion\": \"b2c9f0\" }.",
       "rubric": [
         {
           "id": "apply-first",
@@ -128,7 +128,7 @@
         },
         {
           "id": "wiring-only",
-          "text": "On /orders the agent then builds only the two wiring entries, a query or route behind the late_orders KpiCard and a custom component for drivers_map, and does not write the revenue, orders_table or other blocks the tool already wrote or preserved."
+          "text": "After mockup_apply_to_page, the only writes the agent makes or plans on /orders are the two wiring entries, a query or route behind the late_orders KpiCard and a custom component for drivers_map; it writes no revenue, orders_table or other block the tool already wrote or preserved."
         },
         {
           "id": "updates-live-page",
