@@ -1,6 +1,41 @@
 # Changelog
 
 
+## v0.3.0
+
+[compare changes](https://github.com/AntelopeJS/agent-skills/compare/agent-skills-v0.2.0...v0.3.0)
+
+### 🚀 Enhancements
+
+- **plugin:** Ship the DMS workflow skills and the mockup flow in the plugin ([#63](https://github.com/AntelopeJS/agent-skills/pull/63))
+- **agent-skills:** Publish the plugin's DMS workflow skills and export workflowSkillsDir ([#64](https://github.com/AntelopeJS/agent-skills/pull/64))
+- **plugin:** Verify built mockup pages with page_verify in dms-mockup-build ([#65](https://github.com/AntelopeJS/agent-skills/pull/65))
+- **plugin:** Connect MySQL and MariaDB in dms-external-database ([#69](https://github.com/AntelopeJS/agent-skills/pull/69))
+- **plugin:** Call mockup_apply_to_page first for converted pages in dms-mockup-build ([#68](https://github.com/AntelopeJS/agent-skills/pull/68))
+
+### 🩹 Fixes
+
+- **plugin:** Name the interface-dms import paths in dms-mockup-build ([#67](https://github.com/AntelopeJS/agent-skills/pull/67))
+- **evals:** Resolve export import aliases in the name verifier ([#70](https://github.com/AntelopeJS/agent-skills/pull/70))
+- **plugin:** Wire dms-external-database's connect batch as dms-builder 0.11.0 does ([#71](https://github.com/AntelopeJS/agent-skills/pull/71))
+- **plugin:** Name the build tool, liveRoutes and the no-verify suffix where dms-mockup-build answers read them ([#73](https://github.com/AntelopeJS/agent-skills/pull/73))
+
+### 📖 Documentation
+
+- **plugin:** Name the ownerOnly page option in dms-pages ([#66](https://github.com/AntelopeJS/agent-skills/pull/66))
+
+### 📦 Build
+
+- **deps:** Move to tooling-configs 0.6.0 and cap the @antelopejs ranges ([#72](https://github.com/AntelopeJS/agent-skills/pull/72))
+
+### ✅ Tests
+
+- **evals:** Cover a converted page in the dms-mockup-build rubric cases ([#74](https://github.com/AntelopeJS/agent-skills/pull/74))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.2.0
 
 [compare changes](https://github.com/AntelopeJS/agent-skills/compare/agent-skills-v0.1.0...v0.2.0)
