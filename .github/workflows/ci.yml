@@ -1,17 +1,19 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [next]
+  schedule:
+    - cron: "17 2 * * *"
   workflow_dispatch:
-
 permissions:
   contents: read
 
 jobs:
   ci:
-    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1
+    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v2
     with:
       extra-commands: |
         pnpm check:plugin
@@ -31,4 +33,4 @@ jobs:
     permissions:
       contents: write
       actions: write
-    uses: AntelopeJS/.github/.github/workflows/ci-renovate-sync.yml@v1
+    uses: AntelopeJS/.github/.github/workflows/ci-renovate-sync.yml@v2
