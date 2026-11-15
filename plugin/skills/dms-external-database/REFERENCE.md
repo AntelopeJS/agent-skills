@@ -300,7 +300,7 @@ The proposal's values, without their rules, plus what you changed:
       "fields": [
         { "column": "status", "filterable": true },
         { "column": "ordered_at", "sortable": true },
-        { "column": "total", "display": { "kind": "price" } },
+        { "column": "total" },
         {
           "column": "customer_code",
           "relation": "sales.customers",
@@ -329,8 +329,9 @@ The proposal's values, without their rules, plus what you changed:
   `declared`.
 - Leave `display` out to keep the one the Builder proposes: it reads a badge's items and a
   price's currency from the column at map time, so you send no value. Send a display only to
-  change it: a price as `{ "kind": "price" }`, a badge only over a native enum's labels. Send
-  `tabs` as a column name (`{ "column": "status" }`). `null` turns either off.
+  change it: a price with a `currency` the schema or the integrator names, a badge only over a
+  native enum's labels. Send `tabs` as a column name (`{ "column": "status" }`). `null`
+  turns either off.
 - Key columns are added for you.
 - A relation column's target must be in the same call, with a `label`, or mapped in the module
   before.

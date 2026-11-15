@@ -168,7 +168,8 @@ dashboard and check it, then add KPI rows above tables, then any second analytic
 1. `builder_map_resources` in batches of 3 or 4 relations per call, TableViews and stats-only
    relations alike; the relations decided against go in `excluded` on the first call
    (REFERENCE.md _Mapping_). One call with every relation of a large database can abort.
-   - Send the proposal's choices as they stand where you changed nothing, plus per resource
+   - Send the proposal's choices as they stand where you changed nothing, except `display`,
+     which you leave out (REFERENCE.md _Mapping_), plus per resource
      the `title`, `icon`, `description` and `tableOptions` you planned.
    - On `invalid_config`, fix the choice it names and call again: a refused call writes nothing.
      When the same choice is refused twice, drop it (send the relation without that display or
@@ -183,8 +184,9 @@ dashboard and check it, then add KPI rows above tables, then any second analytic
    says.
    - Queries read the mapped resources by their refs (`<connection>/<schema>/<relation>`).
 3. Per table page that gets KPI cards above its table, one `builder_compose_page` call with
-   `placement: { "before": "table" }`, previewed first. A table option MapResources refused
-   comes back as a warning: fix it with `builder_configure_table_view`.
+   `placement: { "before": "table" }`, previewed first. A view, display mode or footer MapResources
+   refused comes back as a warning: fix it with `builder_configure_table_view`. Tabs it dropped
+   stay off: say so in your report.
 
 To change a relation later, read its current choices with `builder_mapping`, then call
 `builder_map_resources` with that relation alone, its included columns as they are and only your

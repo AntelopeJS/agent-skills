@@ -47,7 +47,8 @@ arguments are in `dms-builder-mcp`, the code in `dms-pages`.
 - Sum a measure that adds up (a total, a quantity). Count rows for everything else. Never sum
   a unit price or a rate.
 - Format money with `valueFormat: "currency"` and a `currencyCode` only when the schema names
-  its currency (a column's comment, a column named for it) or the integrator does. Otherwise use `valueFormat: "number"`: the default
+  its currency (a code in a column's comment or name, such as `total_usd`) or the integrator does. A
+  `currency` column says the rows carry a currency, never which one: ask the integrator. Otherwise use `valueFormat: "number"`: the default
   currency is the euro, and a wrong symbol is worse than none.
 - Grouping by a foreign key shows ids. Group by the relation's own columns only; a breakdown by
   a related entity's name goes under _Not possible yet_ in your report.
@@ -90,7 +91,8 @@ period the user names wins over both.
 Pick the bucket so the default window holds 8 to 31 points: `day` up to 31 days, `week` up to
 about 7 months (a 90-day window is 13 weeks), `month` beyond. A time chart with fewer than 8 points reads as a curve with no story. An axis
 chart (area, line, column, bar) over time takes `xaxisType: "category"`, unless a preview's
-`x` values are epoch milliseconds, which take `xaxisType: "datetime"`. A donut or pie takes
+`x` are numbers (epoch milliseconds) rather than labels, which take `xaxisType: "datetime"`: a
+check of their type, never of the dates. A donut or pie takes
 no axis option.
 
 ## Name every page
@@ -132,15 +134,20 @@ values) shows coloured badges. Leave its `display` out: the Builder proposes the
 items and their tones itself. Send a badge only over a native enum, one item per label the
 schema declares, one tone per label (green for done or good, amber for waiting, red for failed
 or lost, grey for closed or neutral). Free text (a subject, a note, a name) never shows badges,
-even when it has few distinct values. A money column shows a price: send
-`{ "kind": "price" }`, with a `currency` only when the integrator names one. A relation
+even when it has few distinct values: send `"display": null` on it when the Builder proposed
+one. A money column shows a price: leave its `display` out, and the Builder proposes the price
+and finds its currency. Send `{ "kind": "price", "currency": "<code>" }` only on a column the
+Builder left plain, with a code the schema or the integrator names; with none, leave it a
+number. A relation
 column (a `customer_id`, an `order_id`) is titled by its target ("Customer") and shows the
 target's label, never the raw number: map the target relation with a label first, then send
-the relation column as a relation. Raw id columns stay off the list. Send each field's `display` and the relation's `tabs` in `builder_map_resources`.
+the relation column as a relation. Raw id columns stay off the list. A `display` you do send, and the relation's `tabs`, go in `builder_map_resources`.
 
 **Tabs.** A single-choice column with 2 to 6 values that splits the rows into states people
-work through (a status, a stage) gives tabs: send `tabs: { "column": "<column>" }`, and the
-table draws "All", then one tab per item of the column's badge. You name no value. One tab
+work through (a status, a stage) gives tabs when the column is drawn as a badge, by the
+Builder or over a native enum: send `tabs: { "column": "<column>" }`, and the table draws
+"All", then one tab per item of the column's badge. You name no value. When the mapping answers
+`display_dropped` for that column, the table has no tabs: say so in your report. One tab
 column per table.
 
 **Saved views** (`views`). Add 2 to 4 views when a recurring question is a fixed filter on the
@@ -155,7 +162,8 @@ other: views for questions that cross columns or dates, tabs for the plain split
 **Display modes.** Offer another display when the data reads better that way, and make it the
 default only when it is the main way to work the table:
 
-- **Kanban** (`kanban.groupBy`) when a single-choice status or stage column describes a flow
+- **Kanban** (`kanban.groupBy`) when a single-choice status or stage column drawn as a badge
+  (by the Builder or over a native enum) describes a flow
   rows move through, with 3 to 7 values and rows that are handled one by one (tickets, tasks,
   deliveries, applications). Not for a column that only classifies (a country, a category).
   Kanban works on a read-only table: it shows the flow without moving cards. Leave `draggable`
