@@ -200,6 +200,17 @@
       }
     },
     {
+      "id": "dms-page-design-period-without-dates",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "before i set the default period on the sales dashboard should i profile ordered_at to get its first and last date?",
+      "expect": {
+        "skills": ["dms-page-design"],
+        "acceptable": ["dms-external-database", "dms-builder-mcp", "dms-pages"],
+        "mustMention": ["last-90-days"]
+      }
+    },
+    {
       "id": "dms-page-design-table-badges",
       "area": "dms",
       "style": "clean",
