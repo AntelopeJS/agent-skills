@@ -253,7 +253,7 @@ erp · postgresql 17.5 · role erp_reader (read only) · 42 relations: 9 TableVi
 
 ### Sales (sales.orders)
 
-- Period: ordered_at runs 2024-01-03 to 2026-10-28 → default last-90-days vs previous-period; presets last-90-days, ytd, last-year, custom
+- Period: by ordered_at, default last-90-days vs previous-period; presets last-30-days, last-90-days, ytd, last-year, custom
 - Toolbar: PageToolbar › PeriodSelector
 - KPIs: revenue (sum of total) · orders (count) · units (sum of quantity), each with delta and sparkline
 - ChartCard › ChartArea: revenue per month
@@ -298,19 +298,9 @@ The proposal's values, without their rules, plus what you changed:
       "writable": false,
       "tabs": { "column": "status" },
       "fields": [
-        {
-          "column": "status",
-          "filterable": true,
-          "display": {
-            "kind": "badge",
-            "items": [{ "value": "paid", "label": "Paid", "tone": "success" }]
-          }
-        },
+        { "column": "status", "filterable": true },
         { "column": "ordered_at", "sortable": true },
-        {
-          "column": "total",
-          "display": { "kind": "price", "currency": "USD" }
-        },
+        { "column": "total", "display": { "kind": "price" } },
         {
           "column": "customer_code",
           "relation": "sales.customers",
@@ -337,8 +327,10 @@ The proposal's values, without their rules, plus what you changed:
 - `declared` defaults to the column's `accepts[0]`. Set it only to take another accepted
   declaration, and always for a column a `field-type` item asked about: give the answer as its
   `declared`.
-- Send `display` (each field) and `tabs` (each relation) as the proposal has them; `null` turns
-  one off.
+- Leave `display` out to keep the one the Builder proposes: it reads a badge's items and a
+  price's currency from the column at map time, so you send no value. Send a display only to
+  change it: a price as `{ "kind": "price" }`, a badge only over a native enum's labels. Send
+  `tabs` as a column name (`{ "column": "status" }`). `null` turns either off.
 - Key columns are added for you.
 - A relation column's target must be in the same call, with a `label`, or mapped in the module
   before.

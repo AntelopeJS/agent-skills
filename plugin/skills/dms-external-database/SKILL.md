@@ -113,16 +113,16 @@ profile of the whole database again: the Builder did it.
 - **Editable.** Every TableView is proposed read-only. Make one editable only where the integrator
   wants it; show `writes` beside it, so a read-only role in this environment is visible.
 - **Pages people can work with.** Load the `dms-page-design` skill. For every TableView, plan
-  from its columns, profiles and categories, as _Name every page_ and _Tables_ there say: a
-  title, an icon and a description; the tabs, saved views, display modes, footer totals and
-  KPI cards its data supports. Decide each from the data, and leave out what the data does
-  not support.
+  from its columns and their profiles (types, traits, distinct counts), as _Name every page_
+  and _Tables_ there say: a title, an icon and a description; the tabs, saved views, display
+  modes, footer totals and KPI cards its shape supports. Decide each from that shape, and
+  leave out what it does not support. You never read a row's values.
 - **The analytics dashboard,** which the analysis does not make. Every run ends with one,
   first in the menu, even when the integrator only asked for the tables. Plan it from the data:
-  1. **Inspect.** For each relation, read from the proposal its rows, its `time-axis` columns
-     with their `range`, its `measure` columns, and its `enum-like` columns with their
-     `categories`. Profile a column the proposal leaves without them, such as the main date
-     column's range. Write each range down: the period rule needs the last date.
+  1. **Inspect.** For each relation, read from the proposal its row count, its `time-axis`
+     columns, its `measure` columns, and its `enum-like` columns with their distinct counts
+     and, for a native enum, the labels its schema declares (`database_describe`). That shape
+     is all you need.
   2. **Ask.** Write the 4 to 8 questions the owner of this data asks every week: how revenue
      or volume trends, what sells, who buys, where, and how it compares with last year. Each
      question names the relation, the measure (a sum of a `measure` column or a row count)
@@ -133,8 +133,8 @@ profile of the whole database again: the Builder did it.
      Another relation gets its own analytics page only when it has its own time axis and at
      least 100 rows. When no relation has a time axis, the dashboard still exists: KPI cards
      of counts and sums, and breakdowns by the category columns, with no period selector.
-  4. **Choose blocks** for each question with `dms-page-design`, and its default period from
-     the main time axis's real range.
+  4. **Choose blocks** for each question with `dms-page-design`, and its default period as
+     _Period_ there sets it.
 - **The minimum.** Your plan, and the pages you write, meet all of these:
   - one analytics dashboard, first in the connection's menu (`order: 0`), opened by a toolbar
     with a period selector when the data has dates;
@@ -143,7 +143,7 @@ profile of the whole database again: the Builder did it.
   - every table given the tabs, views, display modes, footer totals and KPI cards its data
     supports, as `dms-page-design` _Tables_ decides;
   - at least 3 different chart kinds on it when the data has the shapes for them;
-  - a default period computed from the data's real dates, never assumed;
+  - the default period `dms-page-design` _Period_ sets;
   - every page built with one `builder_compose_page` call, previewed first, and every block whose
     preview is empty, zero or failed dropped or changed;
   - every page checked as `dms-builder-mcp` _Verify_ says before you report.
@@ -206,7 +206,7 @@ change made: a mapped relation is rewritten from the choices sent, and its page 
 Then report:
 
 - what the builder mapped by its rules, and what you changed;
-- the pages made, with each analytics page's default period and the date range it came from,
+- the pages made, with each analytics page's default period,
   and per table the features you gave it and why;
 - every block that still shows no data, and why;
 - what was left out and why;

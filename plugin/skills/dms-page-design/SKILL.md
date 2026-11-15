@@ -20,9 +20,9 @@ arguments are in `dms-builder-mcp`, the code in `dms-pages`.
 - **No builder MCP**: the shapes, layout, period, names and table features below still decide
   the page. Write it with `dms-pages`: a query becomes a route on the page
   (`pageRoutePath`), the period arrives as the request's `from` and `to`, and the table
-  features are `TableView` options. There is no preview call: before you write a block, read
-  its answer from the route (or the data it aggregates) for the default period, and apply the
-  checks of _Build a page in one call_ to that answer. Open each page in the browser at the end.
+  features are `TableView` options. There is no preview call: before you write a block, call
+  its route for the default period and check only whether it answers no rows, zeros or an
+  error, as _Build a page in one call_ checks a preview's status. Open each page in the browser at the end.
 
 ## Pick the block from the data's shape
 
@@ -46,8 +46,8 @@ arguments are in `dms-builder-mcp`, the code in `dms-pages`.
   of under it.
 - Sum a measure that adds up (a total, a quantity). Count rows for everything else. Never sum
   a unit price or a rate.
-- Format money with `valueFormat: "currency"` and a `currencyCode` only when the data names its
-  currency (a currency column, a comment). Otherwise use `valueFormat: "number"`: the default
+- Format money with `valueFormat: "currency"` and a `currencyCode` only when the schema names
+  its currency (a column's comment, a column named for it) or the integrator does. Otherwise use `valueFormat: "number"`: the default
   currency is the euro, and a wrong symbol is worse than none.
 - Grouping by a foreign key shows ids. Group by the relation's own columns only; a breakdown by
   a related entity's name goes under _Not possible yet_ in your report.
@@ -75,20 +75,17 @@ Every card binds the page's period: `periodScope: "page"` on the block, and on i
 
 ## Period
 
-The default period is computed from the data's real dates, never assumed. Read the time
-axis's `range` from the analysis, or profile that column. Then take the first rule that holds,
-counting from today:
+You never read the data's dates: the analysis and the profiles give a time axis, never its
+first or last date. Set the selector to fixed presets, counted from today: `defaultPreset`
+`last-90-days`, `defaultComparison` `previous-period`, `presets` `last-30-days`,
+`last-90-days`, `ytd`, `last-year` and `custom`, and `comparisons` `previous-period`,
+`previous-year` and `none`. Leave `all` out of `presets`: it sends no `from` or `to`, and every
+bound query fails without them.
 
-1. The data reaches into the last 30 days and spans at least 90 days: `last-90-days`,
-   compared with `previous-period`.
-2. The current year holds at least 3 months of data: `ytd`, compared with `previous-year`.
-3. Last calendar year holds data: `last-year`, compared with `previous-year` when the year
-   before it holds data too, else `none`.
-4. Otherwise bind nothing to a period, leave the selector out, and say so in your report.
-
-Set it on the selector: `defaultPreset`, `defaultComparison`, `presets` (the default, any
-other preset whose window holds data, and `custom`) and `comparisons`. Leave `all` out of
-`presets`: it sends no `from` or `to`, and every bound query fails without them.
+When the preview marks every bound block `empty` over the default window, the data may stop
+earlier: preview again with `last-year` as the default, compared with `none`. When that is
+empty too, bind nothing to a period, leave the selector out, and say so in your report. A
+period the user names wins over both.
 
 Pick the bucket so the default window holds 8 to 31 points: `day` up to 31 days, `week` up to
 about 7 months (a 90-day window is 13 weeks), `month` beyond. A time chart with fewer than 8 points reads as a curve with no story. An axis
@@ -122,29 +119,35 @@ Set them with `builder_create_page` on new pages, per resource in `builder_map_r
 A table page is a working tool: the reader finds a row, sees its state, and acts. Read the
 relation's columns with `builder_resource_structure` (and the proposal's profiles when there
 is one), then give the table every feature its data supports, and none it does not. Each
-rule below names the shape that earns the feature; decide from the columns and their values,
-never from the relation's name.
+rule below names the shape that earns the feature; decide from the columns' types, traits and
+distinct counts, never from the relation's name. You never read a row's values: a value you
+name comes from the schema, as a native enum's label.
 
 **Columns.** A primary key gets no display and is never a row's label. A boolean keeps its
 default display (no badge). A column that a view filters on, a tab splits on, or a footer
 `where` reads must be `filterable` in the mapping; one that a view sorts on, `sortable`.
 Keep the Builder's proposed displays unless the column's meaning says otherwise:
 a column with few distinct values (a status, a type, a channel, a priority, under about 12
-values) shows coloured badges, one tone per value (green for done or good, amber for waiting,
-red for failed or lost, grey for closed or neutral); free text (a subject, a note, a name)
-never shows badges, even when the sample repeats. A money column shows a price. A relation
+values) shows coloured badges. Leave its `display` out: the Builder proposes the badge, its
+items and their tones itself. Send a badge only over a native enum, one item per label the
+schema declares, one tone per label (green for done or good, amber for waiting, red for failed
+or lost, grey for closed or neutral). Free text (a subject, a note, a name) never shows badges,
+even when it has few distinct values. A money column shows a price: send
+`{ "kind": "price" }`, with a `currency` only when the integrator names one. A relation
 column (a `customer_id`, an `order_id`) is titled by its target ("Customer") and shows the
 target's label, never the raw number: map the target relation with a label first, then send
 the relation column as a relation. Raw id columns stay off the list. Send each field's `display` and the relation's `tabs` in `builder_map_resources`.
 
 **Tabs.** A single-choice column with 2 to 6 values that splits the rows into states people
-work through (a status, a stage) gives one tab per value after "All". One tab column per table.
+work through (a status, a stage) gives tabs: send `tabs: { "column": "<column>" }`, and the
+table draws "All", then one tab per item of the column's badge. You name no value. One tab
+column per table.
 
 **Saved views** (`views`). Add 2 to 4 views when a recurring question is a fixed filter on the
-table: rows waiting for action (a status that means "to do"), recent rows (a date
-`greater_than` `{{now-7d}}` or `{{now-30d}}`), rows assigned to the reader (an owner column
-equal to `{{user.id}}`), outliers worth a look (a stock or a score under a threshold read from
-the profile, a high amount). Each view has a short label that states the question
+table: recent rows (a date `greater_than` `{{now-7d}}` or `{{now-30d}}`), rows assigned to the
+reader (an owner column equal to `{{user.id}}`), rows waiting for action (a native enum label
+that means "to do"), and outliers worth a look as a sort, with no threshold (the lowest stock
+first, the highest amount first). Each view has a short label that states the question
 ("Awaiting shipment", "This week", "Low stock"), a sort that puts the first row to handle on
 top, and `count: true` when the number itself matters. Keep views and tabs from repeating each
 other: views for questions that cross columns or dates, tabs for the plain split by state.
@@ -164,11 +167,11 @@ default only when it is the main way to work the table:
   the main date column with `by: "day"` or `"week"`.
 
 **Footer totals** (`footer.summary`). When the table has an additive money or quantity column,
-show its `sum`, and a `count` of rows; add a `count` with a `where` on a status value when that
-number is what the reader checks ("Refunded"). Never sum a unit price, a rate or a score.
+show its `sum`, and a `count` of rows; add a `count` with a `where` on a native enum label when
+that number is what the reader checks ("Refunded"). Never sum a unit price, a rate or a score.
 
 **KPI cards above the table.** When the relation has a measure or a state worth tracking (an
-amount, rows waiting, a share of a status), put a `GridRow` of 3 or 4 `KpiCard`s above the
+amount, rows waiting, a share of a status, the last two over a native enum label), put a `GridRow` of 3 or 4 `KpiCard`s above the
 `TableView`, each answering one question the table's reader asks ("Revenue this month",
 "Awaiting shipment", "Refund rate"), with the series and `compare` rules above. A lookup list
 (a reference table, tags, settings) gets none.
@@ -185,7 +188,8 @@ inline (same fields as `builder_add_query`). It writes everything at once and ty
 Use the single-block tools only for a small fix afterwards.
 
 1. Call it first with `"preview": true` and the default period's `from` and `to` as `args`.
-   It writes nothing and answers each block's status. Change or drop every block marked
+   It writes nothing and answers each block's status: decide from that status, never from the
+   figures a preview holds. Change or drop every block marked
    `empty`, `zero` or `error` (another measure, the whole history for a card that should not
    follow the period), then preview again. Never write a block over an empty answer.
 2. Call it again without `preview` to write. A refusal lists every refused block by pointer:

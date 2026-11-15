@@ -27,7 +27,7 @@ Collect the user's **wishes**: each thing a screen must show or let someone do. 
 - the actions: create, edit, approve, export, …;
 - a reference: a screenshot, a Figma frame, another product. When there is one, frame it once as **dms-best-practices** _Design-fidelity protocol_ step 1 says.
 
-When the project already has a database or resources (`builder_list_resources`, `database_connections`), read their names and fields first and ask only what they do not answer. Data pages follow **dms-page-design**: its shapes, layout and naming rules decide the blocks of an analytics or table page.
+When the project already has a database or resources (`builder_list_resources`, `database_connections`), read their names and fields first, never their rows, and ask only what they do not answer. Data pages follow **dms-page-design**: its shapes, layout and naming rules decide the blocks of an analytics or table page.
 
 The interview is done when every page has a purpose, its data and its actions, and every wish names the page it lives on.
 
@@ -45,7 +45,7 @@ This step is done when every wish maps to a block, a composition, or a sketch th
 Write `mockups/<name>/spec.json` with `mockup_write_spec` or as a file (`<name>` in kebab case, from the app or the area: `crm`, `stock-dashboard`), following [SPEC.md](SPEC.md):
 
 - one entry per page, its tree in the order the page reads, every block with a name;
-- **fixtures** for every block that reads data, realistic and coherent across pages (the order total on the list matches the KPI), sized like the real data (a dozen rows, not two);
+- **fixtures** for every block that reads data, invented and never copied from a database: realistic and coherent across pages (the order total on the list matches the KPI), with a dozen rows, not two, and over existing resources the columns and types they declare;
 - a **sketch** for each custom part the user chose, kept to that element;
 - `source`, on a new spec only: `claude-code` in Claude Code, `codex` in Codex, left out when you cannot tell which harness runs you;
 - texts in the user's language.
