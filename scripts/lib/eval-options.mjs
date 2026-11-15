@@ -92,7 +92,7 @@ Corpus (default: the current directory as a project):
 Cases: evals/cases.json plus the skills/<name>/cases.json of every corpus skill
   --cases <file>         central dataset (default: evals/cases.json)
   --only <id,id>         run these cases only
-  --area <a,b>           run these areas only (framework, dms, dms-ai, dms-assistant, modules, install, verify)
+  --area <a,b>           run these areas only (framework, dms, dms-assistant, modules, install, verify)
 
 Direct run (trigger, answers):
   --backend <name>       baseline (trigger default), anthropic (answers default), openai, or a module path
