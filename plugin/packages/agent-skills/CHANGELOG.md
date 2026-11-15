@@ -1,6 +1,26 @@
 # Changelog
 
 
+## v0.3.2
+
+[compare changes](https://github.com/AntelopeJS/agent-skills/compare/agent-skills-v0.3.1...v0.3.2)
+
+### 🩹 Fixes
+
+- **skills:** Give the DMS skills the database's shape, never its values ([#83](https://github.com/AntelopeJS/agent-skills/pull/83))
+
+### 💅 Refactors
+
+- **evals:** ⚠️  Drop the dms-ai eval area ([#82](https://github.com/AntelopeJS/agent-skills/pull/82))
+
+#### ⚠️ Breaking Changes
+
+- **evals:** ⚠️  Drop the dms-ai eval area ([#82](https://github.com/AntelopeJS/agent-skills/pull/82))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.3.1
 
 [compare changes](https://github.com/AntelopeJS/agent-skills/compare/agent-skills-v0.3.0...v0.3.1)
