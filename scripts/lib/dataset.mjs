@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { readJsonFile } from "../../plugin/scripts/lib/json.mjs";
 import { isRecord, isText } from "../../plugin/scripts/lib/values.mjs";
 
-/** @typedef {"framework" | "dms" | "dms-ai" | "dms-assistant" | "modules" | "install" | "verify"} EvalArea */
+/** @typedef {"framework" | "dms" | "dms-assistant" | "modules" | "install" | "verify"} EvalArea */
 /** @typedef {"clean" | "casual"} EvalStyle */
 /** @typedef {"asks-first"} EvalBehaviour */
 
@@ -62,7 +62,6 @@ export const DATASET_VERSION = 1;
 export const AREAS = [
   "framework",
   "dms",
-  "dms-ai",
   "dms-assistant",
   "modules",
   "install",
