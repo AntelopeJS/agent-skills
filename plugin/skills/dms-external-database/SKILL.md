@@ -184,9 +184,10 @@ dashboard and check it, then add KPI rows above tables, then any second analytic
    says.
    - Queries read the mapped resources by their refs (`<connection>/<schema>/<relation>`).
 3. Per table page that gets KPI cards above its table, one `builder_compose_page` call with
-   `placement: { "before": "table" }`, previewed first. A view, display mode or footer MapResources
-   refused comes back as a warning: fix it with `builder_configure_table_view`. Tabs it dropped
-   stay off: say so in your report.
+   `placement: { "before": "table" }`, previewed first. When MapResources answers `page_not_written`
+   for a relation's table options, none of them was written: send them all again with
+   `builder_configure_table_view`, the refused one fixed or left out. Tabs it dropped stay off:
+   say so in your report.
 
 To change a relation later, read its current choices with `builder_mapping`, then call
 `builder_map_resources` with that relation alone, its included columns as they are and only your

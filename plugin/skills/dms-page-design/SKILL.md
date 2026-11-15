@@ -90,10 +90,9 @@ period the user names wins over both.
 
 Pick the bucket so the default window holds 8 to 31 points: `day` up to 31 days, `week` up to
 about 7 months (a 90-day window is 13 weeks), `month` beyond. A time chart with fewer than 8 points reads as a curve with no story. An axis
-chart (area, line, column, bar) over time takes `xaxisType: "category"`, unless a preview's
-`x` are numbers (epoch milliseconds) rather than labels, which take `xaxisType: "datetime"`: a
-check of their type, never of the dates. A donut or pie takes
-no axis option.
+chart (area, line, column, bar) over time takes `xaxisType: "category"`: a bucketed series
+answers its periods as labels. Use `"datetime"` only for a route you wrote yourself that
+answers timestamps. A donut or pie takes no axis option.
 
 ## Name every page
 
@@ -135,10 +134,11 @@ items and their tones itself. Send a badge only over a native enum, one item per
 schema declares, one tone per label (green for done or good, amber for waiting, red for failed
 or lost, grey for closed or neutral). Free text (a subject, a note, a name) never shows badges,
 even when it has few distinct values: send `"display": null` on it when the Builder proposed
-one. A money column shows a price: leave its `display` out, and the Builder proposes the price
-and finds its currency. Send `{ "kind": "price", "currency": "<code>" }` only on a column the
-Builder left plain, with a code the schema or the integrator names; with none, leave it a
-number. A relation
+one. A money column shows a price only in a known currency: a price with no `currency` draws euros.
+Leave its `display` out when the price the Builder proposes carries a `currency`. When it
+carries none, or the Builder left the column plain, send
+`{ "kind": "price", "currency": "<code>" }` with a code the schema or the integrator names;
+with none, send `"display": null`, which leaves it a number. A relation
 column (a `customer_id`, an `order_id`) is titled by its target ("Customer") and shows the
 target's label, never the raw number: map the target relation with a label first, then send
 the relation column as a relation. Raw id columns stay off the list. A `display` you do send, and the relation's `tabs`, go in `builder_map_resources`.
@@ -185,8 +185,9 @@ amount, rows waiting, a share of a status, the last two over a native enum label
 (a reference table, tags, settings) gets none.
 
 Set displays, views and footer per resource as `tableOptions` in `builder_map_resources`, or on
-an existing page with `builder_configure_table_view`. A refused choice comes back as
-`invalid_config` with the setting it names: fix that one and send again.
+an existing page with `builder_configure_table_view`. Through `builder_configure_table_view`
+a refused choice comes back as `invalid_config` with the setting it names: fix that one and
+send again. Through `builder_map_resources` it comes back as a `page_not_written` warning.
 
 ## Build a page in one call, and check it first
 
