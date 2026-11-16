@@ -29,7 +29,7 @@ Map every spec page and node, and present the plan before you write:
 - **Live route:** on a converted page, a `fixture:<key>` whose key is in the page's `liveRoutes` reads that route: the block's fetch option (such as `fetchUrl`) takes it in place of the fixture's `static*` option, and a live `TableView` or `ResourceForm` keeps its `controller`; a block the spec adds follows the _Fixture_ rules. This comes before the _Fixture_, `TableView` and `ResourceForm` rules.
 - **Fixture**, or a `static*` option → the real data it stands for, by the first that holds:
   1. an existing resource or route serves it (`builder_list_resources`, the project's controllers): bind to it;
-  2. rows of one entity: a new resource (`builder_create_resource`), its fields and types read from the fixture's rows, seeded with those rows only when the user wants sample data;
+  2. rows of one entity (a `$generate` fixture is one: its `fields` are the entity's fields): a new resource (`builder_create_resource`), its fields and types read from the fixture's rows or its `fields`, seeded with those rows only when the user wants sample data;
   3. a figure, a series or a ranking: a query on that resource (`builder_add_query`) whose `response` matches the block, as **dms-builder-mcp** _Data resources and queries_ says.
      A fixture none of these can serve goes in the plan as a question.
 - **`TableView` over a fixture** → a `TableView` bound to the resource (`controller` = its ref), its columns from the spec's `columns`.

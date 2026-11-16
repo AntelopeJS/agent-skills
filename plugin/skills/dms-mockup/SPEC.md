@@ -4,7 +4,9 @@ The formats of `mockups/<name>/spec.json` and `mockups/<name>/annotations.json`,
 
 ## Schema
 
-`@antelopejs/dms` ships the JSON Schema of the spec at `node_modules/@antelopejs/dms/data/mockup-spec.schema.json`, and a running DMS serves the same schema, built from the blocks of the installed modules, at `GET /api/mockup/schema`. Point the spec's `$schema` at the file, so an editor checks it as the user types. When the schema and this page disagree, the schema wins. `node_modules/@antelopejs/dms/data/mockup-example/spec.json` is a two-page spec that compiles with no issue: model a new spec on it.
+A running DMS serves the JSON Schema of the spec, built from the blocks of the installed modules, at `GET /api/mockup/schema`, and a two-page example spec that compiles with no issue at `GET /api/mockup/example`: model the pages on it. When the schema and this page disagree, the schema wins.
+
+Fallback with no running DMS: `@antelopejs/dms` ships the same files at `node_modules/@antelopejs/dms/data/mockup-spec.schema.json` and `node_modules/@antelopejs/dms/data/mockup-example/spec.json`, but a project that installs its modules under `.antelope/cache` has no `node_modules/@antelopejs/dms`. When the schema file exists, point the spec's `$schema` at it, so an editor checks the spec as the user types; otherwise leave `$schema` out.
 
 ## spec.json
 
@@ -89,8 +91,8 @@ The formats of `mockups/<name>/spec.json` and `mockups/<name>/annotations.json`,
 }
 ```
 
-- `pages`: 1 to 50 pages. `options` is optional: `theme` (`light` or `dark`), `locale`, `padding` (default `true`).
-- `fixtures`: a key (`^[A-Za-z0-9_-]{1,64}$`) to any JSON value, the data the page's blocks read.
+- `pages`: 0 to 50 pages. An empty `pages` is valid: it is how a mockup starts. `options` is optional: `theme` (`light` or `dark`), `locale`, `padding` (default `true`).
+- `fixtures`: a key (`^[A-Za-z0-9_-]{1,64}$`) to any JSON value, the data the page's blocks read, or to a `$generate` object that the server turns into rows ([Generated fixtures](#generated-fixtures)).
 - `tree`: the page's blocks, top to bottom, in the `DmsBlockPreview` tree format below.
 - `livePage` and `liveRoutes` (optional, per page): set by "Edit as mockup" on a page converted from a live page, `livePage: { ref, version }` and `liveRoutes` a fixture key to the live route it stands for. **dms-mockup-build** reads them.
 - `source` (optional): what created the spec: `claude-code` or `codex` for the harness, or `chat` for the host's chat. The host can override the value the harness sets.
@@ -108,9 +110,46 @@ A node is `{ type, options?, children? }`; a child also takes `id`, `slot` (a `T
 Name every child with an `id`: the builder and the roles editor key blocks by name. A block that only shows a figure can take its `static*` options (`staticValue`, `staticDelta`) in place of a fixture.
 
 - **Fixture reference.** Any string option of the form `fixture:<key>`, at any depth, reads that key of the page's `fixtures`. Use it for every `fetchUrl`, so the block draws data with no route.
-- **`TableView`** takes the options of `TableView.fromSource`: `fetchUrl: "fixture:<key>"` naming an array of rows, and `columns` keyed by row field, each with its `name` and its `type`, a data type id (`string`, `number`, `date`, `boolean`, `select`, …). Paging, search and sort work over the fixture; filters (tabs, quick filters, `queryParamFilters`) draw but do not narrow the rows, and a column takes no `display`.
+- **`TableView`** takes the options of `TableView.fromSource`: `fetchUrl: "fixture:<key>"` naming an array of rows, and `columns` keyed by row field, each with its `name` and its `type`, a data type id (`string`, `number`, `date`, `boolean`, `select`, …). Paging, search, sort, tabs and quick filters work over the fixture, and a column takes no `display`. A table with tabs, `quickFilters` or `queryParamFilters` needs `capabilities.filter` when you write `capabilities` explicitly (the rule of `assertSourceFilters`, interface-dms `base/table-view/source.ts`); without `capabilities` the mockup compiler sets `filter: true` and validation passes.
 - **`ResourceForm`** takes its `fields` and `fetchUrl: "fixture:<key>"` naming the record object, with no `submitUrl`.
 - **Sketch.** `{ "type": "sketch", "options": { "html", "css"?, "height"?, "caption"? } }`, with no children: the static HTML and CSS of one custom part, drawn hatched, outlined and labelled _Custom_. `height` is 80 to 1200 px (default 320); `caption` (up to 200 characters) says what the part does. It runs in a sandbox with no script: the spec refuses `<script>`, embedding elements, `on*` handlers, `<meta http-equiv>`, `@import`, `javascript:` and `vbscript:` URLs, and any `url()`, `src` or `href` that is not a `data:` URL or an `#anchor`. Keep it to the element alone; the blocks around it stay blocks.
+
+## Generated fixtures
+
+A fixture value `{ "$generate": { "rows"?: number, "fields": { "<key>": <Kind> } } }` makes the server fill the rows, so you type the field list and not the data. `rows` is 1 to 200, default 8. The rows are the same on every read for one mockup, page and key.
+
+`Kind` is one of:
+
+- `"id"`, `"name"`, `"email"`, `"company"`, `"city"`, `"text"`, `"date"`, `"boolean"`;
+- `{ "number": [min, max] }` or `{ "money": [min, max] }`;
+- a non-empty array of strings: one value per row (use it for statuses and categories).
+
+```json
+"fixtures": {
+  "orders": {
+    "$generate": {
+      "fields": {
+        "_id": "id",
+        "customer": "company",
+        "total": { "money": [40, 900] },
+        "status": ["paid", "pending", "refunded"]
+      }
+    }
+  }
+}
+```
+
+`fixture:orders` then reads 8 rows. A value that must read true (a KPI headline, a total another page repeats) is a plain JSON fixture or a `static*` option.
+
+## Writing in steps
+
+A mockup is written live, in saves small enough to show a change each. A save redraws the preview in under a second.
+
+1. Create the mockup empty: `mockup_write_spec` with `{ "mockup": "<name>", "spec": { "version": 1, "title": "Order desk", "source": "claude-code", "pages": [] } }`.
+2. Add a page as a skeleton, its blocks titled and its data generated: `mockup_patch_spec` with `{ "mockup": "<name>", "patch": [{ "op": "add", "path": "/pages/-", "value": { "id": "orders", "title": "Orders", "fixtures": { "orders": { "$generate": { "fields": { "customer": "company", "total": { "money": [40, 900] } } } } }, "tree": [{ "id": "orders-table", "type": "TableView", "options": { "fetchUrl": "fixture:orders", "columns": { "customer": { "name": "Customer", "type": "string" }, "total": { "name": "Total", "type": "number" } } } }] } }] }`.
+3. Fill a section: one patch of 2 or 3 operations on the blocks that belong together, `replace` on a node's `options` or `add` at `/pages/<i>/tree/-`, `<i>` the page's index.
+
+A patch applies whole or not at all: a failed one leaves the spec as it was, so fix it and send it again. After an `add` or `remove` that shifts a node, re-read the pointers you still use.
 
 ## Validation
 

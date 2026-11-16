@@ -14,7 +14,7 @@ The mockup is done when the user approves it. Building the real pages from it is
 - **The block catalog.** With the builder MCP (`builder_catalog` among your tools, see **dms-builder-mcp**), `builder_catalog`. Without it, the catalog of the running DMS (`GET /api/block-preview/types`, or the spec schema at `GET /api/mockup/schema`), else the schema file `@antelopejs/dms` ships ([SPEC.md](SPEC.md) _Schema_). The running DMS lists the blocks of the installed modules too; the file lists the core blocks only.
 - **The preview.** `/mockup?name=<name>` answers while `ajs project dev` runs. When it does not, write and validate the spec all the same, show the user each page as a text outline (one line per block, sketches marked _Custom_), and tell them `ajs project dev` turns it into a live preview.
 - **Annotations.** When `mockup_annotations` is among your tools, it lists them and `mockup_resolve_annotation` resolves one. Without them, use the HTTP API of the running DMS, else edit `mockups/<name>/annotations.json` directly ([SPEC.md](SPEC.md) _annotations.json_).
-- **Writing the spec.** When `mockup_write_spec` and `mockup_patch_spec` are among your tools, every write of the spec goes through them: `mockup_write_spec` for a first draft or a rewrite, `mockup_patch_spec` (RFC 6902 operations) for a targeted change. Both validate and write `spec.json` only, and Safe mode allows them, as it allows `mockup_resolve_annotation`. Without them, write the file directly.
+- **Writing the spec.** When `mockup_write_spec` and `mockup_patch_spec` are among your tools, every write of the spec goes through them: `mockup_write_spec` creates the mockup (and rewrites it only when the user asks to start over), `mockup_patch_spec` (RFC 6902 operations) makes every other change. Both validate and write `spec.json` only, and Safe mode allows them, as it allows `mockup_resolve_annotation`. Without them, write the file directly.
 - **The asking tool**: `ask_user` in the dms-assistant chat, your harness's question tool elsewhere (`AskUserQuestion` in Claude Code), else one closed question in chat. Batch questions: up to 4 per call.
 
 ## 1. Interview
@@ -40,17 +40,20 @@ For each wish, find the closest DMS block or composition in the catalog, with th
 
 This step is done when every wish maps to a block, a composition, or a sketch the user chose.
 
-## 3. Write the spec
+## 3. Write the spec live
 
-Write `mockups/<name>/spec.json` with `mockup_write_spec` or as a file (`<name>` in kebab case, from the app or the area: `crm`, `stock-dashboard`), following [SPEC.md](SPEC.md):
+The user watches the mockup fill in `/mockup?name=<name>`, so write it in small saves, never as one big spec: each save redraws the viewer in under a second, while one call that types the whole spec shows nothing until it ends and, when it fails validation, loses all of it. Follow [SPEC.md](SPEC.md) _Writing in steps_:
 
-- one entry per page, its tree in the order the page reads, every block with a name;
-- **fixtures** for every block that reads data, invented and never copied from a database: realistic and coherent across pages (the order total on the list matches the KPI), with a dozen rows, not two, and over existing resources the columns and types they declare;
-- a **sketch** for each custom part the user chose, kept to that element;
-- `source`, on a new spec only: `claude-code` in Claude Code, `codex` in Codex, left out when you cannot tell which harness runs you;
-- texts in the user's language.
+1. **Create it empty.** `mockup_write_spec` with `pages: []`, the `title` and the `source` (`claude-code` in Claude Code, `codex` in Codex, left out when you cannot tell which harness runs you). `<name>` is kebab case, from the app or the area: `crm`, `stock-dashboard`. Give the user the link `/mockup?name=<name>` now, before any page exists.
+2. **Add the pages one at a time**, each as a skeleton: one `mockup_patch_spec` with `add` at `/pages/-`, the page with all its blocks in reading order, each with an `id` and a title, and its data as `$generate` fixtures.
+3. **Fill each page section by section**: 2 or 3 related blocks per patch (the KPI row, then the table, then the form). Never one call per block, never the whole spec in one call.
+4. **Data.** Use `$generate` with the default 8 rows. Write hand values only where a figure must read true: a KPI headline, a total repeated on another page. Keep entities, names and figures coherent across pages, and over existing resources use the columns and types they declare.
+5. **Sketches.** One per custom part the user chose, kept to that element.
+6. **A failed patch** costs only that patch: its `errors` name the nodes. Fix it and send it again, never rewrite the spec.
 
-Validate it: `mockup_write_spec` answers its `errors`; otherwise `GET /api/mockup/<name>` answers every issue with the JSON pointer of its node ([SPEC.md](SPEC.md) _Validation_); without a running DMS, check the file against the schema. The step is done when the spec has no issue. Then give the user the link: `/mockup?name=<name>` on the running DMS.
+Texts are in the user's language. Without `mockup_write_spec` and `mockup_patch_spec`, edit `spec.json` in the same order, one save per step: the file empty first, then each page, then each section.
+
+Validate every save: `mockup_write_spec` and `mockup_patch_spec` answer their `errors`; otherwise `GET /api/mockup/<name>` answers every issue with the JSON pointer of its node ([SPEC.md](SPEC.md) _Validation_); without a running DMS, check the file against the schema. The step is done when the last save has no issue and every page of the interview exists.
 
 ## 4. Iterate on annotations
 
