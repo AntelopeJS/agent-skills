@@ -92,9 +92,10 @@ Fallback with no running DMS: `@antelopejs/dms` ships the same files at `node_mo
 ```
 
 - `pages`: 0 to 50 pages. An empty `pages` is valid: it is how a mockup starts. `options` is optional: `theme` (`light` or `dark`), `locale`, `padding` (default `true`).
+- `icon`, `description` and `headerActions` (optional, per page): the page header the DMS draws above the blocks, with `title`. `icon` is an icon name (`i-ph-receipt`), `description` one line under the title, `headerActions` the header's buttons, each `{ label, icon?, color?, variant? }`. A button holds no target: what it does is decided at build. Give every page an icon and a description, as **dms-page-design** _Name every page_ says.
 - `fixtures`: a key (`^[A-Za-z0-9_-]{1,64}$`) to any JSON value, the data the page's blocks read, or to a `$generate` object that the server turns into rows ([Generated fixtures](#generated-fixtures)).
 - `tree`: the page's blocks, top to bottom, in the `DmsBlockPreview` tree format below.
-- `livePage` and `liveRoutes` (optional, per page): set by "Edit as mockup" on a page converted from a live page, `livePage: { ref, version }` and `liveRoutes` a fixture key to the live route it stands for. **dms-mockup-build** reads them.
+- `livePage` and `liveRoutes` (optional, per page): set when the AI converts a live page into a mockup (`mockup_from_page`), which also fills `icon` and `description` from it, `livePage: { ref, version }` and `liveRoutes` a fixture key to the live route it stands for. **dms-mockup-build** reads them.
 - `source` (optional): what created the spec: `claude-code` or `codex` for the harness, or `chat` for the host's chat. The host can override the value the harness sets.
 - `built` (optional): written by **dms-mockup-build** after a build, `{ at, pages }`: `at` an ISO date, `pages` one `{ path, title? }` per page built, `path` its dashboard path.
 
