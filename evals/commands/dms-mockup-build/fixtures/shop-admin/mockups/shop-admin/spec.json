@@ -26,6 +26,23 @@
       "title": "Overview",
       "icon": "i-ph-chart-line-up",
       "description": "Revenue and orders of the shop",
+      "fixtures": {
+        "revenue-weekly": {
+          "value": 48210,
+          "delta": 12.4,
+          "series": [
+            {
+              "name": "Revenue",
+              "data": [
+                { "x": "Week 41", "y": 9800 },
+                { "x": "Week 42", "y": 11200 },
+                { "x": "Week 43", "y": 12750 },
+                { "x": "Week 44", "y": 14460 }
+              ]
+            }
+          ]
+        }
+      },
       "tree": [
         {
           "id": "revenue",
@@ -58,6 +75,22 @@
               }
             ]
           }
+        },
+        {
+          "id": "revenue-per-week",
+          "type": "ChartCard",
+          "options": {
+            "title": "Revenue per week",
+            "fetchUrl": "fixture:revenue-weekly",
+            "valueFormat": "number"
+          },
+          "children": [
+            {
+              "id": "chart",
+              "type": "ChartArea",
+              "options": { "xaxisType": "category" }
+            }
+          ]
         }
       ]
     },

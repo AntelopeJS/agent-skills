@@ -251,7 +251,7 @@ erp · postgresql 17.5 · role erp_reader (read only) · 42 relations: 9 TableVi
 
 ## Analytics pages
 
-### Sales (sales.orders)
+### Sales (sales.orders): the dashboard, first in the menu, outside the sections
 
 - Period: by ordered_at, default last-90-days vs previous-period; presets last-30-days, last-90-days, ytd, last-year, custom
 - Toolbar: PageToolbar › PeriodSelector

@@ -27,9 +27,9 @@ Collect the user's **wishes**: each thing a screen must show or let someone do. 
 - the actions: create, edit, approve, export, …;
 - a reference: a screenshot, a Figma frame, another product. When there is one, frame it once as **dms-best-practices** _Design-fidelity protocol_ step 1 says.
 
-When the project already has a database or resources (`builder_list_resources`, `database_connections`), read their names and fields first, never their rows, and ask only what they do not answer. Over a database, read the Builder's **proposal** too: `builder_mapping` for the relations a module maps, else `builder_analyse_database` (`detail` naming the relations you mock up). Data pages follow **dms-page-design**: its shapes, layout, naming and _Tables_ rules decide the blocks of an analytics or table page, and _Group pages into sections_ the menu.
+When the project already has a database or resources (`builder_list_resources`, `database_connections`), read their names and fields first, never their rows, and ask only what they do not answer. Over a database, read the Builder's **proposal** too: `builder_mapping` for the relations a module maps, else `builder_analyse_database` (`detail` naming the relations you mock up). Data pages follow **dms-page-design**: its shapes, layout, naming and _Tables_ rules decide the blocks of an analytics or table page, and _Group pages into sections_ the menu. A mockup over a database always has the dashboard of **dms-page-design** _The analytics dashboard_, asked for or not: its KPI cards and charts read fixtures that stand for aggregates of the relations' measures, time axes and category columns.
 
-The interview is done when every page has a purpose, its data and its actions, and every wish names the page it lives on.
+The interview is done when every page has a purpose, its data and its actions, every wish names the page it lives on, and a mockup over a database lists its dashboard first.
 
 ## 2. Check every wish against the catalog
 
@@ -55,7 +55,7 @@ The user watches the mockup fill in `/mockup?name=<name>`, so write it in small 
 
 Texts are in the user's language. Without `mockup_write_spec` and `mockup_patch_spec`, edit `spec.json` in the same order, one save per step: the file empty first, then each page, then each section.
 
-Validate every save: `mockup_write_spec` and `mockup_patch_spec` answer their `errors`; otherwise `GET /api/mockup/<name>` answers every issue with the JSON pointer of its node ([SPEC.md](SPEC.md) _Validation_); without a running DMS, check the file against the schema. The step is done when the last save has no issue and every page of the interview exists, with its sub-pages.
+Validate every save: `mockup_write_spec` and `mockup_patch_spec` answer their `errors`; otherwise `GET /api/mockup/<name>` answers every issue with the JSON pointer of its node ([SPEC.md](SPEC.md) _Validation_); without a running DMS, check the file against the schema. The step is done when the last save has no issue and every page of the interview exists, with its sub-pages and, over a database, the dashboard first with no `category`.
 
 ## 4. Iterate on annotations
 

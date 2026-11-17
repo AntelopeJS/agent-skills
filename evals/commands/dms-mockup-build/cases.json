@@ -215,6 +215,30 @@
           "text": "The Overview StatGroup cells and every backTo or redirectOnSuccess point at the real routes of the orders, support tickets and products pages; no page: or fixture: string is left in any page class, and every TableView keeps its caption."
         }
       ]
+    },
+    {
+      "id": "builds-dashboard-over-database",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/shop-admin" },
+      "prompt": "Build the approved shop-admin mockup (plan approved in advance). Its tables stand for the client's Postgres relations, connection erp, generated module erp-tables, none mapped yet: sales.orders (total, status, ordered_at), sales.payments, catalog.products, catalog.categories, crm.customers and support.tickets (status, opened_at). The integrator says the shop sells in EUR. The builder MCP and the dms MCP with page_verify are running.",
+      "rubric": [
+        {
+          "id": "dashboard-built",
+          "text": "The Overview is built with builder_compose_page (previewed first, then written), with order 0 and no section category: it sits outside Sales, Catalog and Customers."
+        },
+        {
+          "id": "real-aggregates",
+          "text": "The Overview's revenue KpiCard and its revenue chart each read a query over the mapped sales.orders resource (a sum of total by ordered_at), and neither keeps a staticValue, a staticDelta or a fixture: URL."
+        },
+        {
+          "id": "mapped-before-dashboard",
+          "text": "The agent maps the tables with builder_map_resources before it composes the Overview, and the Overview's queries name the ref that call answered for sales.orders."
+        },
+        {
+          "id": "dashboard-verified",
+          "text": "The agent verifies the Overview with page_verify like the other pages, and treats a KPI card or chart on it that shows no data or a static figure as a failure to fix, not as a pass."
+        }
+      ]
     }
   ]
 }

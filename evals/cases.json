@@ -465,6 +465,17 @@
       }
     },
     {
+      "id": "plugin-dms-external-database-tables-only-dashboard",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "The Builder already analysed our client's Postgres database. Map its orders, customers and products relations into table pages; tables are all I asked for. What will you build?",
+      "expect": {
+        "skills": ["dms-external-database"],
+        "acceptable": ["dms-page-design", "dms-builder-mcp", "dms"],
+        "mustMention": ["ChartCard", "KpiCard", "builder_compose_page"]
+      }
+    },
+    {
       "id": "plugin-dms-mockup-crm",
       "area": "dms",
       "style": "clean",

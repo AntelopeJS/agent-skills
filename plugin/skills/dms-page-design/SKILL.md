@@ -53,6 +53,23 @@ arguments are in `dms-builder-mcp`, the code in `dms-pages`.
 - Grouping by a foreign key shows ids. Group by the relation's own columns only; a breakdown by
   a related entity's name goes under _Not possible yet_ in your report.
 
+## The analytics dashboard
+
+An app over an external database always has an analytics dashboard, asked for or not: every
+plan, mockup and build over that data proposes and builds it.
+
+- It holds `KpiCard`s and charts over real aggregates of the relations: sums of their measures
+  and row counts, over their time axis and their category columns. A build reads each one
+  through a query on a mapped relation, never a `static*` value; a mockup's fixtures stand for
+  those queries.
+- It is laid out as _Lay out an analytics page_ says and sits first in the menu (`order: 0`),
+  outside every section.
+- An app of 3 or more sections may also give each section a dashboard of its own, first in
+  that section.
+
+An app over a database is not done without that dashboard, or with one whose figures are not
+aggregates of the data.
+
 ## Lay out an analytics page
 
 Add the blocks in this order. Every analytics page has items 1 to 4.
@@ -120,9 +137,9 @@ Set them with `builder_create_page` on new pages, per resource in `builder_map_r
 An app of 6 or more pages is grouped into 2 to 5 **sections** by job, each titled in the
 owner's words with an icon of its own: Sales (Orders, Payments, Coupons), Catalog (Products,
 Categories), Customers (Customers, Reviews, Support tickets). Each section holds 2 to 6 pages;
-a page with no partner joins the nearest section. The dashboards sit on top, outside every
-section: they stay in the category they are created in. An app of fewer pages has no
-sections. You decide the sections; the user edits them.
+a page with no partner joins the nearest section. The main dashboard sits on top, outside every
+section: it stays in the category it is created in. A section's own dashboard (_The analytics
+dashboard_) sits first in its section. An app of fewer pages has no sections. You decide the sections; the user edits them.
 
 A section is a menu category: `builder_create_category` (`name`, `displayName`, `icon`,
 `order`, `module`) answers its `ref`, which `builder_create_page` takes as `category`,

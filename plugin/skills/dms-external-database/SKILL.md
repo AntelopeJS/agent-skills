@@ -117,8 +117,9 @@ profile of the whole database again: the Builder did it.
   and _Tables_ there say: a title, an icon and a description; the tabs, saved views, display
   modes, footer totals and KPI cards its shape supports. Decide each from that shape, and
   leave out what it does not support. You never read a row's values.
-- **The analytics dashboard,** which the analysis does not make. Every run ends with one,
-  first in the menu, even when the integrator only asked for the tables. Plan it from the data:
+- **The analytics dashboard,** which the analysis does not make. Every run plans and builds
+  one, even when the integrator only asked for the tables, as `dms-page-design` _The analytics
+  dashboard_ says. Plan it from the data:
   1. **Inspect.** For each relation, read from the proposal its row count, its `time-axis`
      columns, its `measure` columns, and its `enum-like` columns with their distinct counts
      and, for a native enum, the labels its schema declares (`database_describe`). That shape
@@ -137,7 +138,8 @@ profile of the whole database again: the Builder did it.
      _Period_ there sets it.
 - **The minimum.** Your plan, and the pages you write, meet all of these:
   - one analytics dashboard, first in the connection's menu (`order: 0`), opened by a toolbar
-    with a period selector when the data has dates;
+    with a period selector when the data has dates, its KPI cards and charts each reading a
+    query over a mapped relation;
   - every page with a title in the owner's words, an icon and a description, never the raw
     relation name;
   - every table given the tabs, views, display modes, footer totals and KPI cards its data
@@ -183,7 +185,7 @@ second analytics page.
      option) and say so in your report, rather than trying more variants.
    - It answers each relation's `ref`, which queries name it by, `category`, the connection's
      category ref (`pages.<connection>`), and `leftOut`: carry those into your report.
-3. Per analytics page, one `builder_compose_page` call with `create` (`name`, `displayName`,
+3. Per analytics page, the dashboard first and never skipped, one `builder_compose_page` call with `create` (`name`, `displayName`,
    `module` set to the generated module, `category` set to the `category` MapResources
    answered, an icon, a description, and `order: 0` for the dashboard, 1, 2… for the next
    ones) and every block in the order `dms-page-design` lays out, each data block with its
@@ -196,7 +198,8 @@ second analytics page.
    `builder_configure_table_view`, the refused one fixed or left out. Tabs it dropped stay off:
    say so in your report.
 
-The dashboards stay in the connection's category, outside every section.
+The main dashboard stays in the connection's category, outside every section; a section's own
+dashboard takes that section's ref as `category`.
 
 To change a relation later, read its current choices with `builder_mapping`, then call
 `builder_map_resources` with that relation alone, its included columns as they are and only your
@@ -221,6 +224,7 @@ its route changes (a `route_changed` warning), and nothing redirects the old one
 Then report:
 
 - what the builder mapped by its rules, and what you changed;
+- the dashboard: its route, and each KPI card and chart with the aggregate it reads;
 - the pages made, with each analytics page's default period, the section each table page
   sits in, and per table the features you gave it and why;
 - every block that still shows no data, and why;
