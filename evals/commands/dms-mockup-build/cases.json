@@ -196,7 +196,7 @@
       "rubric": [
         {
           "id": "detail-sub-page",
-          "text": "The order detail page is a page class registered under the orders page's route with a parameter (urlSlug ending in orders/:id), hidden: true so the menu leaves it out, and parent naming the orders page class; the product, product-edit and product-new pages are registered the same way under the products page (products/:id, products/:id/edit, products/new)."
+          "text": "The order detail page is a page class registered under the orders page's route with a parameter (urlSlug ending in orders/:id), hidden: true so the menu leaves it out, and parent naming the orders page class; the product, product-edit and product-new pages are registered the same way under the products page (products/:id, products/:id/edit, products/new). The order and product detail pages show the record with a ResourceForm in mode \"view\", the product-edit page in mode \"edit\"."
         },
         {
           "id": "row-link",

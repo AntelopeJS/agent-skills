@@ -120,7 +120,7 @@ Name every child with an `id`: the builder and the roles editor key blocks by na
 - **Fixture reference.** Any string option of the form `fixture:<key>`, at any depth, reads that key of the page's `fixtures`. Use it for every `fetchUrl`, so the block draws data with no route.
 - **Page link.** Any string option of the form `page:<id>`, at any depth, links to that spec page, as _Links and sub-pages_ says.
 - **`TableView`** takes the options of `TableView.fromSource`: `fetchUrl: "fixture:<key>"` naming an array of rows, a `caption`, and `columns` keyed by row field, each with its `name` and its `type`, a data type id (`string`, `number`, `date`, `boolean`, `select`, …). Paging, search, sort, tabs, quick filters, views and the board work over the fixture. A table with no `caption`, or a blank one, is an issue and its write is refused, except on a page with `livePage`. A column takes a `display`, and the table its board, tabs and views, as _Tables_ says. A table with tabs, `quickFilters` or `queryParamFilters` needs `capabilities.filter` when you write `capabilities` explicitly (the rule of `assertSourceFilters`, interface-dms `base/table-view/source.ts`); without `capabilities` the mockup compiler sets `filter: true` and validation passes.
-- **`ResourceForm`** takes its `fields` and `fetchUrl: "fixture:<key>"` naming the record object, with no `submitUrl`.
+- **`ResourceForm`** takes its `mode`, its `fields` and `fetchUrl: "fixture:<key>"` naming the record object, with no `submitUrl`. `mode` is `view` on a detail page, which shows the record read-only, `edit` on an edit page and `new` on a new page. A table's details page (`formContainer.pages.details`) whose form is not in `mode: "view"` is an issue.
 - **Sketch.** `{ "type": "sketch", "options": { "html", "css"?, "height"?, "caption"? } }`, with no children: the static HTML and CSS of one custom part, drawn hatched, outlined and labelled _Custom_. `height` is 80 to 1200 px (default 320); `caption` (up to 200 characters) says what the part does. It runs in a sandbox with no script: the spec refuses `<script>`, embedding elements, `on*` handlers, `<meta http-equiv>`, `@import`, `javascript:` and `vbscript:` URLs, and any `url()`, `src` or `href` that is not a `data:` URL or an `#anchor`. Keep it to the element alone; the blocks around it stay blocks.
 
 ## Tables
@@ -275,6 +275,7 @@ A sub-page is a page with a `parent`, the `id` of another page (no loop): a list
           "id": "order-form",
           "type": "ResourceForm",
           "options": {
+            "mode": "view",
             "fetchUrl": "fixture:orders",
             "backTo": "page:orders",
             "fields": [
@@ -303,7 +304,7 @@ A row action's link passes the row's id, read at the table's `rowIdKey` (`_id` b
 A mockup table is read-only: an action is on only when `rowActions` writes it, `add`, `edit` or `details`, each `true` or a row action config such as `{ "rule": { "field": "status", "equals": "draft" } }`. `formContainer` says where the forms open, as in the real `TableView`:
 
 - `{ "type": "modal" }`, the default when `formContainer` is left out, or `{ "type": "drawer" }`: the add and edit forms are generated from the table's columns, and saving keeps nothing. `pages.new` and `pages.edit` take their `displayName` and `description` only. `details` needs the `page` type.
-- `{ "type": "page", "pages": { ... } }`: each action on opens a spec page, `{ "urlSlug": "page:<id>", "customPage": true }`, which holds the custom form or the detail view. The edit and details pages need a `route`.
+- `{ "type": "page", "pages": { ... } }`: each action on opens a spec page, `{ "urlSlug": "page:<id>", "customPage": true }`, which holds the custom form or the detail view, a `ResourceForm` in the page's `mode`. The edit and details pages need a `route`.
 
 ```json
 {
@@ -360,7 +361,20 @@ A mockup table is read-only: an action is on only when `rowActions` writes it, `
       "menu": false,
       "parent": "orders",
       "route": ":id",
-      "tree": []
+      "tree": [
+        {
+          "id": "order-details",
+          "type": "ResourceForm",
+          "options": {
+            "mode": "view",
+            "fetchUrl": "fixture:orders",
+            "fields": [
+              { "id": "customer", "label": "Customer", "type": "string" },
+              { "id": "total", "label": "Total", "type": "number" }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

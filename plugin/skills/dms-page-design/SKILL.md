@@ -228,13 +228,16 @@ send again. Through `builder_map_resources` it comes back as a `page_not_written
 
 An app clicks through: from a figure to its rows, from a row to its record, and back.
 
-- **A record needs a detail page.** A list whose records the reader acts on (opens, edits,
-  approves, follows up) gets a detail page: a sub-page of the list, left out of the menu, that
-  shows one record and opens on a click on its row. A lookup list (tags, settings, reference
-  data) gets none.
+- **A record needs a details view.** A list whose records the reader acts on (opens, edits,
+  approves, follows up) gets one; a lookup list (tags, settings, reference data) gets none.
+  Prefer the table's own, `rowActions.details` in its modal or drawer. Give it a custom
+  details page only when the page adds something on top of the record, such as KPI cards or
+  related lists: a sub-page of the list, left out of the menu, that opens on a click on its
+  row and shows the record read-only, a `ResourceForm` with `mode: "view"`.
 - **Choosing a form.** A plain create or edit form is the table's own: a modal for up to about 6
   fields, a drawer beyond. A form with a layout, sections or steps is a custom form page, a
-  sub-page of the list left out of the menu. Turn on only the actions the reader takes.
+  sub-page of the list left out of the menu, its `ResourceForm` in `mode: "edit"` on an edit
+  page and `mode: "new"` on a new page. Turn on only the actions the reader takes.
 - **Link pages together.** Every summary links to what it summarises: a KPI or a card to the
   table it counts, a dashboard tile to its page, a detail page back to its list, a toolbar
   button to the page it opens. `KpiCard` takes no link: a figure that links is a `StatGroup`

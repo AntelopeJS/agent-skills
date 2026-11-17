@@ -146,7 +146,7 @@
       "rubric": [
         {
           "id": "detail-sub-pages",
-          "text": "The companies and deals lists each get a detail page written as a sub-page: menu false, parent naming the list page, route \":id\", reading the list's fixture."
+          "text": "The companies and deals lists each get a detail page written as a sub-page: menu false, parent naming the list page, route \":id\", reading the list's fixture, the record shown by a ResourceForm with mode \"view\"."
         },
         {
           "id": "row-click-opens",
