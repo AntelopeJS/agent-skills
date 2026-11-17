@@ -289,6 +289,7 @@ The proposal's values, without their rules, plus what you changed:
       "relation": "sales.customers",
       "label": "name",
       "title": "Customers",
+      "category": "pages.customers",
       "tableView": true,
       "writable": true,
       "fields": [
@@ -300,6 +301,8 @@ The proposal's values, without their rules, plus what you changed:
     },
     {
       "relation": "sales.orders",
+      "title": "Orders",
+      "category": "pages.sales",
       "tableView": true,
       "writable": false,
       "tabs": { "column": "status" },
@@ -338,6 +341,8 @@ The proposal's values, without their rules, plus what you changed:
   change it: a price with a `currency` the schema or the integrator names, a badge only over a
   native enum's labels. A proposed price with no `currency` draws euros: send it a `currency`,
   or `null`. Send `tabs` as a column name (`{ "column": "status" }`). `null` turns either off.
+- `category` is the ref `builder_create_category` answered for the page's section, made with
+  this call's `module`. Left out, a new page goes in the connection's category.
 - Key columns are added for you.
 - A relation column's target must be in the same call, with a `label`, or mapped in the module
   before.
