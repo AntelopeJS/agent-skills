@@ -590,6 +590,17 @@
         "avoid": ["dms-page-design"],
         "mustMention": ["builder_set_theme"]
       }
+    },
+    {
+      "id": "plugin-dms-page-design-sections-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "the dms menu has 9 pages in one flat list now, how should i group them",
+      "expect": {
+        "skills": ["dms-page-design"],
+        "acceptable": ["dms-builder-mcp", "dms-pages", "dms-external-database"],
+        "mustMention": ["builder_create_category"]
+      }
     }
   ]
 }
