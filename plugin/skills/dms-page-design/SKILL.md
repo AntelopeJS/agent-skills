@@ -1,6 +1,6 @@
 ---
 name: dms-page-design
-description: Designs AntelopeJS DMS pages that show data. Use when building or changing an analytics, stats or dashboard page or a table page, choosing a chart or a KPI for some data, picking a page's period, naming a page and its icon, grouping an app's pages into menu sections, or deciding how a table displays (badges, prices, relation labels, status tabs, saved views, kanban, cards, footer totals, KPI cards above the table).
+description: Designs AntelopeJS DMS pages that show data. Use when building or changing an analytics, stats or dashboard page or a table page, choosing a chart or a KPI for some data, picking a page's period, naming a page and its icon, grouping an app's pages into menu sections, giving a list a detail page and linking pages together, or deciding how a table displays (badges, prices, relation labels, status tabs, saved views, kanban, cards, footer totals, KPI cards above the table).
 ---
 
 # Designing data pages
@@ -125,8 +125,9 @@ section: they stay in the category they are created in. An app of fewer pages ha
 sections. You decide the sections; the user edits them.
 
 A section is a menu category: `builder_create_category` (`name`, `displayName`, `icon`,
-`order`, `module`) answers its `ref`, which `builder_create_page` takes as `category` and
-`builder_configure_page` takes in `{ "category": "<ref>" }` to move a page there.
+`order`, `module`) answers its `ref`, which `builder_create_page` takes as `category`,
+`builder_map_resources` per resource as `category` (create the section first, in the tables'
+`module`), and `builder_configure_page` in `{ "category": "<ref>" }` to move a page there.
 
 ## Tables
 
@@ -136,6 +137,9 @@ is one), then give the table every feature its data supports, and none it does n
 rule below names the shape that earns the feature; decide from the columns' types, traits and
 distinct counts, never from the relation's name. You never read a row's values: a value you
 name comes from the schema, as a native enum's label.
+
+**Caption.** Every table has a caption, the title above its rows: its page's title for the
+page's main table, the question it answers otherwise ("Orders awaiting shipment").
 
 **Columns.** A primary key gets no display and is never a row's label. A boolean keeps its
 default display (no badge). A column that a view filters on, a tab splits on, or a footer
@@ -202,6 +206,26 @@ Set displays, views and footer per resource as `tableOptions` in `builder_map_re
 an existing page with `builder_configure_table_view`. Through `builder_configure_table_view`
 a refused choice comes back as `invalid_config` with the setting it names: fix that one and
 send again. Through `builder_map_resources` it comes back as a `page_not_written` warning.
+
+## Records, forms and links
+
+An app clicks through: from a figure to its rows, from a row to its record, and back.
+
+- **A record needs a detail page.** A list whose records the reader acts on (opens, edits,
+  approves, follows up) gets a detail page: a sub-page of the list, left out of the menu, that
+  shows one record and opens on a click on its row. A lookup list (tags, settings, reference
+  data) gets none.
+- **Choosing a form.** A plain create or edit form is the table's own: a modal for up to about 6
+  fields, a drawer beyond. A form with a layout, sections or steps is a custom form page, a
+  sub-page of the list left out of the menu. Turn on only the actions the reader takes.
+- **Link pages together.** Every summary links to what it summarises: a KPI or a card to the
+  table it counts, a dashboard tile to its page, a detail page back to its list, a toolbar
+  button to the page it opens. `KpiCard` takes no link: a figure that links is a `StatGroup`
+  cell (`to`), or sits in a `Card` whose head action (`actions: [{ label, to }]`) opens the
+  table.
+
+A mockup writes these as [SPEC.md](../dms-mockup/SPEC.md) _Links and sub-pages_ and _Table
+forms_ say.
 
 ## Build a page in one call, and check it first
 

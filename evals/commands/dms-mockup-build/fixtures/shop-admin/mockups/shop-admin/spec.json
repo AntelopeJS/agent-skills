@@ -36,6 +36,28 @@
             "staticDelta": 12.4,
             "valueFormat": "number"
           }
+        },
+        {
+          "id": "shortcuts",
+          "type": "StatGroup",
+          "options": {
+            "layout": "cards",
+            "items": [
+              {
+                "icon": "i-ph-shopping-cart",
+                "eyebrow": "Orders this week",
+                "value": 64,
+                "to": "page:orders"
+              },
+              {
+                "icon": "i-ph-lifebuoy",
+                "tone": "warning",
+                "eyebrow": "Open tickets",
+                "value": 12,
+                "to": "page:support-tickets"
+              }
+            ]
+          }
         }
       ]
     },
@@ -67,6 +89,7 @@
           "type": "TableView",
           "options": {
             "fetchUrl": "fixture:orders",
+            "caption": "Orders",
             "columns": {
               "number": {
                 "name": "Order",
@@ -158,7 +181,69 @@
                 }
               ],
               "layout": "strip"
+            },
+            "rowClick": "single",
+            "rowActions": {
+              "add": true,
+              "edit": true,
+              "custom": [
+                {
+                  "label": "Open",
+                  "icon": "i-ph-arrow-right",
+                  "isDefault": true,
+                  "target": {
+                    "type": "page",
+                    "url": "page:order"
+                  }
+                }
+              ]
             }
+          }
+        }
+      ]
+    },
+    {
+      "id": "order",
+      "title": "Order",
+      "menu": false,
+      "parent": "orders",
+      "route": ":id",
+      "icon": "i-ph-receipt",
+      "description": "One order with its customer, total and status",
+      "tree": [
+        {
+          "id": "order-details",
+          "type": "ResourceForm",
+          "options": {
+            "fetchUrl": "fixture:orders",
+            "backTo": "page:orders",
+            "fields": [
+              {
+                "id": "number",
+                "label": "Order",
+                "type": "string"
+              },
+              {
+                "id": "customer",
+                "label": "Customer",
+                "type": "string"
+              },
+              {
+                "id": "total",
+                "label": "Total",
+                "type": "number"
+              },
+              {
+                "id": "status",
+                "label": "Status",
+                "type": "string"
+              },
+              {
+                "id": "ordered_at",
+                "label": "Ordered",
+                "type": "date"
+              }
+            ]
           }
         }
       ]
@@ -189,6 +274,7 @@
           "type": "TableView",
           "options": {
             "fetchUrl": "fixture:payments",
+            "caption": "Payments",
             "columns": {
               "reference": {
                 "name": "Reference",
@@ -246,6 +332,7 @@
           "type": "TableView",
           "options": {
             "fetchUrl": "fixture:products",
+            "caption": "Products",
             "columns": {
               "name": {
                 "name": "Product",
@@ -282,7 +369,175 @@
             "card": {
               "fields": ["image", "price", "stock"]
             },
-            "defaultDisplay": "cards"
+            "defaultDisplay": "cards",
+            "rowActions": {
+              "add": true,
+              "edit": true,
+              "details": true
+            },
+            "formContainer": {
+              "type": "page",
+              "pages": {
+                "new": {
+                  "urlSlug": "page:product-new",
+                  "customPage": true
+                },
+                "edit": {
+                  "urlSlug": "page:product-edit",
+                  "customPage": true
+                },
+                "details": {
+                  "urlSlug": "page:product",
+                  "customPage": true
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "product-new",
+      "title": "New product",
+      "menu": false,
+      "parent": "products",
+      "icon": "i-ph-plus-circle",
+      "description": "Add a product to the catalog",
+      "tree": [
+        {
+          "id": "product-form",
+          "type": "Form",
+          "options": {
+            "fields": [
+              {
+                "id": "name",
+                "label": "Product",
+                "type": "string"
+              },
+              {
+                "id": "price",
+                "label": "Price",
+                "type": "number"
+              },
+              {
+                "id": "stock",
+                "label": "Stock",
+                "type": "number"
+              },
+              {
+                "id": "image",
+                "label": "Image",
+                "type": "string"
+              }
+            ],
+            "sections": [
+              {
+                "id": "general",
+                "label": "General",
+                "fieldIds": ["name", "price"]
+              },
+              {
+                "id": "inventory",
+                "label": "Inventory",
+                "fieldIds": ["stock", "image"]
+              }
+            ],
+            "backTo": "page:products",
+            "redirectOnSuccess": "page:products"
+          }
+        }
+      ]
+    },
+    {
+      "id": "product-edit",
+      "title": "Edit product",
+      "menu": false,
+      "parent": "products",
+      "route": ":id",
+      "icon": "i-ph-pencil-simple",
+      "description": "Change a product's price, stock and image",
+      "tree": [
+        {
+          "id": "product-form",
+          "type": "ResourceForm",
+          "options": {
+            "fetchUrl": "fixture:products",
+            "fields": [
+              {
+                "id": "name",
+                "label": "Product",
+                "type": "string"
+              },
+              {
+                "id": "price",
+                "label": "Price",
+                "type": "number"
+              },
+              {
+                "id": "stock",
+                "label": "Stock",
+                "type": "number"
+              },
+              {
+                "id": "image",
+                "label": "Image",
+                "type": "string"
+              }
+            ],
+            "sections": [
+              {
+                "id": "general",
+                "label": "General",
+                "fieldIds": ["name", "price"]
+              },
+              {
+                "id": "inventory",
+                "label": "Inventory",
+                "fieldIds": ["stock", "image"]
+              }
+            ],
+            "backTo": "page:product"
+          }
+        }
+      ]
+    },
+    {
+      "id": "product",
+      "title": "Product",
+      "menu": false,
+      "parent": "products",
+      "route": ":id",
+      "icon": "i-ph-package",
+      "description": "One product with its price and stock",
+      "tree": [
+        {
+          "id": "product-details",
+          "type": "ResourceForm",
+          "options": {
+            "fetchUrl": "fixture:products",
+            "fields": [
+              {
+                "id": "name",
+                "label": "Product",
+                "type": "string"
+              },
+              {
+                "id": "price",
+                "label": "Price",
+                "type": "number"
+              },
+              {
+                "id": "stock",
+                "label": "Stock",
+                "type": "number"
+              },
+              {
+                "id": "image",
+                "label": "Image",
+                "type": "string"
+              }
+            ],
+            "backTo": "page:products"
           }
         }
       ]
@@ -312,6 +567,7 @@
           "type": "TableView",
           "options": {
             "fetchUrl": "fixture:categories",
+            "caption": "Categories",
             "columns": {
               "name": {
                 "name": "Category",
@@ -352,6 +608,7 @@
           "type": "TableView",
           "options": {
             "fetchUrl": "fixture:customers",
+            "caption": "Customers",
             "columns": {
               "name": {
                 "name": "Customer",
@@ -402,6 +659,7 @@
           "type": "TableView",
           "options": {
             "fetchUrl": "fixture:support-tickets",
+            "caption": "Support tickets",
             "columns": {
               "subject": {
                 "name": "Subject",
@@ -449,7 +707,14 @@
             "kanban": {
               "groupByField": "status"
             },
-            "defaultDisplay": "kanban"
+            "defaultDisplay": "kanban",
+            "rowActions": {
+              "add": true,
+              "edit": true
+            },
+            "formContainer": {
+              "type": "drawer"
+            }
           }
         }
       ]

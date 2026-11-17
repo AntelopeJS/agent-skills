@@ -164,45 +164,46 @@ again. Write nothing before they approve it (**Run** in the dms-assistant chat).
 
 ## 5. Apply
 
-Work in this order, so the most visible result lands first: map the tables, build the
-dashboard and check it, then add KPI rows above tables, then any second analytics page, then
-the sections.
+Work in this order, so the most visible result lands first: create the sections, map the
+tables into them, build the dashboard and check it, then add KPI rows above tables, then any
+second analytics page.
 
-1. `builder_map_resources` in batches of 3 or 4 relations per call, TableViews and stats-only
+1. The sections you planned: one `builder_create_category` per section, `module` set to the
+   generated module (a category of another module cannot hold its pages). Keep each section's
+   ref.
+2. `builder_map_resources` in batches of 3 or 4 relations per call, TableViews and stats-only
    relations alike; the relations decided against go in `excluded` on the first call
    (REFERENCE.md _Mapping_). One call with every relation of a large database can abort.
    - Send the proposal's choices as they stand where you changed nothing, except `display`,
      which you leave out (REFERENCE.md _Mapping_), plus per resource
-     the `title`, `icon`, `description` and `tableOptions` you planned.
+     the `title`, `icon`, `description` and `tableOptions` you planned, and as `category` the
+     ref of its page's section.
    - On `invalid_config`, fix the choice it names and call again: a refused call writes nothing.
      When the same choice is refused twice, drop it (send the relation without that display or
      option) and say so in your report, rather than trying more variants.
    - It answers each relation's `ref`, which queries name it by, `category`, the connection's
      category ref (`pages.<connection>`), and `leftOut`: carry those into your report.
-2. Per analytics page, one `builder_compose_page` call with `create` (`name`, `displayName`,
+3. Per analytics page, one `builder_compose_page` call with `create` (`name`, `displayName`,
    `module` set to the generated module, `category` set to the `category` MapResources
    answered, an icon, a description, and `order: 0` for the dashboard, 1, 2… for the next
    ones) and every block in the order `dms-page-design` lays out, each data block with its
    query inline. Preview first, then write, as `dms-page-design` _Build a page in one call_
    says.
    - Queries read the mapped resources by their refs (`<connection>/<schema>/<relation>`).
-3. Per table page that gets KPI cards above its table, one `builder_compose_page` call with
+4. Per table page that gets KPI cards above its table, one `builder_compose_page` call with
    `placement: { "before": "table" }`, previewed first. When MapResources answers `page_not_written`
    for a relation's table options, none of them was written: send them all again with
    `builder_configure_table_view`, the refused one fixed or left out. Tabs it dropped stay off:
    say so in your report.
-4. The sections you planned: one `builder_create_category` per section, `module` set to the
-   generated module, then `builder_configure_page` with `{ "category": "<its ref>" }` per table
-   page. The move gives the page a new ref: use it from then on. The dashboards stay in the
-   connection's category.
+
+The dashboards stay in the connection's category, outside every section.
 
 To change a relation later, read its current choices with `builder_mapping`, then call
 `builder_map_resources` with that relation alone, its included columns as they are and only your
-change made: a mapped relation is rewritten from the choices sent, and its page follows. A page
-moved into a section does not follow: `builder_map_resources` writes a new one in the
-connection's category. Change a moved page's table options with `builder_configure_table_view`
-on it, and remap its relation only to change its columns: then remove the moved page with
-`builder_delete_page` and move the new one into the section.
+change made: a mapped relation is rewritten from the choices sent, and its page is updated where
+it is. Send its `title` again every time: a remap without one resets the page's title and the
+table's caption to the relation's name. Send `category` only to move the page to another section:
+its route changes (a `route_changed` warning), and nothing redirects the old one.
 
 ## 6. Check
 

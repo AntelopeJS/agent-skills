@@ -43,6 +43,7 @@
           "type": "TableView",
           "options": {
             "fetchUrl": "fixture:orders",
+            "caption": "Orders",
             "columns": {
               "customer": {
                 "name": "Customer",

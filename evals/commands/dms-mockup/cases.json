@@ -3,7 +3,10 @@
     {
       "id": "interview-before-spec",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
       "prompt": "Mock up the admin for our order desk before we build anything.",
       "rubric": [
         {
@@ -23,7 +26,10 @@
     {
       "id": "custom-wish-proposed",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
       "prompt": "Mock up an orders page: revenue KPI, the orders table with customer, total and status, and a live map of our delivery drivers. That's all I need, go ahead.",
       "rubric": [
         {
@@ -47,7 +53,10 @@
     {
       "id": "live-writing-steps",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
       "prompt": "Mock up a two-page order desk: an Orders page with a revenue KPI and an orders table (customer, total, status), and a Customers page with a customers table. The answers to your questions are all in this message, go ahead. The dms MCP with mockup_write_spec and mockup_patch_spec is running, and I have /mockup?name=<name> open in my browser.",
       "rubric": [
         {
@@ -71,7 +80,10 @@
     {
       "id": "apply-annotations",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/annotated" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/annotated"
+      },
       "prompt": "I left comments on the order-desk mockup, apply them.",
       "rubric": [
         {
@@ -95,7 +107,10 @@
     {
       "id": "database-tables-and-sections",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
       "prompt": "Mock up the admin over our client's Postgres shop database before we build it: a sales dashboard, then a page per mapped relation. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. builder_mapping on connection erp, module erp-tables answers: sales.orders (title Orders, label number; status: display { kind: \"badge\", values: 4 }, filterable; total: display { kind: \"price\" }, no currency, and the schema names none; ordered_at: date, sortable; tabs { column: \"status\" }), sales.payments (amount: price, no currency; paid_at: date, sortable), catalog.products (name, image_url, price: price, no currency, stock), catalog.categories (name), crm.customers (name, email, city), crm.reviews (rating 1 to 5, comment), support.tickets (subject; status: native enum open, in_progress, waiting, closed, display { kind: \"badge\", values: 4 }, filterable; opened_at: date, sortable; tabs { column: \"status\" }).",
       "rubric": [
         {
@@ -117,6 +132,37 @@
         {
           "id": "sections",
           "text": "The spec has 2 to 5 categories named by job (such as Sales, Catalog, Customers), each holding 2 to 6 pages through their category field; the dashboard has no category."
+        }
+      ]
+    },
+    {
+      "id": "list-app-clicks-through",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
+      "prompt": "Mock up a small CRM: a dashboard with the deals pipeline figures, a Companies list (name, city, industry) people open to see a company and edit it, and a Deals list (title, company, amount, stage, close date) where sales reps create and edit deals; a deal has about 12 fields in three groups (basics, money, follow-up). The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec.",
+      "rubric": [
+        {
+          "id": "detail-sub-pages",
+          "text": "The companies and deals lists each get a detail page written as a sub-page: menu false, parent naming the list page, route \":id\", reading the list's fixture."
+        },
+        {
+          "id": "row-click-opens",
+          "text": "Each of those tables sets rowClick \"single\" and a custom row action marked isDefault: true whose target is { type: \"page\", url: \"page:<detail page id>\" }."
+        },
+        {
+          "id": "forms-chosen",
+          "text": "Company editing uses the table's default form (rowActions edit with formContainer modal, or no formContainer), while the 12-field deal form in groups is a custom form page: formContainer type page with urlSlug page:<id> and customPage: true on new and edit, the edit page with a route, the form using sections."
+        },
+        {
+          "id": "pages-linked",
+          "text": "The dashboard's pipeline figures or cards link to the deals list with page:<id> (a StatGroup cell's to, a card action or a NavCardGrid item, not a KpiCard), and each detail page links back to its list (backTo or a link option naming page:<list id>)."
+        },
+        {
+          "id": "captions",
+          "text": "Every TableView in the spec has a non-blank caption."
         }
       ]
     }
