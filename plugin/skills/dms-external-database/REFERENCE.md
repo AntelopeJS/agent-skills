@@ -261,6 +261,12 @@ erp · postgresql 17.5 · role erp_reader (read only) · 42 relations: 9 TableVi
 - ChartCard › ChartBar: top 10 countries by revenue
 - TopListCard: top 10 cities by orders
 
+## Sections
+
+- Sales (i-ph-storefront): Orders, Payments, Coupons
+- Catalog (i-ph-package): Products, Categories
+- Customers (i-ph-users): Customers, Reviews, Support tickets
+
 ## Left open
 
 - label:legacy.t_ord — no column names an order; the integrator picks one in the Builder

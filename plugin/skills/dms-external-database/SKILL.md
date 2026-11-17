@@ -142,6 +142,8 @@ profile of the whole database again: the Builder did it.
     relation name;
   - every table given the tabs, views, display modes, footer totals and KPI cards its data
     supports, as `dms-page-design` _Tables_ decides;
+  - 6 or more pages grouped into sections, as `dms-page-design` _Group pages into sections_
+    says;
   - at least 3 different chart kinds on it when the data has the shapes for them;
   - the default period `dms-page-design` _Period_ sets;
   - every page built with one `builder_compose_page` call, previewed first, and every block whose
@@ -152,8 +154,8 @@ profile of the whole database again: the Builder did it.
   never as pages.
 
 Write your plan (`ExitPlanMode` in plan mode, a message otherwise) in the format of REFERENCE.md _Plan_: what you change in the
-proposal and why, the questions and the analytics pages that answer them, the open items you
-leave, and what is not possible yet.
+proposal and why, the questions and the analytics pages that answer them, the sections, the
+open items you leave, and what is not possible yet.
 
 ## 4. Validate
 
@@ -163,7 +165,8 @@ again. Write nothing before they approve it (**Run** in the dms-assistant chat).
 ## 5. Apply
 
 Work in this order, so the most visible result lands first: map the tables, build the
-dashboard and check it, then add KPI rows above tables, then any second analytics page.
+dashboard and check it, then add KPI rows above tables, then any second analytics page, then
+the sections.
 
 1. `builder_map_resources` in batches of 3 or 4 relations per call, TableViews and stats-only
    relations alike; the relations decided against go in `excluded` on the first call
@@ -188,10 +191,18 @@ dashboard and check it, then add KPI rows above tables, then any second analytic
    for a relation's table options, none of them was written: send them all again with
    `builder_configure_table_view`, the refused one fixed or left out. Tabs it dropped stay off:
    say so in your report.
+4. The sections you planned: one `builder_create_category` per section, `module` set to the
+   generated module, then `builder_configure_page` with `{ "category": "<its ref>" }` per table
+   page. The move gives the page a new ref: use it from then on. The dashboards stay in the
+   connection's category.
 
 To change a relation later, read its current choices with `builder_mapping`, then call
 `builder_map_resources` with that relation alone, its included columns as they are and only your
-change made: a mapped relation is rewritten from the choices sent, and its page follows.
+change made: a mapped relation is rewritten from the choices sent, and its page follows. A page
+moved into a section does not follow: `builder_map_resources` writes a new one in the
+connection's category. Change a moved page's table options with `builder_configure_table_view`
+on it, and remap its relation only to change its columns: then remove the moved page with
+`builder_delete_page` and move the new one into the section.
 
 ## 6. Check
 
@@ -209,8 +220,8 @@ change made: a mapped relation is rewritten from the choices sent, and its page 
 Then report:
 
 - what the builder mapped by its rules, and what you changed;
-- the pages made, with each analytics page's default period,
-  and per table the features you gave it and why;
+- the pages made, with each analytics page's default period, the section each table page
+  sits in, and per table the features you gave it and why;
 - every block that still shows no data, and why;
 - what was left out and why;
 - the open items left, which the integrator finds in the builder's _Database_ workspace;

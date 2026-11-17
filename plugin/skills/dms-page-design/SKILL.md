@@ -1,6 +1,6 @@
 ---
 name: dms-page-design
-description: Designs AntelopeJS DMS pages that show data. Use when building or changing an analytics, stats or dashboard page or a table page, choosing a chart or a KPI for some data, picking a page's period, naming a page and its icon, or deciding how a table displays (badges, prices, relation labels, status tabs, saved views, kanban, cards, footer totals, KPI cards above the table).
+description: Designs AntelopeJS DMS pages that show data. Use when building or changing an analytics, stats or dashboard page or a table page, choosing a chart or a KPI for some data, picking a page's period, naming a page and its icon, grouping an app's pages into menu sections, or deciding how a table displays (badges, prices, relation labels, status tabs, saved views, kanban, cards, footer totals, KPI cards above the table).
 ---
 
 # Designing data pages
@@ -115,6 +115,19 @@ never a title.
 Set them with `builder_create_page` on new pages, per resource in `builder_map_resources`
 (`title`, `icon`, `description`, `order`), or with `builder_configure_page` afterwards.
 
+## Group pages into sections
+
+An app of 6 or more pages is grouped into 2 to 5 **sections** by job, each titled in the
+owner's words with an icon of its own: Sales (Orders, Payments, Coupons), Catalog (Products,
+Categories), Customers (Customers, Reviews, Support tickets). Each section holds 2 to 6 pages;
+a page with no partner joins the nearest section. The dashboards sit on top, outside every
+section: they stay in the category they are created in. An app of fewer pages has no
+sections. You decide the sections; the user edits them.
+
+A section is a menu category: `builder_create_category` (`name`, `displayName`, `icon`,
+`order`, `module`) answers its `ref`, which `builder_create_page` takes as `category` and
+`builder_configure_page` takes in `{ "category": "<ref>" }` to move a page there.
+
 ## Tables
 
 A table page is a working tool: the reader finds a row, sees its state, and acts. Read the
@@ -159,8 +172,9 @@ first, the highest amount first). Each view has a short label that states the qu
 top, and `count: true` when the number itself matters. Keep views and tabs from repeating each
 other: views for questions that cross columns or dates, tabs for the plain split by state.
 
-**Display modes.** Offer another display when the data reads better that way, and make it the
-default only when it is the main way to work the table:
+**Display modes.** Offer another display when the data reads better that way. The default
+display (`defaultDisplay`) is the kanban for a status workflow, the cards for a catalogue whose
+rows carry an image, and the table otherwise:
 
 - **Kanban** (`kanban.groupBy`) when a single-choice status or stage column drawn as a badge
   (by the Builder or over a native enum) describes a flow

@@ -36,11 +36,35 @@
         },
         {
           "id": "spec-path",
-          "text": "The spec is written, or planned, at mockups/<name>/spec.json with a kebab-case name."
+          "text": "The spec is written, or planned, at mockups/<name>/spec.json with a kebab-case name, built in steps and not in one write."
         },
         {
           "id": "fixtures-for-data",
-          "text": "Every block that reads data gets its data from a fixture of the page (fetchUrl set to fixture:<key>), with several realistic rows for the table."
+          "text": "Every block that reads data gets its data from a fixture of the page (fetchUrl set to fixture:<key>); the orders table's fixture is a $generate object with the customer, total and status fields (or a short hand-written list), not a long hand-typed row list."
+        }
+      ]
+    },
+    {
+      "id": "live-writing-steps",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "prompt": "Mock up a two-page order desk: an Orders page with a revenue KPI and an orders table (customer, total, status), and a Customers page with a customers table. The answers to your questions are all in this message, go ahead. The dms MCP with mockup_write_spec and mockup_patch_spec is running, and I have /mockup?name=<name> open in my browser.",
+      "rubric": [
+        {
+          "id": "empty-first",
+          "text": "The first write of the spec is mockup_write_spec with pages: [] (a title and a source, no page yet), and the agent gives the /mockup?name=<name> link right after it, before any page is added."
+        },
+        {
+          "id": "pages-by-patch",
+          "text": "Each page is then added by its own mockup_patch_spec call with an add operation at /pages/-, first as a skeleton holding all its blocks; the spec is never written whole in one call."
+        },
+        {
+          "id": "sections-not-blocks",
+          "text": "After the skeletons, each page is filled section by section, 2 or 3 related blocks per mockup_patch_spec call, and not one call per block."
+        },
+        {
+          "id": "generate-data",
+          "text": "The orders and customers tables read $generate fixtures (the default 8 rows); hand-typed values appear only for a figure that must read true, such as the revenue KPI headline."
         }
       ]
     },
@@ -65,6 +89,34 @@
         {
           "id": "resolves-applied",
           "text": "The applied annotation is set to resolved with a resolvedAt date; the one waiting on the user stays open, and the report says so."
+        }
+      ]
+    },
+    {
+      "id": "database-tables-and-sections",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "prompt": "Mock up the admin over our client's Postgres shop database before we build it: a sales dashboard, then a page per mapped relation. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. builder_mapping on connection erp, module erp-tables answers: sales.orders (title Orders, label number; status: display { kind: \"badge\", values: 4 }, filterable; total: display { kind: \"price\" }, no currency, and the schema names none; ordered_at: date, sortable; tabs { column: \"status\" }), sales.payments (amount: price, no currency; paid_at: date, sortable), catalog.products (name, image_url, price: price, no currency, stock), catalog.categories (name), crm.customers (name, email, city), crm.reviews (rating 1 to 5, comment), support.tickets (subject; status: native enum open, in_progress, waiting, closed, display { kind: \"badge\", values: 4 }, filterable; opened_at: date, sortable; tabs { column: \"status\" }).",
+      "rubric": [
+        {
+          "id": "badges-from-proposal",
+          "text": "The orders and tickets status columns are written with a badge display ({ kind: \"badge\", items }) of 4 toned items: the ticket items are the native enum's labels, the order items the values of the column's fixture. No status column is a bare select."
+        },
+        {
+          "id": "tabs-from",
+          "text": "The orders and tickets tables carry tabsFrom { column: \"status\" } on a filterable column, with no hand-written tabs and no color key on any tab."
+        },
+        {
+          "id": "default-displays",
+          "text": "The tickets table offers a kanban (kanban.groupByField status) as its defaultDisplay, the products table offers cards (cards in displays, card.fields) as its default, and the orders, payments and other tables open on the table."
+        },
+        {
+          "id": "views-and-prices",
+          "text": "At least one table gets saved views (views.items with a filter on a filterable column or a sort on a sortable one), and no price display names a currency the prompt does not give: the totals are plain numbers or the agent asks for the currency."
+        },
+        {
+          "id": "sections",
+          "text": "The spec has 2 to 5 categories named by job (such as Sales, Catalog, Customers), each holding 2 to 6 pages through their category field; the dashboard has no category."
         }
       ]
     }

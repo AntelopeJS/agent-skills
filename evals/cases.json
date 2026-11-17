@@ -590,6 +590,56 @@
         "avoid": ["dms-page-design"],
         "mustMention": ["builder_set_theme"]
       }
+    },
+    {
+      "id": "plugin-dms-mockup-database",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Mock up the admin over our client's Postgres database before we build it. The builder already mapped orders, payments, products, categories, customers and support tickets into erp-tables.",
+      "expect": {
+        "skills": ["dms-mockup"],
+        "acceptable": [
+          "dms-page-design",
+          "dms-external-database",
+          "dms-builder-mcp",
+          "dms-best-practices"
+        ],
+        "avoid": ["dms-mockup-build"],
+        "mustMention": ["builder_mapping", "tabsFrom", "categories"]
+      }
+    },
+    {
+      "id": "plugin-dms-mockup-build-database",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Build the approved shop mockup into real pages. Its tables stand for the client's Postgres relations, with status badges, status tabs and a kanban, and its pages sit in three sections. The builder MCP is running.",
+      "expect": {
+        "skills": ["dms-mockup-build"],
+        "acceptable": [
+          "dms-external-database",
+          "dms-builder-mcp",
+          "dms-page-design",
+          "dms-pages",
+          "dms-best-practices"
+        ],
+        "avoid": ["dms-mockup"],
+        "mustMention": [
+          "builder_map_resources",
+          "tableOptions",
+          "builder_create_category"
+        ]
+      }
+    },
+    {
+      "id": "plugin-dms-page-design-sections-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "the dms menu has 9 pages in one flat list now, how should i group them",
+      "expect": {
+        "skills": ["dms-page-design"],
+        "acceptable": ["dms-builder-mcp", "dms-pages", "dms-external-database"],
+        "mustMention": ["builder_create_category"]
+      }
     }
   ]
 }

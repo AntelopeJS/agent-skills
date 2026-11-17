@@ -1,0 +1,458 @@
+{
+  "$schema": "../../node_modules/@antelopejs/dms/data/mockup-spec.schema.json",
+  "version": 1,
+  "title": "Shop admin",
+  "source": "claude-code",
+  "categories": [
+    {
+      "id": "sales",
+      "title": "Sales",
+      "icon": "i-ph-storefront"
+    },
+    {
+      "id": "catalog",
+      "title": "Catalog",
+      "icon": "i-ph-package"
+    },
+    {
+      "id": "customers",
+      "title": "Customers",
+      "icon": "i-ph-users-three"
+    }
+  ],
+  "pages": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "icon": "i-ph-chart-line-up",
+      "description": "Revenue and orders of the shop",
+      "tree": [
+        {
+          "id": "revenue",
+          "type": "KpiCard",
+          "options": {
+            "title": "Revenue",
+            "staticValue": 48210,
+            "staticDelta": 12.4,
+            "valueFormat": "number"
+          }
+        }
+      ]
+    },
+    {
+      "id": "orders",
+      "title": "Orders",
+      "category": "sales",
+      "icon": "i-ph-shopping-cart",
+      "description": "Every order with its payment status",
+      "fixtures": {
+        "orders": {
+          "$generate": {
+            "fields": {
+              "_id": "id",
+              "number": "text",
+              "customer": "company",
+              "total": {
+                "money": [20, 900]
+              },
+              "status": ["pending", "paid", "shipped", "refunded"],
+              "ordered_at": "date"
+            }
+          }
+        }
+      },
+      "tree": [
+        {
+          "id": "orders-table",
+          "type": "TableView",
+          "options": {
+            "fetchUrl": "fixture:orders",
+            "columns": {
+              "number": {
+                "name": "Order",
+                "type": "string",
+                "sortable": true
+              },
+              "customer": {
+                "name": "Customer",
+                "type": "string"
+              },
+              "total": {
+                "name": "Total",
+                "type": "number",
+                "sortable": true,
+                "display": {
+                  "kind": "price",
+                  "currency": "EUR"
+                }
+              },
+              "status": {
+                "name": "Status",
+                "type": "select",
+                "filterable": true,
+                "display": {
+                  "kind": "badge",
+                  "items": [
+                    {
+                      "value": "pending",
+                      "label": "Pending",
+                      "tone": "warning"
+                    },
+                    {
+                      "value": "paid",
+                      "label": "Paid",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "shipped",
+                      "label": "Shipped",
+                      "tone": "info"
+                    },
+                    {
+                      "value": "refunded",
+                      "label": "Refunded",
+                      "tone": "error"
+                    }
+                  ]
+                }
+              },
+              "ordered_at": {
+                "name": "Ordered",
+                "type": "date",
+                "sortable": true,
+                "filterable": true
+              }
+            },
+            "tabsFrom": {
+              "column": "status"
+            },
+            "views": {
+              "items": [
+                {
+                  "id": "this-week",
+                  "label": "This week",
+                  "count": true,
+                  "filters": [
+                    {
+                      "accessorKey": "ordered_at",
+                      "mode": "greater_than",
+                      "value": "{{now-7d}}"
+                    }
+                  ],
+                  "sort": [
+                    {
+                      "field": "ordered_at",
+                      "desc": true
+                    }
+                  ]
+                },
+                {
+                  "id": "large",
+                  "label": "Large orders",
+                  "sort": [
+                    {
+                      "field": "total",
+                      "desc": true
+                    }
+                  ]
+                }
+              ],
+              "layout": "strip"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "payments",
+      "title": "Payments",
+      "category": "sales",
+      "icon": "i-ph-credit-card",
+      "description": "Every payment received or refunded",
+      "fixtures": {
+        "payments": {
+          "$generate": {
+            "fields": {
+              "_id": "id",
+              "reference": "text",
+              "amount": {
+                "money": [20, 900]
+              },
+              "paid_at": "date"
+            }
+          }
+        }
+      },
+      "tree": [
+        {
+          "id": "payments-table",
+          "type": "TableView",
+          "options": {
+            "fetchUrl": "fixture:payments",
+            "columns": {
+              "reference": {
+                "name": "Reference",
+                "type": "string"
+              },
+              "amount": {
+                "name": "Amount",
+                "type": "number",
+                "sortable": true,
+                "display": {
+                  "kind": "price",
+                  "currency": "EUR"
+                }
+              },
+              "paid_at": {
+                "name": "Paid",
+                "type": "date",
+                "sortable": true
+              }
+            },
+            "grouped": {
+              "groupByField": "paid_at",
+              "by": "day"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "products",
+      "title": "Products",
+      "category": "catalog",
+      "icon": "i-ph-t-shirt",
+      "description": "The catalogue with stock and price",
+      "fixtures": {
+        "products": {
+          "$generate": {
+            "fields": {
+              "_id": "id",
+              "name": "name",
+              "image": "text",
+              "price": {
+                "money": [5, 300]
+              },
+              "stock": {
+                "number": [0, 400]
+              }
+            }
+          }
+        }
+      },
+      "tree": [
+        {
+          "id": "products-table",
+          "type": "TableView",
+          "options": {
+            "fetchUrl": "fixture:products",
+            "columns": {
+              "name": {
+                "name": "Product",
+                "type": "string",
+                "sortable": true
+              },
+              "image": {
+                "name": "Image",
+                "type": "string"
+              },
+              "price": {
+                "name": "Price",
+                "type": "number",
+                "sortable": true,
+                "display": {
+                  "kind": "price",
+                  "currency": "EUR"
+                }
+              },
+              "stock": {
+                "name": "Stock",
+                "type": "number",
+                "sortable": true
+              }
+            },
+            "displays": [
+              {
+                "id": "table"
+              },
+              {
+                "id": "cards"
+              }
+            ],
+            "card": {
+              "fields": ["image", "price", "stock"]
+            },
+            "defaultDisplay": "cards"
+          }
+        }
+      ]
+    },
+    {
+      "id": "categories",
+      "title": "Categories",
+      "category": "catalog",
+      "icon": "i-ph-tag",
+      "description": "The product categories",
+      "fixtures": {
+        "categories": {
+          "$generate": {
+            "fields": {
+              "_id": "id",
+              "name": "name",
+              "products": {
+                "number": [0, 80]
+              }
+            }
+          }
+        }
+      },
+      "tree": [
+        {
+          "id": "categories-table",
+          "type": "TableView",
+          "options": {
+            "fetchUrl": "fixture:categories",
+            "columns": {
+              "name": {
+                "name": "Category",
+                "type": "string",
+                "sortable": true
+              },
+              "products": {
+                "name": "Products",
+                "type": "number",
+                "sortable": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "customers",
+      "title": "Customers",
+      "category": "customers",
+      "icon": "i-ph-users",
+      "description": "Everyone who bought from the shop",
+      "fixtures": {
+        "customers": {
+          "$generate": {
+            "fields": {
+              "_id": "id",
+              "name": "name",
+              "email": "email",
+              "city": "city"
+            }
+          }
+        }
+      },
+      "tree": [
+        {
+          "id": "customers-table",
+          "type": "TableView",
+          "options": {
+            "fetchUrl": "fixture:customers",
+            "columns": {
+              "name": {
+                "name": "Customer",
+                "type": "string",
+                "sortable": true,
+                "display": {
+                  "type": "identity",
+                  "options": {
+                    "subtitleField": "email"
+                  }
+                }
+              },
+              "email": {
+                "name": "Email",
+                "type": "string"
+              },
+              "city": {
+                "name": "City",
+                "type": "string",
+                "filterable": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "support-tickets",
+      "title": "Support tickets",
+      "category": "customers",
+      "icon": "i-ph-lifebuoy",
+      "description": "Customer requests and where each one stands",
+      "fixtures": {
+        "support-tickets": {
+          "$generate": {
+            "fields": {
+              "_id": "id",
+              "subject": "text",
+              "status": ["open", "in_progress", "waiting", "closed"],
+              "opened_at": "date"
+            }
+          }
+        }
+      },
+      "tree": [
+        {
+          "id": "tickets-table",
+          "type": "TableView",
+          "options": {
+            "fetchUrl": "fixture:support-tickets",
+            "columns": {
+              "subject": {
+                "name": "Subject",
+                "type": "string"
+              },
+              "status": {
+                "name": "Status",
+                "type": "select",
+                "filterable": true,
+                "display": {
+                  "kind": "badge",
+                  "items": [
+                    {
+                      "value": "open",
+                      "label": "Open",
+                      "tone": "warning"
+                    },
+                    {
+                      "value": "in_progress",
+                      "label": "In progress",
+                      "tone": "info"
+                    },
+                    {
+                      "value": "waiting",
+                      "label": "Waiting",
+                      "tone": "neutral"
+                    },
+                    {
+                      "value": "closed",
+                      "label": "Closed",
+                      "tone": "success"
+                    }
+                  ]
+                }
+              },
+              "opened_at": {
+                "name": "Opened",
+                "type": "date",
+                "sortable": true
+              }
+            },
+            "tabsFrom": {
+              "column": "status"
+            },
+            "kanban": {
+              "groupByField": "status"
+            },
+            "defaultDisplay": "kanban"
+          }
+        }
+      ]
+    }
+  ]
+}

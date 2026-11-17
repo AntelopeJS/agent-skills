@@ -139,6 +139,30 @@
           "text": "For customers, the agent writes nothing to /customers and asks the user one question saying the page changed in code (version 7d10c4 against b2c9f0), offering to convert it again with mockup_from_page { pageRef: \"/customers\", replace: true } or to build anyway."
         }
       ]
+    },
+    {
+      "id": "keeps-table-options-and-sections",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/shop-admin" },
+      "prompt": "Build the approved shop-admin mockup (plan approved in advance). Its tables stand for the client's Postgres relations, connection erp, generated module erp-tables, none mapped yet: sales.orders, sales.payments, catalog.products, catalog.categories, crm.customers and support.tickets. builder_analyse_database proposes a badge on sales.orders.status and support.tickets.status, tabs on both, and a price with no currency on sales.orders.total, sales.payments.amount and catalog.products.price; the integrator says the shop sells in EUR. The builder MCP is running.",
+      "rubric": [
+        {
+          "id": "maps-with-builder",
+          "text": "Each table is built with builder_map_resources on connection erp and module erp-tables, not with builder_create_resource or a hand-written TableView."
+        },
+        {
+          "id": "keeps-badges-and-prices",
+          "text": "The status columns are sent without a display, or with the badge the Builder proposes, never as display null; the totals, amounts and prices are sent as { kind: \"price\", currency: \"EUR\" }."
+        },
+        {
+          "id": "table-options-renamed",
+          "text": "The tickets table is sent with tabs { column: \"status\" } and tableOptions with kanban.groupBy status and defaultDisplay kanban; the products table with tableOptions.cards and defaultDisplay cards; the orders views with their filters and sorts naming column, not accessorKey or field."
+        },
+        {
+          "id": "sections-created",
+          "text": "Before placing the pages, the agent calls builder_create_category for Sales, Catalog and Customers, in that order, and puts each page in the section its spec category names (builder_create_page category or builder_configure_page { category }); the Overview dashboard stays outside them."
+        }
+      ]
     }
   ]
 }
