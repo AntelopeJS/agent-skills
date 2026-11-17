@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "title": "Team board",
+  "source": "claude-code",
+  "sidebar": {
+    "widgets": [
+      {
+        "id": "plan",
+        "title": "Your plan",
+        "html": "<div class=\"plan\"><strong>Pro</strong><span>3 of 10 seats left</span></div>",
+        "css": ".plan{display:flex;flex-direction:column;gap:4px;padding:10px}",
+        "height": 96
+      }
+    ]
+  },
+  "pages": [
+    {
+      "id": "board",
+      "title": "Board",
+      "icon": "i-ph-kanban",
+      "description": "The team's cards by stage, dragged from lane to lane",
+      "custom": true,
+      "html": "<div class=\"lanes\"><section><h2>To do</h2><a class=\"card\" href=\"page:card\">Fix the invoice export</a><a class=\"card\" href=\"page:card\">Call Globex back</a></section><section><h2>Doing</h2><a class=\"card\" href=\"page:card\">Renew the TLS certificate</a></section><section><h2>Done</h2><a class=\"card\" href=\"page:card\">Ship the March report</a></section></div>",
+      "css": ".lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px}.lanes section{display:flex;flex-direction:column;gap:8px}.card{display:block;padding:12px;border-radius:8px;border:1px solid #ddd;text-decoration:none;color:inherit}",
+      "height": 900,
+      "states": {
+        "empty": "<p class=\"empty\">No card yet. Cards the team adds show here.</p>",
+        "error": "<p role=\"alert\">The board could not load its cards.</p>"
+      }
+    },
+    {
+      "id": "card",
+      "title": "Card",
+      "icon": "i-ph-cards",
+      "description": "One card with its stage, owner and due date",
+      "menu": false,
+      "parent": "board",
+      "route": ":id",
+      "fixtures": {
+        "cards": {
+          "$generate": {
+            "fields": {
+              "_id": "id",
+              "title": "text",
+              "stage": ["todo", "doing", "done"],
+              "owner": "name",
+              "due": "date"
+            }
+          }
+        }
+      },
+      "tree": [
+        {
+          "id": "card-details",
+          "type": "ResourceForm",
+          "options": {
+            "mode": "view",
+            "fetchUrl": "fixture:cards",
+            "backTo": "page:board",
+            "fields": [
+              { "id": "title", "label": "Title", "type": "string" },
+              { "id": "stage", "label": "Stage", "type": "string" },
+              { "id": "owner", "label": "Owner", "type": "string" },
+              { "id": "due", "label": "Due", "type": "date" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

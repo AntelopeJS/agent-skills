@@ -53,6 +53,23 @@ arguments are in `dms-builder-mcp`, the code in `dms-pages`.
 - Grouping by a foreign key shows ids. Group by the relation's own columns only; a breakdown by
   a related entity's name goes under _Not possible yet_ in your report.
 
+## The analytics dashboard
+
+An app over an external database always has an analytics dashboard, asked for or not: every
+plan, mockup and build over that data proposes and builds it.
+
+- It holds `KpiCard`s and charts over real aggregates of the relations: sums of their measures
+  and row counts, over their time axis and their category columns. A build reads each one
+  through a query on a mapped relation, never a `static*` value; a mockup's fixtures stand for
+  those queries.
+- It is laid out as _Lay out an analytics page_ says and sits first in the menu (`order: 0`),
+  outside every section.
+- An app of 3 or more sections may also give each section a dashboard of its own, first in
+  that section.
+
+An app over a database is not done without that dashboard, or with one whose figures are not
+aggregates of the data.
+
 ## Lay out an analytics page
 
 Add the blocks in this order. Every analytics page has items 1 to 4.
@@ -120,9 +137,11 @@ Set them with `builder_create_page` on new pages, per resource in `builder_map_r
 An app of 6 or more pages is grouped into 2 to 5 **sections** by job, each titled in the
 owner's words with an icon of its own: Sales (Orders, Payments, Coupons), Catalog (Products,
 Categories), Customers (Customers, Reviews, Support tickets). Each section holds 2 to 6 pages;
-a page with no partner joins the nearest section. The dashboards sit on top, outside every
-section: they stay in the category they are created in. An app of fewer pages has no
-sections. You decide the sections; the user edits them.
+a page with no partner joins the nearest section. The main dashboard sits on top, outside every
+section: it stays in the category it is created in. A section's own dashboard (_The analytics
+dashboard_) sits first in its section. An app of fewer pages has no sections. You decide the sections; the user edits them.
+A page that belongs in a section the project has already goes there: in a mockup, a section of
+that exact title, which the viewer draws as the app's own.
 
 A section is a menu category: `builder_create_category` (`name`, `displayName`, `icon`,
 `order`, `module`) answers its `ref`, which `builder_create_page` takes as `category`,
@@ -211,13 +230,16 @@ send again. Through `builder_map_resources` it comes back as a `page_not_written
 
 An app clicks through: from a figure to its rows, from a row to its record, and back.
 
-- **A record needs a detail page.** A list whose records the reader acts on (opens, edits,
-  approves, follows up) gets a detail page: a sub-page of the list, left out of the menu, that
-  shows one record and opens on a click on its row. A lookup list (tags, settings, reference
-  data) gets none.
+- **A record needs a details view.** A list whose records the reader acts on (opens, edits,
+  approves, follows up) gets one; a lookup list (tags, settings, reference data) gets none.
+  Prefer the table's own, `rowActions.details` in its modal or drawer. Give it a custom
+  details page only when the page adds something on top of the record, such as KPI cards or
+  related lists: a sub-page of the list, left out of the menu, that opens on a click on its
+  row and shows the record read-only, a `ResourceForm` with `mode: "view"`.
 - **Choosing a form.** A plain create or edit form is the table's own: a modal for up to about 6
   fields, a drawer beyond. A form with a layout, sections or steps is a custom form page, a
-  sub-page of the list left out of the menu. Turn on only the actions the reader takes.
+  sub-page of the list left out of the menu, its `ResourceForm` in `mode: "edit"` on an edit
+  page and `mode: "new"` on a new page. Turn on only the actions the reader takes.
 - **Link pages together.** Every summary links to what it summarises: a KPI or a card to the
   table it counts, a dashboard tile to its page, a detail page back to its list, a toolbar
   button to the page it opens. `KpiCard` takes no link: a figure that links is a `StatGroup`

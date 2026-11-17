@@ -45,6 +45,8 @@ A custom block is a deviation, and you **propose** it: the user decides, after t
 | The user asked for pixel perfect on **this** element                                   | Another element of the page is custom: a custom block never pulls its neighbours along                   |
 | A measured constraint (performance, data volume) the block cannot meet                 | The constraint is a guess, not a measurement                                                             |
 
+A whole page leaves DMS blocks only when no arrangement of blocks draws it, such as a kanban of a custom shape or a landing page: it becomes a **custom page**, a page whose one block is a full-page `CustomComponent`, proposed as any custom block is (a mockup writes it as [SPEC.md](../dms-mockup/SPEC.md) _Custom pages_ says).
+
 ## Before any custom block
 
 Run this path before writing a `CustomComponent` or its Vue, one element at a time:
