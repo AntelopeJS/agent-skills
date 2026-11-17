@@ -204,8 +204,8 @@ dashboard takes that section's ref as `category`.
 To change a relation later, read its current choices with `builder_mapping`, then call
 `builder_map_resources` with that relation alone, its included columns as they are and only your
 change made: a mapped relation is rewritten from the choices sent, and its page is updated where
-it is. Send its `title` again every time: a remap without one resets the page's title and the
-table's caption to the relation's name. Send `category` only to move the page to another section:
+it is. A remap with no `title` keeps the page's current title: send `title` only to rename the
+page. Send `category` only to move the page to another section:
 its route changes (a `route_changed` warning), and nothing redirects the old one.
 
 ## 6. Check
