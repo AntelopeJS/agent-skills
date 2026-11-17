@@ -59,7 +59,7 @@ Validate every save: `mockup_write_spec` and `mockup_patch_spec` answer their `e
 
 When the user says they commented, or asks what is left, list the open annotations. For each one:
 
-1. Find the node its path names, and the wish behind it.
+1. Find the node it is pinned on, and the wish behind it. `mockup_annotations` answers each annotation's block with its JSON pointer and its node: patch from those, and read `spec.json` only for what they do not show. Read the spec with the mockup tools or the file tools, never with a shell command: Safe mode refuses shell commands.
 2. Change the spec. A request the DMS blocks cannot meet goes through step 2 again, never straight to a sketch.
 3. Resolve the annotation, and note what changed for the report.
 
