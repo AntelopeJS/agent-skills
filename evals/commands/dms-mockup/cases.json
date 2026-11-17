@@ -142,15 +142,15 @@
         "type": "skeleton",
         "dir": "fixtures/dms-app"
       },
-      "prompt": "Mock up a small CRM: a dashboard with the deals pipeline figures, a Companies list (name, city, industry) people open to see a company and edit it, and a Deals list (title, company, amount, stage, close date) where sales reps create and edit deals; a deal has about 12 fields in three groups (basics, money, follow-up). The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec.",
+      "prompt": "Mock up a small CRM: a dashboard with the deals pipeline figures, a Companies list (name, city, industry) people open to see a company with its open deals and their total, and edit it, and a Deals list (title, company, amount, stage, close date) where sales reps create and edit deals; a deal has about 12 fields in three groups (basics, money, follow-up). The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec.",
       "rubric": [
         {
           "id": "detail-sub-pages",
-          "text": "The companies and deals lists each get a detail page written as a sub-page: menu false, parent naming the list page, route \":id\", reading the list's fixture, the record shown by a ResourceForm with mode \"view\"."
+          "text": "The companies list gets a detail page written as a sub-page: menu false, parent naming the list page, route \":id\", the company shown by a ResourceForm with mode \"view\" reading the list's fixture, with its open deals and their total beside it. The deals list, whose details add nothing on top of the record, uses the table's own details view (rowActions.details with a modal, a drawer or no formContainer) and gets no details page."
         },
         {
           "id": "row-click-opens",
-          "text": "Each of those tables sets rowClick \"single\" and a custom row action marked isDefault: true whose target is { type: \"page\", url: \"page:<detail page id>\" }."
+          "text": "The companies table sets rowClick \"single\" and a custom row action marked isDefault: true whose target is { type: \"page\", url: \"page:<company detail page id>\" }."
         },
         {
           "id": "forms-chosen",
@@ -187,6 +187,33 @@
         {
           "id": "tables-kept",
           "text": "Each of sales.orders, crm.customers and support.tickets still gets its own table page, each TableView with a caption."
+        }
+      ]
+    },
+    {
+      "id": "sketch-states-and-link",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
+      "prompt": "Mock up a delivery desk: an Orders list (number, customer, total, status) where people open an order to see it with its delivery, and on the Orders page a delivery timeline of our own design, the one from our app, steps as circles joined by a line: build it custom, I want exactly this look. The timeline must also show when no delivery exists yet and when the carrier does not answer. Each step links to the order. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec.",
+      "rubric": [
+        {
+          "id": "one-sketch",
+          "text": "The timeline is one sketch node on the Orders page; the orders list stays a TableView with its caption, and the order page is a sub-page (menu false, parent orders, route \":id\")."
+        },
+        {
+          "id": "states",
+          "text": "The sketch has a states object beside its html with a state for no delivery yet and one for the carrier failing, each named in lowercase letters, digits and hyphens (such as empty and error), none named default; the CSS stays in the sketch's one css."
+        },
+        {
+          "id": "page-link",
+          "text": "The sketch's html links to the order page with <a href=\"page:<order page id>\">, an id the spec has, and holds no other href than a page link, a #anchor or a data: URL, and no target attribute."
+        },
+        {
+          "id": "validated",
+          "text": "The agent writes through mockup_write_spec then mockup_patch_spec in small saves, and fixes and resends any patch whose errors name the sketch."
         }
       ]
     }

@@ -140,6 +140,8 @@ Categories), Customers (Customers, Reviews, Support tickets). Each section holds
 a page with no partner joins the nearest section. The main dashboard sits on top, outside every
 section: it stays in the category it is created in. A section's own dashboard (_The analytics
 dashboard_) sits first in its section. An app of fewer pages has no sections. You decide the sections; the user edits them.
+A page that belongs in a section the project has already goes there: in a mockup, a section of
+that exact title, which the viewer draws as the app's own.
 
 A section is a menu category: `builder_create_category` (`name`, `displayName`, `icon`,
 `order`, `module`) answers its `ref`, which `builder_create_page` takes as `category`,

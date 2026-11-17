@@ -97,7 +97,9 @@ Fallback with no running DMS: `@antelopejs/dms` ships the same files at `node_mo
 ```
 
 - `pages`: 0 to 50 pages. An empty `pages` is valid: it is how a mockup starts. `options` is optional: `theme` (`light` or `dark`), `locale`, `padding` (default `true`).
-- `categories` (optional): the menu's sections, in menu order, at most 50, each `{ id, title, icon? }` with `id` in the page `id` format. A page's `category` names one; a page without one is in the default _Pages_ section, where the dashboards stay. An unknown or repeated id is an issue. The sections follow **dms-page-design** _Group pages into sections_.
+- `categories` (optional): the menu's sections, in menu order, at most 50, each `{ id, title, icon? }` with `id` in the page `id` format. A page's `category` names one; a page without one is in the default _Pages_ section, where the dashboards stay. An unknown or repeated id is an issue. The sections follow **dms-page-design** _Group pages into sections_. The viewer draws the app's own menu too: a section whose `title` is an app section's (case and spaces aside) is drawn as that section, the app's pages first, and the default section joins the app's _Pages_.
+- `sidebar` (optional): the sidebar widgets, as _Sidebar widgets_ says.
+- `custom`, `html`, `css`, `height` and `states` (optional, per page): a custom page, as _Custom pages_ says.
 - `icon`, `description` and `headerActions` (optional, per page): the page header the DMS draws above the blocks, with `title`. `icon` is an icon name (`i-ph-receipt`), `description` one line under the title, `headerActions` the header's buttons, each `{ label, icon?, color?, variant? }`. A button holds no target: what it does is decided at build. Give every page an icon and a description, as **dms-page-design** _Name every page_ says.
 - `fixtures`: a key (`^[A-Za-z0-9_-]{1,64}$`) to any JSON value, the data the page's blocks read, or to a `$generate` object that the server turns into rows ([Generated fixtures](#generated-fixtures)).
 - `tree`: the page's blocks, top to bottom, in the `DmsBlockPreview` tree format below.
@@ -120,8 +122,8 @@ Name every child with an `id`: the builder and the roles editor key blocks by na
 - **Fixture reference.** Any string option of the form `fixture:<key>`, at any depth, reads that key of the page's `fixtures`. Use it for every `fetchUrl`, so the block draws data with no route.
 - **Page link.** Any string option of the form `page:<id>`, at any depth, links to that spec page, as _Links and sub-pages_ says.
 - **`TableView`** takes the options of `TableView.fromSource`: `fetchUrl: "fixture:<key>"` naming an array of rows, a `caption`, and `columns` keyed by row field, each with its `name` and its `type`, a data type id (`string`, `number`, `date`, `boolean`, `select`, …). Paging, search, sort, tabs, quick filters, views and the board work over the fixture. A table with no `caption`, or a blank one, is an issue and its write is refused, except on a page with `livePage`. A column takes a `display`, and the table its board, tabs and views, as _Tables_ says. A table with tabs, `quickFilters` or `queryParamFilters` needs `capabilities.filter` when you write `capabilities` explicitly (the rule of `assertSourceFilters`, interface-dms `base/table-view/source.ts`); without `capabilities` the mockup compiler sets `filter: true` and validation passes.
-- **`ResourceForm`** takes its `mode`, its `fields` and `fetchUrl: "fixture:<key>"` naming the record object, with no `submitUrl`. `mode` is `view` on a detail page, which shows the record read-only, `edit` on an edit page and `new` on a new page. A table's details page (`formContainer.pages.details`) whose form is not in `mode: "view"` is an issue.
-- **Sketch.** `{ "type": "sketch", "options": { "html", "css"?, "height"?, "caption"? } }`, with no children: the static HTML and CSS of one custom part, drawn hatched, outlined and labelled _Custom_. `height` is 80 to 1200 px (default 320); `caption` (up to 200 characters) says what the part does. It runs in a sandbox with no script: the spec refuses `<script>`, embedding elements, `on*` handlers, `<meta http-equiv>`, `@import`, `javascript:` and `vbscript:` URLs, and any `url()`, `src` or `href` that is not a `data:` URL or an `#anchor`. Keep it to the element alone; the blocks around it stay blocks.
+- **`ResourceForm`** takes its `mode`, its `fields` and `fetchUrl: "fixture:<key>"` naming the record object, with no `submitUrl`. `mode` is `view` on a detail page, which shows the record read-only, `edit` on an edit page and `new` on a new page. On a table's row pages (`formContainer.pages`), a details page whose form is not in `mode: "view"`, or an edit page whose form is, is an issue.
+- **Sketch.** `{ "type": "sketch", "options": { "html", "css"?, "height"?, "caption"?, "states"? } }`, with no children, as _Sketches_ says.
 
 ## Tables
 
@@ -207,9 +209,8 @@ A string option `page:<id>`, at any depth of a block's options, links to the spe
 
 - a row action's or a toolbar button's `target`: `rowActions.custom[].target` and `customButtons[].target`, `{ "type": "page", "url": "page:<id>" }`;
 - a tab's `to`, a `NavCardGrid` or `TopListCard` item's `to`, a `StatGroup` cell's `to`, a card head action's `to`;
-- a `Form`'s `backTo` and `redirectOnSuccess`.
-
-A sketch holds no link: its `href` is a `#anchor` or a `data:` URL only, so put the link on a block beside it.
+- a `Form`'s `backTo` and `redirectOnSuccess`;
+- an `<a href="page:<id>">` in a sketch, as _Sketches_ says.
 
 A sub-page is a page with a `parent`, the `id` of another page (no loop): a list's detail page, or a custom form page. `"menu": false` leaves it out of the sidebar, which lights its nearest listed parent while it is open. `"route": ":<name>"` (it needs a `parent`) makes it show one row: on it, `fixture:<key>` naming an ancestor's rows reads the row whose `_id`, else `id`, is the parameter, and the first row stands in when no link names one. A sub-page reads the fixtures of its ancestors it does not hold itself.
 
@@ -303,7 +304,7 @@ A row action's link passes the row's id, read at the table's `rowIdKey` (`_id` b
 
 A mockup table is read-only: an action is on only when `rowActions` writes it, `add`, `edit` or `details`, each `true` or a row action config such as `{ "rule": { "field": "status", "equals": "draft" } }`. `formContainer` says where the forms open, as in the real `TableView`:
 
-- `{ "type": "modal" }`, the default when `formContainer` is left out, or `{ "type": "drawer" }`: the add and edit forms are generated from the table's columns, and saving keeps nothing. `pages.new` and `pages.edit` take their `displayName` and `description` only. `details` needs the `page` type.
+- `{ "type": "modal" }`, the default when `formContainer` is left out, or `{ "type": "drawer" }`: the add, edit and details forms are generated from the table's columns, the details form read-only, as the real `TableView`'s, and saving keeps nothing. `pages.new`, `pages.edit` and `pages.details` take their `displayName` and `description` only.
 - `{ "type": "page", "pages": { ... } }`: each action on opens a spec page, `{ "urlSlug": "page:<id>", "customPage": true }`, which holds the custom form or the detail view, a `ResourceForm` in the page's `mode`. The edit and details pages need a `route`.
 
 ```json
@@ -377,6 +378,101 @@ A mockup table is read-only: an action is on only when `rowActions` writes it, `
       ]
     }
   ]
+}
+```
+
+## Sketches
+
+A sketch is the static HTML and CSS of one custom part, drawn hatched, outlined and labelled _Custom_. Keep it to the element alone; the blocks around it stay blocks.
+
+- `html` is required; `height` is 80 to 3000 px (default 320); `caption` (up to 200 characters) says what the part does.
+- It runs in a sandbox with no script: the spec refuses `<script>`, embedding elements, `on*` handlers, `<meta http-equiv>`, `@import`, `javascript:` and `vbscript:` URLs, any `url()` or `src` that is not a `data:` URL, any `href` that is not a `data:` URL, an `#anchor` or a page link, and any `target` the sketch writes.
+- **Page link.** `<a href="page:<id>">`, on an HTML `<a>`, links to that spec page; an id no page has is an issue at the sketch's `html`. The link is followed in the viewer's Preview only: while editing, a click on the sketch selects it.
+- **States.** `states` maps a name to another markup of the same part, drawn in place of `html` with the same `css`, `height` and `caption`: its empty, error or loading design. A name matches `^[a-z][a-z0-9-]{0,31}$` and is not `default`, which is `html` itself; a sketch holds at most 8 states. Each is checked as `html` is, page links included. The viewer's _State_ picker draws one, and a comment pinned while a state is drawn keeps its `state`.
+
+```json
+{
+  "version": 1,
+  "pages": [
+    {
+      "id": "orders",
+      "title": "Orders",
+      "tree": [
+        {
+          "id": "delivery",
+          "type": "sketch",
+          "options": {
+            "html": "<ol class=\"steps\"><li>Ordered</li><li>Packed</li></ol><a href=\"page:order\">Open the order</a>",
+            "css": ".steps{display:flex;gap:12px}",
+            "height": 160,
+            "caption": "Delivery journey",
+            "states": {
+              "empty": "<p>No delivery yet.</p>",
+              "error": "<p role=\"alert\">The carrier did not answer.</p>"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "order",
+      "title": "Order",
+      "menu": false,
+      "parent": "orders",
+      "tree": []
+    }
+  ]
+}
+```
+
+## Custom pages
+
+A page with `"custom": true` is one whole-page sketch, drawn inside the real layout: the sidebar and the page header stay the dashboard's own, fed by its `title`, `icon`, `description` and `headerActions`. It takes the sketch's `html` (required), `css`, `height` (80 to 3000 px, default 800) and `states` at the page's level, under the rules of _Sketches_, and its `tree` is absent or `[]`. An `html`, `css`, `height` or `states` on a page of blocks is an issue. A comment on a custom page is a comment on the page.
+
+```json
+{
+  "version": 1,
+  "pages": [
+    {
+      "id": "board",
+      "title": "Board",
+      "icon": "i-ph-kanban",
+      "custom": true,
+      "html": "<div class=\"lanes\"><section><h2>To do</h2><a href=\"page:card\">Fix the invoice</a></section></div>",
+      "css": ".lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}",
+      "height": 1200,
+      "states": { "empty": "<p>No card yet.</p>" }
+    },
+    {
+      "id": "card",
+      "title": "Card",
+      "menu": false,
+      "parent": "board",
+      "tree": []
+    }
+  ]
+}
+```
+
+## Sidebar widgets
+
+`sidebar.widgets` sketches up to 10 widgets of the dashboard's sidebar that no module provides yet, such as a plan card or a help box, drawn in order below the dashboard's own widgets on every page. Each is `{ id, title?, html, css?, height? }`: `id` matches `^[a-z0-9][a-z0-9-]{0,63}$` and is unique among the widgets, `title` is its caption, `height` is 80 to 1200 px (default 120), and `html` and `css` follow the rules of _Sketches_. A widget cannot be selected or commented in the viewer: edit it in `spec.json`.
+
+```json
+{
+  "version": 1,
+  "sidebar": {
+    "widgets": [
+      {
+        "id": "plan",
+        "title": "Your plan",
+        "html": "<div class=\"plan\"><strong>Pro</strong><span>3 of 10 seats left</span></div>",
+        "css": ".plan{display:flex;flex-direction:column;gap:4px;padding:10px}",
+        "height": 96
+      }
+    ]
+  },
+  "pages": []
 }
 ```
 

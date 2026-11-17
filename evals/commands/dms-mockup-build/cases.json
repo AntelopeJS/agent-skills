@@ -239,6 +239,33 @@
           "text": "The agent verifies the Overview with page_verify like the other pages, and treats a KPI card or chart on it that shows no data or a static figure as a failure to fix, not as a pass."
         }
       ]
+    },
+    {
+      "id": "builds-custom-page-and-sidebar-widget",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/team-board"
+      },
+      "prompt": "Build the approved team-board mockup in code on this project's own data: a Table and DataController for the cards. I approve your plan in advance, go. The builder MCP is not running, and Safe mode is off.",
+      "rubric": [
+        {
+          "id": "custom-page",
+          "text": "The board page is a PageController registered with @RegisterPage, its title, icon and description from the spec, whose one block is a CustomComponent declared with .meta({ name, description, icon }) and drawn by a Vue component from the page's html and css, reading the cards from a route."
+        },
+        {
+          "id": "states-handled",
+          "text": "The board's Vue component draws the empty design when the route answers no card and the error design when the request fails, and the lanes of cards otherwise."
+        },
+        {
+          "id": "links-routed",
+          "text": "Each card on the board links to the real route of the card page with its id (such as /board/<id>), the card page is registered under the board's route with :id, hidden: true and parent naming the board page class, showing a ResourceForm in mode \"view\"; no page: or fixture: string is left in any page class or Vue file."
+        },
+        {
+          "id": "sidebar-widget",
+          "text": "The plan widget is a Vue component of the module's frontend layer registered with registerComponent, and a plugin registered with registerPlugin calls useSidebarWidgets().register with an id and that component's name; the component takes the collapsed prop and draws nothing when it is true. It is not a block of a page."
+        }
+      ]
     }
   ]
 }

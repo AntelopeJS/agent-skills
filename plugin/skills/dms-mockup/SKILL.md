@@ -37,6 +37,8 @@ For each wish, find the closest DMS block or composition in the catalog, with th
 
 - **A block covers it** (through its options or a composition): use it. A difference the theme or the options handle is no question.
 - **Nothing covers it, or the user asked for exactly this look**: propose the choice as **dms-best-practices** _Before any custom block_ says, with the closest DMS option beside a **sketch** of the custom part, one closed question per element or batch: _Keep the DMS block_ / _Adjust it through its options_ / _Build a custom block_. Only _Build a custom block_ puts a sketch in the spec.
+- **A whole page no arrangement of blocks draws** goes through the same choice, offering a **custom page** ([SPEC.md](SPEC.md) _Custom pages_) in place of a custom block.
+- **A sidebar part no module provides** (a plan card, a help box) is a **sidebar widget** ([SPEC.md](SPEC.md) _Sidebar widgets_).
 
 This step is done when every wish maps to a block, a composition, or a sketch the user chose.
 
@@ -50,7 +52,7 @@ The user watches the mockup fill in `/mockup?name=<name>`, so write it in small 
 4. **Data.** Use `$generate` with the default 8 rows. Write hand values only where a figure must read true: a KPI headline, a total repeated on another page. Date hand-written rows that should look recent in the last 30 days, as `$generate` dates are. Keep entities, names and figures coherent across pages, and over existing resources use the columns and types they declare.
 5. **Tables.** Give each `TableView` its `caption` and every feature **dms-page-design** _Tables_ gives its data, written as [SPEC.md](SPEC.md) _Tables_ says: badges and prices as column `display`, status tabs as `tabsFrom`, the board, cards or groups with the default display, and the saved views. Over a database, write what the proposal holds: a column it draws as a badge is a badge, its relation's `tabs` are `tabsFrom`, a price is a price. The proposal shows how many values a badge draws, never which: write that many items, each a value of the column's fixture, toned as _Tables_ says, or a native enum's labels when the schema declares them.
 6. **Links, sub-pages and forms.** The mockup clicks through like the app: write every detail page, form and link that **dms-page-design** _Records, forms and links_ decides, as [SPEC.md](SPEC.md) _Links and sub-pages_ and _Table forms_ say.
-7. **Sketches.** One per custom part the user chose, kept to that element.
+7. **Sketches.** One per custom part the user chose, kept to that element, as [SPEC.md](SPEC.md) _Sketches_ says. A sketch or a custom page that leads to another page links to it with `<a href="page:<id>">`. Draw each empty, error or loading design the part must handle as a state, so the build handles it too.
 8. **A failed patch** costs only that patch: its `errors` name the nodes. Fix it and send it again, never rewrite the spec.
 
 Texts are in the user's language. Without `mockup_write_spec` and `mockup_patch_spec`, edit `spec.json` in the same order, one save per step: the file empty first, then each page, then each section.
