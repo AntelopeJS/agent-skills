@@ -386,7 +386,7 @@ It extracts the API names a Markdown answer relies on (imports, code fences, inl
 
 ### In CI
 
-`.github/workflows/ci.yml` runs the tests, the plugin layout check (`pnpm check:plugin`), the case-file check (`pnpm evals:check`) and the baseline trigger eval (`pnpm evals:baseline`, against the plugin's skills and those of the `--published` packages) on every push and pull request. CI holds no secret and calls no model. Packages get the same two checks from the reusable Node CI workflow of `AntelopeJS/.github` (`skill-eval-offline`) when `skills/**` changes, with the pull request's package as a workspace override of the published corpus. The model-backed run is the repository's `eval-skills` skill, started by the maintainer's Bots or by an explicit ask.
+`.github/workflows/ci.yml` runs the tests, the plugin layout check (`pnpm check:plugin`), the case-file check (`pnpm evals:check`) and the baseline trigger eval (`pnpm evals:baseline`, against the plugin's skills and those of the `--published` packages) on every push and pull request. CI holds no secret and calls no model. Packages get the same two checks from the reusable Node CI workflow of `AntelopeJS/.github` (its "Skill eval, offline" step) when `skills/**` changes, with the pull request's package as a workspace override of the published corpus. The model-backed run is the repository's `eval-skills` skill, started by the maintainer's Bots or by an explicit ask.
 
 ### Background
 
