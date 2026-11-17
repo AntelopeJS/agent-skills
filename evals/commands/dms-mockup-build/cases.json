@@ -3,7 +3,10 @@
     {
       "id": "plan-before-build",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/order-desk"
+      },
       "prompt": "The order-desk mockup is approved. Build the real pages from it.",
       "rubric": [
         {
@@ -23,7 +26,10 @@
     {
       "id": "code-path-without-mcp",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/order-desk"
+      },
       "prompt": "Build the order-desk mockup into real pages. I approve your plan in advance, go.",
       "rubric": [
         {
@@ -47,7 +53,10 @@
     {
       "id": "verify-loop",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/order-desk"
+      },
       "prompt": "Build the orders page of the order-desk mockup (plan approved in advance), then prove it works and fix what fails. The dms MCP with page_verify is running.",
       "rubric": [
         {
@@ -75,7 +84,10 @@
     {
       "id": "failure-left-after-three-rounds",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/order-desk"
+      },
       "prompt": "Build the orders page of the order-desk mockup (plan approved in advance) and prove it works. The dms MCP with page_verify and preview_blocks is running; the drivers map must read /api/drivers, a fixed route that answers 500 whatever you change.",
       "rubric": [
         {
@@ -99,7 +111,10 @@
     {
       "id": "fallback-without-page-verify",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/order-desk"
+      },
       "prompt": "Build the orders page of the order-desk mockup (plan approved in advance) and check it against the mockup. This DMS is older: its MCP has no page_verify tool.",
       "rubric": [
         {
@@ -119,7 +134,10 @@
     {
       "id": "converted-page-apply-first",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/ops-desk" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/ops-desk"
+      },
       "prompt": "Build the ops-desk mockup into its live pages (plan approved in advance). The builder MCP and the dms MCP are running, with page_verify and mockup_apply_to_page among their tools. No tool has been called yet; when you call them, they answer as follows. builder_page_structure returns version 3fa2b7 for /orders and b2c9f0 for /customers. mockup_apply_to_page called with { mockup: \"ops-desk\", page: \"orders\" } returns { \"ok\": true, \"outcome\": \"applied\", \"livePage\": { \"ref\": \"/orders\", \"version\": \"5e88a1\" }, \"stamped\": true, \"preserved\": [\"orders_table\"], \"written\": [\"revenue\"], \"added\": [\"late_orders\", \"drivers_map\"], \"removed\": [], \"wiring\": [{ \"pointer\": \"/pages/0/tree/1\", \"id\": \"late_orders\", \"type\": \"KpiCard\", \"reason\": \"data\" }, { \"pointer\": \"/pages/0/tree/3\", \"id\": \"drivers_map\", \"type\": \"sketch\", \"reason\": \"custom-component\" }] }, and called with { mockup: \"ops-desk\", page: \"customers\" } returns { \"ok\": false, \"error\": \"stale\", \"livePage\": { \"ref\": \"/customers\", \"version\": \"7d10c4\" }, \"currentVersion\": \"b2c9f0\" }.",
       "rubric": [
         {
@@ -143,7 +161,10 @@
     {
       "id": "keeps-table-options-and-sections",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/shop-admin" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/shop-admin"
+      },
       "prompt": "Build the approved shop-admin mockup (plan approved in advance). Its tables stand for the client's Postgres relations, connection erp, generated module erp-tables, none mapped yet: sales.orders, sales.payments, catalog.products, catalog.categories, crm.customers and support.tickets. builder_analyse_database proposes a badge on sales.orders.status and support.tickets.status, tabs on both, and a price with no currency on sales.orders.total, sales.payments.amount and catalog.products.price; the integrator says the shop sells in EUR. The builder MCP is running.",
       "rubric": [
         {
@@ -160,7 +181,38 @@
         },
         {
           "id": "sections-created",
-          "text": "Before placing the pages, the agent calls builder_create_category for Sales, Catalog and Customers, in that order, and puts each page in the section its spec category names (builder_create_page category or builder_configure_page { category }); the Overview dashboard stays outside them."
+          "text": "Before mapping, the agent calls builder_create_category for Sales, Catalog and Customers, in that order, each with module erp-tables, and sends each resource to builder_map_resources with its section's ref as category and its spec page's title; it never moves a mapped page with builder_configure_page. The Overview dashboard stays outside the sections."
+        }
+      ]
+    },
+    {
+      "id": "translates-links-subpages-forms",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/shop-admin"
+      },
+      "prompt": "Build the approved shop-admin mockup in code on this project's own data: one Table and DataController per table, no connected database. I approve your plan in advance, go. The builder MCP is not running.",
+      "rubric": [
+        {
+          "id": "detail-sub-page",
+          "text": "The order detail page is a page class registered under the orders page's route with a parameter (urlSlug ending in orders/:id), hidden: true so the menu leaves it out, and parent naming the orders page class; the product, product-edit and product-new pages are registered the same way under the products page (products/:id, products/:id/edit, products/new)."
+        },
+        {
+          "id": "row-link",
+          "text": "The orders table keeps rowClick single and a custom row action marked isDefault whose target is the real route of the order page with the row's id filled in (such as /sales/orders/{{row._id}} or /orders/{{row._id}}), never a page:order string or a /mockup URL."
+        },
+        {
+          "id": "form-containers",
+          "text": "The orders table, which has no formContainer in the spec, is written with formContainer { type: \"modal\" }; the support tickets table keeps { type: \"drawer\" }; the products table keeps type page with pages new, edit and details whose urlSlug is new, :id/edit and :id, each with customPage: true."
+        },
+        {
+          "id": "actions-match",
+          "text": "Each table turns on exactly the add, edit and details actions its spec rowActions writes, and writes false for the ones it leaves out (such as details on orders and on tickets, and every action on payments, categories and customers), with the add and edit forms saving through the table's DataController."
+        },
+        {
+          "id": "links-resolved",
+          "text": "The Overview StatGroup cells and every backTo or redirectOnSuccess point at the real routes of the orders, support tickets and products pages; no page: or fixture: string is left in any page class, and every TableView keeps its caption."
         }
       ]
     }
