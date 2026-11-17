@@ -1,6 +1,6 @@
 ---
 name: dms-mockup
-description: Mocks up AntelopeJS DMS apps in mockups/<name>/spec.json before any page is built: interviews the user, matches every wish to a DMS block or a custom sketch, and applies the user's annotations on the mockup. Use when the user wants to mock up, sketch or prototype a DMS app or page, start an app from scratch, or has commented on a mockup.
+description: Mocks up AntelopeJS DMS apps in mockups/<name>/spec.json before any page is built: interviews the user, matches every wish to a DMS block or a custom sketch, and applies the user's annotations on the mockup. Use when the user wants to mock up, sketch or prototype a DMS app or page, from scratch or over an existing database, or has commented on a mockup.
 ---
 
 # DMS mockups
@@ -27,7 +27,7 @@ Collect the user's **wishes**: each thing a screen must show or let someone do. 
 - the actions: create, edit, approve, export, …;
 - a reference: a screenshot, a Figma frame, another product. When there is one, frame it once as **dms-best-practices** _Design-fidelity protocol_ step 1 says.
 
-When the project already has a database or resources (`builder_list_resources`, `database_connections`), read their names and fields first, never their rows, and ask only what they do not answer. Data pages follow **dms-page-design**: its shapes, layout and naming rules decide the blocks of an analytics or table page.
+When the project already has a database or resources (`builder_list_resources`, `database_connections`), read their names and fields first, never their rows, and ask only what they do not answer. Over a database, read the Builder's **proposal** too: `builder_mapping` for the relations a module maps, else `builder_analyse_database` (`detail` naming the relations you mock up). Data pages follow **dms-page-design**: its shapes, layout, naming and _Tables_ rules decide the blocks of an analytics or table page, and _Group pages into sections_ the menu.
 
 The interview is done when every page has a purpose, its data and its actions, and every wish names the page it lives on.
 
@@ -44,12 +44,13 @@ This step is done when every wish maps to a block, a composition, or a sketch th
 
 The user watches the mockup fill in `/mockup?name=<name>`, so write it in small saves, never as one big spec: each save redraws the viewer in under a second, while one call that types the whole spec shows nothing until it ends and, when it fails validation, loses all of it. Follow [SPEC.md](SPEC.md) _Writing in steps_:
 
-1. **Create it empty.** `mockup_write_spec` with `pages: []`, the `title` and the `source` (`claude-code` in Claude Code, `codex` in Codex, left out when you cannot tell which harness runs you). `<name>` is kebab case, from the app or the area: `crm`, `stock-dashboard`. Give the user the link `/mockup?name=<name>` now, before any page exists.
-2. **Add the pages one at a time**, each as a skeleton: one `mockup_patch_spec` with `add` at `/pages/-`, the page with all its blocks in reading order, each with an `id` and a title, and its data as `$generate` fixtures.
+1. **Create it empty.** `mockup_write_spec` with `pages: []`, the `title`, the `categories` that **dms-page-design** _Group pages into sections_ gives the app, and the `source` (`claude-code` in Claude Code, `codex` in Codex, left out when you cannot tell which harness runs you). `<name>` is kebab case, from the app or the area: `crm`, `stock-dashboard`. Give the user the link `/mockup?name=<name>` now, before any page exists.
+2. **Add the pages one at a time**, each as a skeleton: one `mockup_patch_spec` with `add` at `/pages/-`, the page with its `category` and all its blocks in reading order, each with an `id` and a title, and its data as `$generate` fixtures.
 3. **Fill each page section by section**: 2 or 3 related blocks per patch (the KPI row, then the table, then the form). Never one call per block, never the whole spec in one call.
 4. **Data.** Use `$generate` with the default 8 rows. Write hand values only where a figure must read true: a KPI headline, a total repeated on another page. Keep entities, names and figures coherent across pages, and over existing resources use the columns and types they declare.
-5. **Sketches.** One per custom part the user chose, kept to that element.
-6. **A failed patch** costs only that patch: its `errors` name the nodes. Fix it and send it again, never rewrite the spec.
+5. **Tables.** Give each `TableView` every feature **dms-page-design** _Tables_ gives its data, written as [SPEC.md](SPEC.md) _Tables_ says: badges and prices as column `display`, status tabs as `tabsFrom`, the board, cards or groups with the default display, and the saved views. Over a database, write what the proposal holds: a column it draws as a badge is a badge, its relation's `tabs` are `tabsFrom`, a price is a price. The proposal shows how many values a badge draws, never which: write that many items, each a value of the column's fixture, toned as _Tables_ says, or a native enum's labels when the schema declares them.
+6. **Sketches.** One per custom part the user chose, kept to that element.
+7. **A failed patch** costs only that patch: its `errors` name the nodes. Fix it and send it again, never rewrite the spec.
 
 Texts are in the user's language. Without `mockup_write_spec` and `mockup_patch_spec`, edit `spec.json` in the same order, one save per step: the file empty first, then each page, then each section.
 

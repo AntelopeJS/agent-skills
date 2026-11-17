@@ -592,6 +592,23 @@
       }
     },
     {
+      "id": "plugin-dms-mockup-database",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Mock up the admin over our client's Postgres database before we build it. The builder already mapped orders, payments, products, categories, customers and support tickets into erp-tables.",
+      "expect": {
+        "skills": ["dms-mockup"],
+        "acceptable": [
+          "dms-page-design",
+          "dms-external-database",
+          "dms-builder-mcp",
+          "dms-best-practices"
+        ],
+        "avoid": ["dms-mockup-build"],
+        "mustMention": ["builder_mapping", "tabsFrom", "categories"]
+      }
+    },
+    {
       "id": "plugin-dms-page-design-sections-casual",
       "area": "dms",
       "style": "casual",
