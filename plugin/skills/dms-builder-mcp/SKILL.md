@@ -7,7 +7,7 @@ description: Drives the AntelopeJS DMS builder MCP tools (builder_catalog, build
 
 The DMS builder edits the project's own TypeScript: a page is a `PageController` class, a block a static field or `.child()` call, a resource a `Table` + `DataController` + model. Every builder operation is **atomic and typecheck-gated**: on success it returns the file changes; on `typecheck_failed` nothing is written.
 
-Load **dms-best-practices** first and follow it: it decides what a page is made of and runs the design-fidelity protocol. This skill covers driving the builder tools.
+Load **dms-best-practices** first and follow it: it decides what a page is made of and runs the design-fidelity protocol. A data page follows **dms-page-design**, which also picks where each table's details and forms open. This skill covers driving the builder tools.
 
 ## Detect what the project has
 
@@ -63,6 +63,7 @@ On the code path, edit the theme yourself in the `app/app.config.ts` of the proj
 ## Errors
 
 - `typecheck_failed`: read `diagnostics`, fix the `config` or `type`, retry. Nothing was written.
+- A refusal that names a read-only connection (a `writable: true` mapping, a `ResourceForm` in `new` or `edit` mode, a `TableView` that serves write routes): follow **dms-external-database** _Connection access_.
 - `invalid_config`, `duplicate_name`, `not_found`: fix the input.
 - `stale`: the page changed under you; read it again with `builder_page_structure` and retry.
 - `builder_unavailable`, `request_failed`: the builder engine is unreachable or does not implement the operation (`HTTP 400` means `unknown_op`). Explain the limitation; retry nothing.
