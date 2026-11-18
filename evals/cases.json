@@ -129,8 +129,14 @@
       "style": "clean",
       "prompt": "Add a drag-and-drop kanban board for the support tickets, one column per status.",
       "expect": {
-        "skills": ["dms-best-practices", "dms-pages"],
-        "acceptable": ["dms", "dms-module", "dms-frontend", "dms-page-design"],
+        "skills": ["dms-best-practices", "dms-page-design"],
+        "acceptable": [
+          "dms",
+          "dms-module",
+          "dms-frontend",
+          "dms-pages",
+          "dms-builder-mcp"
+        ],
         "mustMention": ["TableView", "kanban"]
       }
     },
