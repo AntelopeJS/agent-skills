@@ -724,6 +724,56 @@
         ],
         "mustMention": ["ArchiveField"]
       }
+    },
+    {
+      "id": "plugin-dms-page-design-customers-forms",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a customers table page to the dashboard: name, email, phone, company, street, city, country and notes. People add and edit customers from it. What will you build?",
+      "expect": {
+        "skills": ["dms-page-design"],
+        "acceptable": [
+          "dms-pages",
+          "dms-best-practices",
+          "dms-builder-mcp",
+          "dms"
+        ],
+        "avoid": ["dms-mockup", "dms-external-database"],
+        "mustMention": ["formContainer", "drawer"]
+      }
+    },
+    {
+      "id": "plugin-dms-best-practices-order-details-blocks",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Build a custom order details page: the order's status at the top, its line items with the totals, the customer, the shipping address, and a delivery timeline.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": [
+          "dms-pages",
+          "dms-page-design",
+          "dms-builder-mcp",
+          "dms"
+        ],
+        "avoid": ["dms-mockup"],
+        "mustMention": ["TableView", "Card", "CustomComponent"]
+      }
+    },
+    {
+      "id": "plugin-dms-external-database-read-only-edit",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "the orders table over the client's postgres connection is read only, let people edit an order's status from it",
+      "expect": {
+        "skills": ["dms-external-database"],
+        "acceptable": [
+          "dms-page-design",
+          "dms-builder-mcp",
+          "dms-pages",
+          "dms"
+        ],
+        "mustMention": ["builder_set_connection_access", "writable"]
+      }
     }
   ]
 }

@@ -683,6 +683,8 @@
             "fields": {
               "_id": "id",
               "subject": "text",
+              "requester": "name",
+              "email": "email",
               "status": ["open", "in_progress", "waiting", "closed"],
               "opened_at": "date"
             }
@@ -700,6 +702,16 @@
               "subject": {
                 "name": "Subject",
                 "type": "string"
+              },
+              "requester": {
+                "name": "Requester",
+                "type": "string",
+                "group": "requester"
+              },
+              "email": {
+                "name": "Email",
+                "type": "string",
+                "group": "requester"
               },
               "status": {
                 "name": "Status",
@@ -737,6 +749,9 @@
                 "sortable": true
               }
             },
+            "columnGroups": {
+              "requester": { "label": "Requester", "description": "Who asked" }
+            },
             "tabsFrom": {
               "column": "status"
             },
@@ -749,7 +764,8 @@
               "edit": true
             },
             "formContainer": {
-              "type": "drawer"
+              "type": "drawer",
+              "direction": "right"
             }
           }
         }

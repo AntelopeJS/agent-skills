@@ -204,7 +204,7 @@
         },
         {
           "id": "form-containers",
-          "text": "The orders table, which has no formContainer in the spec, is written with formContainer { type: \"modal\" }; the support tickets table keeps { type: \"drawer\" }; the products table keeps type page with pages new, edit and details whose urlSlug is new, :id/edit and :id, each with customPage: true."
+          "text": "The orders table, which has no formContainer in the spec, is written with formContainer { type: \"modal\" }; the support tickets table keeps { type: \"drawer\", direction: \"right\" }, and its requester and email columns share one group, @Column({ group: \"requester\" }) on both and @ColumnGroup(\"requester\", { label: \"Requester\", description: \"Who asked\" }) on the table; the products table keeps type page with pages new, edit and details whose urlSlug is new, :id/edit and :id, each with customPage: true."
         },
         {
           "id": "actions-match",
@@ -251,11 +251,11 @@
       "rubric": [
         {
           "id": "custom-page",
-          "text": "The board page is a PageController registered with @RegisterPage, its title, icon and description from the spec, whose one block is a CustomComponent declared with .meta({ name, description, icon }) and drawn by a Vue component from the page's html and css, reading the cards from a route."
+          "text": "The board page is a PageController registered with @RegisterPage, its title, icon and description from the spec, built as a tree of DMS blocks rather than one full-page CustomComponent: the lanes of cards are a TableView over the cards with a kanban grouped by stage (or another block arrangement), and any part no block draws is its own CustomComponent declared with .meta({ name, description, icon })."
         },
         {
           "id": "states-handled",
-          "text": "The board's Vue component draws the empty design when the route answers no card and the error design when the request fails, and the lanes of cards otherwise."
+          "text": "The board handles the spec's empty and error states: through the blocks' own empty and error views, or, for a part built as a CustomComponent, by drawing the empty design when its route answers no card and the error design when the request fails."
         },
         {
           "id": "links-routed",
