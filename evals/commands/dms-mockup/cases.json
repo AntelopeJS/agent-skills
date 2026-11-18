@@ -3,7 +3,10 @@
     {
       "id": "interview-before-spec",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
       "prompt": "Mock up the admin for our order desk before we build anything.",
       "rubric": [
         {
@@ -23,7 +26,10 @@
     {
       "id": "custom-wish-proposed",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
       "prompt": "Mock up an orders page: revenue KPI, the orders table with customer, total and status, and a live map of our delivery drivers. That's all I need, go ahead.",
       "rubric": [
         {
@@ -36,18 +42,48 @@
         },
         {
           "id": "spec-path",
-          "text": "The spec is written, or planned, at mockups/<name>/spec.json with a kebab-case name."
+          "text": "The spec is written, or planned, at mockups/<name>/spec.json with a kebab-case name, built in steps and not in one write."
         },
         {
           "id": "fixtures-for-data",
-          "text": "Every block that reads data gets its data from a fixture of the page (fetchUrl set to fixture:<key>), with several realistic rows for the table."
+          "text": "Every block that reads data gets its data from a fixture of the page (fetchUrl set to fixture:<key>); the orders table's fixture is a $generate object with the customer, total and status fields (or a short hand-written list), not a long hand-typed row list."
+        }
+      ]
+    },
+    {
+      "id": "live-writing-steps",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
+      "prompt": "Mock up a two-page order desk: an Orders page with a revenue KPI and an orders table (customer, total, status), and a Customers page with a customers table. The answers to your questions are all in this message, go ahead. The dms MCP with mockup_write_spec and mockup_patch_spec is running, and I have /mockup?name=<name> open in my browser.",
+      "rubric": [
+        {
+          "id": "empty-first",
+          "text": "The first write of the spec is mockup_write_spec with pages: [] (a title and a source, no page yet), and the agent gives the /mockup?name=<name> link right after it, before any page is added."
+        },
+        {
+          "id": "pages-by-patch",
+          "text": "Each page is then added by its own mockup_patch_spec call with an add operation at /pages/-, first as a skeleton holding all its blocks; the spec is never written whole in one call."
+        },
+        {
+          "id": "sections-not-blocks",
+          "text": "After the skeletons, each page is filled section by section, 2 or 3 related blocks per mockup_patch_spec call, and not one call per block."
+        },
+        {
+          "id": "generate-data",
+          "text": "The orders and customers tables read $generate fixtures (the default 8 rows); hand-typed values appear only for a figure that must read true, such as the revenue KPI headline."
         }
       ]
     },
     {
       "id": "apply-annotations",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/annotated" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/annotated"
+      },
       "prompt": "I left comments on the order-desk mockup, apply them.",
       "rubric": [
         {
@@ -65,6 +101,139 @@
         {
           "id": "resolves-applied",
           "text": "The applied annotation is set to resolved with a resolvedAt date; the one waiting on the user stays open, and the report says so."
+        }
+      ]
+    },
+    {
+      "id": "database-tables-and-sections",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
+      "prompt": "Mock up the admin over our client's Postgres shop database before we build it: a sales dashboard, then a page per mapped relation. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. builder_mapping on connection erp, module erp-tables answers: sales.orders (title Orders, label number; status: display { kind: \"badge\", values: 4 }, filterable; total: display { kind: \"price\" }, no currency, and the schema names none; ordered_at: date, sortable; tabs { column: \"status\" }), sales.payments (amount: price, no currency; paid_at: date, sortable), catalog.products (name, image_url, price: price, no currency, stock), catalog.categories (name), crm.customers (name, email, city), crm.reviews (rating 1 to 5, comment), support.tickets (subject; status: native enum open, in_progress, waiting, closed, display { kind: \"badge\", values: 4 }, filterable; opened_at: date, sortable; tabs { column: \"status\" }).",
+      "rubric": [
+        {
+          "id": "badges-from-proposal",
+          "text": "The orders and tickets status columns are written with a badge display ({ kind: \"badge\", items }) of 4 toned items: the ticket items are the native enum's labels, the order items the values of the column's fixture. No status column is a bare select."
+        },
+        {
+          "id": "tabs-from",
+          "text": "The orders and tickets tables carry tabsFrom { column: \"status\" } on a filterable column, with no hand-written tabs and no color key on any tab."
+        },
+        {
+          "id": "default-displays",
+          "text": "The tickets table offers a kanban (kanban.groupByField status) as its defaultDisplay, the products table offers cards (cards in displays, card.fields) as its default, and the orders, payments and other tables open on the table."
+        },
+        {
+          "id": "views-and-prices",
+          "text": "At least one table gets saved views (views.items with a filter on a filterable column or a sort on a sortable one), and no price display names a currency the prompt does not give: the totals are plain numbers or the agent asks for the currency."
+        },
+        {
+          "id": "sections",
+          "text": "The spec has 2 to 5 categories named by job (such as Sales, Catalog, Customers), each holding 2 to 6 pages through their category field; the dashboard has no category."
+        }
+      ]
+    },
+    {
+      "id": "list-app-clicks-through",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
+      "prompt": "Mock up a small CRM: a dashboard with the deals pipeline figures, a Companies list (name, city, industry) people open to see a company with its open deals and their total, and edit it, and a Deals list (title, company, amount, stage, close date) where sales reps create and edit deals; a deal has about 12 fields in three groups (basics, money, follow-up). The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec.",
+      "rubric": [
+        {
+          "id": "detail-sub-pages",
+          "text": "The companies list gets a detail page written as a sub-page: menu false, parent naming the list page, route \":id\", the company shown by a ResourceForm with mode \"view\" reading the list's fixture, with its open deals and their total beside it. The deals list, whose details add nothing on top of the record, uses the table's own details view (rowActions.details with a modal, a drawer or no formContainer) and gets no details page."
+        },
+        {
+          "id": "row-click-opens",
+          "text": "The companies table sets rowClick \"single\" and a custom row action marked isDefault: true whose target is { type: \"page\", url: \"page:<company detail page id>\" }."
+        },
+        {
+          "id": "forms-chosen",
+          "text": "Company editing, 3 fields, opens in a modal (rowActions edit with formContainer modal, or no formContainer). The 12-field deal form opens in a right drawer (formContainer { type: \"drawer\", direction: \"right\" }) with its fields in the three groups through each column's group and the table's columnGroups, or on a form page (formContainer type page, urlSlug page:<id> and customPage: true on new and edit, the edit page with a route) whose form uses sections. The reply states the container chosen for each table."
+        },
+        {
+          "id": "pages-linked",
+          "text": "The dashboard's pipeline figures or cards link to the deals list with page:<id> (a StatGroup cell's to, a card action or a NavCardGrid item, not a KpiCard), and each detail page links back to its list (backTo or a link option naming page:<list id>)."
+        },
+        {
+          "id": "captions",
+          "text": "Every TableView in the spec has a non-blank caption."
+        }
+      ]
+    },
+    {
+      "id": "database-mockup-has-dashboard",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "prompt": "Mock up the table pages over our client's Postgres database: one page per mapped relation, that's all I asked for. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. builder_mapping on connection erp, module erp-tables answers: sales.orders (title Orders, label number; status: display { kind: \"badge\", values: 4 }, filterable; total: display { kind: \"price\" }, no currency; ordered_at: date, sortable), crm.customers (name, email, city; created_at: date, sortable), support.tickets (subject; status: native enum open, in_progress, waiting, closed, filterable; opened_at: date, sortable).",
+      "rubric": [
+        {
+          "id": "dashboard-added",
+          "text": "Although the user asked only for table pages, the spec has an analytics dashboard page, added before the table pages and with no category."
+        },
+        {
+          "id": "kpis-and-charts",
+          "text": "The dashboard holds KpiCards and at least one chart (a ChartCard around a chart, or a bare ChartBar), not KPI cards alone."
+        },
+        {
+          "id": "aggregates-of-the-data",
+          "text": "The dashboard's blocks stand for aggregates of the mapped relations: revenue as a sum of orders.total over ordered_at, counts of orders, customers or tickets, or a breakdown by a status column; no figure names a column the mapping does not list."
+        },
+        {
+          "id": "tables-kept",
+          "text": "Each of sales.orders, crm.customers and support.tickets still gets its own table page, each TableView with a caption."
+        }
+      ]
+    },
+    {
+      "id": "sketch-states-and-link",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
+      "prompt": "Mock up a delivery desk: an Orders list (number, customer, total, status) where people open an order to see it with its delivery, and on the Orders page a delivery timeline of our own design, the one from our app, steps as circles joined by a line: build it custom, I want exactly this look. The timeline must also show when no delivery exists yet and when the carrier does not answer. Each step links to the order. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec.",
+      "rubric": [
+        {
+          "id": "one-sketch",
+          "text": "The timeline is one sketch node on the Orders page; the orders list stays a TableView with its caption, and the order page is a sub-page (menu false, parent orders, route \":id\")."
+        },
+        {
+          "id": "states",
+          "text": "The sketch has a states object beside its html with a state for no delivery yet and one for the carrier failing, each named in lowercase letters, digits and hyphens (such as empty and error), none named default; the CSS stays in the sketch's one css."
+        },
+        {
+          "id": "page-link",
+          "text": "The sketch's html links to the order page with <a href=\"page:<order page id>\">, an id the spec has, and holds no other href than a page link, a #anchor or a data: URL, and no target attribute."
+        },
+        {
+          "id": "validated",
+          "text": "The agent writes through mockup_write_spec then mockup_patch_spec in small saves, and fixes and resends any patch whose errors name the sketch."
+        }
+      ]
+    },
+    {
+      "id": "read-only-connection-no-writes",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "prompt": "Mock up the admin over our client's Postgres database: an orders list and a customers list. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. builder_mapping on connection erp, module erp-tables answers access \"read\": sales.orders (title Orders, label number; status: native enum pending, paid, refunded, filterable; total: display { kind: \"price\", currency: \"EUR\" }; ordered_at: date, sortable; writes { insert: true, update: true, delete: false }), crm.customers (name, email, city; created_at: date, sortable; writes { insert: true, update: true, delete: false }).",
+      "rubric": [
+        {
+          "id": "data-written",
+          "text": "The spec has a top-level data { connection: \"erp\", access: \"read\" }."
+        },
+        {
+          "id": "no-write-actions",
+          "text": "No TableView turns on rowActions add, edit, delete, archive, restore or duplicate, none sets archiveMode or kanban.draggable, and every ResourceForm is in mode \"view\"; each table that people open keeps rowActions.details."
+        },
+        {
+          "id": "access-not-raised",
+          "text": "The agent does not call builder_set_connection_access and does not set data.access to read-write; when it mentions editing, it says the connection is read-only and that writes need the person's explicit OK."
         }
       ]
     }

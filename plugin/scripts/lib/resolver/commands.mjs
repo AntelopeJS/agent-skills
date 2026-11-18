@@ -264,7 +264,7 @@ export function cmdShow(input, json) {
 export function cmdContract(input, subpath) {
   const target = resolveTarget(input);
   const want = (subpath ?? target.defaultSubpath ?? ".").replace(/^\.\//, "");
-  const match = target.parts.find((s) => s.subpath === want);
+  const match = target.findPart(want);
   if (!match) {
     const avail = target.parts.map((s) => s.subpath).join(", ");
     fail(`No subpath '${want}' for ${target.displayName}. Available: ${avail}`);

@@ -167,6 +167,48 @@ void test("show reads an explicit subpath export whose types is a conditions obj
   );
 });
 
+void test("contract prints a nested file behind a wildcard export, as Node resolves the import", () => {
+  const root = makeTempDir();
+  try {
+    writeJson(join(root, "package.json"), {
+      name: "consumer",
+      dependencies: { "@acme/interface-wild": "^1.0.0" },
+    });
+    const pkg = join(root, "node_modules", "@acme", "interface-wild");
+    writeJson(join(pkg, "package.json"), {
+      name: "@acme/interface-wild",
+      version: "1.0.0",
+      exports: {
+        ".": { types: "./dist/index.d.ts" },
+        "./*": { types: "./dist/*.d.ts" },
+      },
+    });
+    writeFile(
+      join(pkg, "dist", "index.d.ts"),
+      "export declare const a: number;\n",
+    );
+    writeFile(
+      join(pkg, "dist", "base", "table-view", "meta.d.ts"),
+      "export declare const ArchiveField: () => PropertyDecorator;\n",
+    );
+
+    const output = runScript(SCRIPT, root, [
+      "contract",
+      "@acme/interface-wild",
+      "base/table-view/meta",
+      ...OFFLINE,
+    ]);
+
+    assert.match(
+      output,
+      /^\/\/ @acme\/interface-wild\/base\/table-view\/meta$/m,
+    );
+    assert.match(output, /export declare const ArchiveField/);
+  } finally {
+    removeDir(root);
+  }
+});
+
 /**
  * Runs the resolver with an `npm` on PATH that answers one `npm view` of
  * `@acme/interface-payments` and fails any other or later call.

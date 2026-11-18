@@ -1,6 +1,6 @@
 ---
 name: dms-best-practices
-description: Enforces the rules for building AntelopeJS DMS pages (every page a tree of DMS blocks, custom code only for the missing block, `.meta()` on every custom block), decides when to leave DMS blocks and proposes that deviation to the user, and runs the design-fidelity protocol. Use when creating or changing any DMS page, dashboard or screen, before writing a CustomComponent or Vue for one, or when the user provides a design, mockup, Figma frame or screenshot to reproduce.
+description: Enforces the rules for building AntelopeJS DMS pages (every page a tree of DMS blocks, custom code only for the missing block, `.meta()` on every custom block), finds the DMS module or block feature a need already has before anything is built (mails, tenants and SaaS, translated fields, archiving) and proposes installing a missing module, decides when to leave DMS blocks and proposes that deviation to the user, and runs the design-fidelity protocol. Use when creating or changing any DMS page, dashboard or screen, before building a feature or business logic in a DMS project (sending an email, tenants or subscriptions, translatable fields, archiving rows), before writing a CustomComponent or Vue for one, or when the user provides a design, mockup, Figma frame or screenshot to reproduce. Not for a question about one block option or DataType (dms-pages).
 ---
 
 # DMS best practices
@@ -13,10 +13,31 @@ Three facts about the project change the steps below. **dms-builder-mcp** _Detec
 - **Safe mode** is on (the builder tools are the only way to write), or not.
 - **The asking tool**: `ask_user` in the dms-assistant chat, your harness's question tool elsewhere, else one closed question in chat.
 
+## Before you build
+
+Run this before any feature, a page or business logic alike. Most needs already have a DMS module or a block feature, and a home-made copy loses its admin pages, permissions and upgrades.
+
+1. **List what the project has**: the `@antelopejs/*` dependencies of `package.json`, the modules of `antelope.config.*`, and the synced skills (**skills**). A table is `@RegisterTable("<table>", "<schema>") class X extends Table` with `@Field("<type>") declare <name>: <T>` fields and an inherited `_id` (no primary-key decorator), read and written through `GetModel(BasicDataModel(X))`. From `@antelopejs/interface-database-decorators`: `Table` and `Field` from `/table`, `RegisterTable` from `/schema`, `GetModel` and `BasicDataModel` from `/model`. **database-decorators-interface** has the rest.
+2. **Match the need.** The table holds the needs most often rebuilt. For any other, the module catalog is the resolver's `list` (**interface**): each `dms-*` interface there is a module's contract.
+
+| Need                                                     | Use                                                                                                                                                                    |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| An email, its template, its sends                        | `@antelopejs/dms-mailing`: a mail is a template, sent with `SendTemplate` and shipped with `DeclareTemplate` (`@antelopejs/interface-dms-mailing`)                     |
+| Tenants, workspaces, SaaS, plans, subscriptions, billing | `@antelopejs/dms-saas`                                                                                                                                                 |
+| An image or file on a record                             | `@antelopejs/dms-media` (`AssetType`)                                                                                                                                  |
+| A procedure run on a schedule, a webhook or a data event | `@antelopejs/dms-automation`                                                                                                                                           |
+| Translated interface texts, translations for another app | `@antelopejs/dms-lang`                                                                                                                                                 |
+| A field in several languages                             | `@Localized()` on a field of a `Table.with(LocalizationModifier)` (`@antelopejs/interface-database-decorators/modifiers/localization`); the DMS form edits each locale |
+| Archive and restore rows instead of deleting them        | `@ArchiveField()` on a `@Field("boolean")` of the `Table`, and `TableViewRoutes.Archive` / `Restore`: both from `@antelopejs/interface-dms/base`, not the decorators   |
+| Status tabs, saved views, kanban, footer totals          | `TableView` options (**dms-page-design**)                                                                                                                              |
+
+3. **Installed**: load that module's skill, or its contract through **interface**, and build on it. **Absent**: never build a copy. Open with one question, asked with the asking tool, whether you may install it, and show no code or command before it. On yes, run `ajs project modules add @antelopejs/<module>` and build on it.
+4. **Before adding a field, column, route or custom code to a block**, read what the block already offers: `builder_catalog` with the builder MCP, else the block's TSDoc through **interface**: `contract dms base/<block>` (`base/table-view`) lists what it re-exports from each file, and `contract dms base/<block>/<file>` (`base/table-view/meta`, `base/table-view/routes`) prints that file.
+
 ## The rules
 
 1. **A page is always blocks.** Describe every page on the backend as a tree of DMS blocks: `PeriodSelector`, `Grid` / `GridRow`, `KpiCard`, `TableView`, `Form`, … Each static field and each `.child()` is a line in the roles editor, a `.watch()` target, a `periodScope` subscriber and a node the builder can move. One block that draws the whole screen loses all of that.
-2. **Custom = the missing block only.** When a part has no DMS equivalent, build **that block** as a `CustomComponent` and keep everything around it (toolbar, filters, stats, tables) as DMS blocks on the backend.
+2. **Custom = the missing block only.** When a part has no DMS equivalent, build **that block** as a `CustomComponent` and keep everything around it (toolbar, filters, stats, tables) as DMS blocks on the backend. A whole custom page too, as _Custom pages are blocks_ says.
 3. **Every custom block carries `.meta()`.** `.meta({ name, description, icon })` in its backend declaration, `name` and `description` as `$` i18n keys added to every locale file. Without it the roles editor shows the raw component name. Every other text (page names, titles, labels) is a `$` key too.
 
 ```ts
@@ -44,6 +65,12 @@ A custom block is a deviation, and you **propose** it: the user decides, after t
 | The interaction model differs: a drag-and-drop canvas, real-time collaborative editing | The DMS block only "looks slightly different" from the mockup                                            |
 | The user asked for pixel perfect on **this** element                                   | Another element of the page is custom: a custom block never pulls its neighbours along                   |
 | A measured constraint (performance, data volume) the block cannot meet                 | The constraint is a guess, not a measurement                                                             |
+
+## Custom pages are blocks
+
+A **custom page** is a page the user designs rather than one a table generates: a mockup's `custom: true` sketch ([SPEC.md](../dms-mockup/SPEC.md) _Custom pages_) or a custom page asked for directly. Build it as a tree of DMS blocks (`TableView`, `KpiCard` / `StatGroup`, `Card`, `ResourceForm`, a `ChartCard`, …), and only the parts no block draws as `CustomComponent`s, each through the path below, with its `.meta()` and a permissioned `.action()` per action it takes. A page whose one block is a full-page `CustomComponent` is never the result.
+
+An order details page, say, becomes a header with a status badge, a `TableView` of the items with a totals row (`footer.summary`), and `Card`s for the customer and the shipping. Only a timeline, when no block draws it, is a `CustomComponent`.
 
 ## Before any custom block
 

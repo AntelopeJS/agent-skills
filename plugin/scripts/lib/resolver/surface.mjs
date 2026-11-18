@@ -111,6 +111,31 @@ export function subpaths(entry) {
 }
 
 /**
+ * The part a wildcard `exports` key maps `sub` to, as Node resolves an import:
+ * `*` matches any text, slashes included, so `./*` reaches nested files that
+ * {@link subpaths} does not list.
+ * @param {PackageEntry} entry
+ * @param {string} sub A subpath without its leading `./`.
+ * @returns {InterfacePart | undefined}
+ */
+export function wildcardPart(entry, sub) {
+  if (sub.split("/").includes("..")) return undefined;
+  for (const [key, target] of entriesOf(entry.pkg.exports)) {
+    const [prefix, suffix, ...rest] = key.replace(/^\.\//, "").split("*");
+    if (suffix === undefined || rest.length > 0) continue;
+    if (sub.length < prefix.length + suffix.length) continue;
+    if (!sub.startsWith(prefix) || !sub.endsWith(suffix)) continue;
+    const types = isRecord(target) ? typesTarget(target.types) : null;
+    if (!types) continue;
+    const match = sub.slice(prefix.length, sub.length - suffix.length);
+    const dts = join(entry.dir, types.replaceAll("*", match));
+    if (existsSync(dts))
+      return { subpath: sub, import: `${nameOf(entry.pkg)}/${sub}`, dts };
+  }
+  return undefined;
+}
+
+/**
  * The interface "groups" a host package exposes: a directory under
  * `<baseUrl>/interfaces/<group>` (or the singular `<baseUrl>/interface`). Returns
  * [{ name, sub }] where `sub` is the import subpath of the group's entry point.

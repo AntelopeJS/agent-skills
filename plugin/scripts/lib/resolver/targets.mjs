@@ -24,7 +24,12 @@ import {
   splitSpec,
   versionOf,
 } from "./support.mjs";
-import { dmsGroupParts, dmsGroups, subpaths } from "./surface.mjs";
+import {
+  dmsGroupParts,
+  dmsGroups,
+  subpaths,
+  wildcardPart,
+} from "./surface.mjs";
 
 /**
  * @typedef {import("./support.mjs").PackageEntry} PackageEntry
@@ -41,6 +46,7 @@ import { dmsGroupParts, dmsGroups, subpaths } from "./surface.mjs";
  * @property {string} versionsPkg
  * @property {InterfacePart[]} parts The uniform `[{subpath, import, dts}]` list both show and contract consume.
  * @property {string} defaultSubpath
+ * @property {(subpath: string) => InterfacePart | undefined} findPart The part `contract` prints for a subpath.
  */
 
 /**
@@ -48,12 +54,15 @@ import { dmsGroupParts, dmsGroups, subpaths } from "./surface.mjs";
  * @returns {Target}
  */
 function pkgTarget(entry) {
+  const parts = subpaths(entry);
   return {
     entry,
     displayName: shortName(nameOf(entry.pkg)),
     versionsPkg: nameOf(entry.pkg),
-    parts: subpaths(entry),
+    parts,
     defaultSubpath: ".",
+    findPart: (sub) =>
+      parts.find((s) => s.subpath === sub) ?? wildcardPart(entry, sub),
   };
 }
 
@@ -75,6 +84,7 @@ function dmsTarget(entry, group, focusSub) {
     versionsPkg: nameOf(entry.pkg),
     parts,
     defaultSubpath: rel,
+    findPart: (sub) => parts.find((s) => s.subpath === sub),
   };
 }
 

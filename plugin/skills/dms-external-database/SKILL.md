@@ -38,7 +38,8 @@ read only. Nothing is written before the integrator approves your plan.
 
 Call `database_connections`.
 
-- **A connection is listed** with an `engine`: use its id and go to 2.
+- **A connection is listed** with an `engine`: use its id and go to 2. When the integrator chose
+  read & write as they connected it, raise its access first, as _Connection access_ says.
 - **An entry answers `error`**: say what it says (an owned instance, the catalog not enabled, a
   role that cannot read) and stop.
 - **A database tool answers `unreachable_connection`**: the DMS MCP reaches only the catalog
@@ -51,19 +52,20 @@ Call `database_connections`.
   (`mysql-erp`, `mongodb-erp`, `rethinkdb-erp`), generated module `erp-tables`, variable
   `ERP_DATABASE_URL`, and for MongoDB `ERP_DATABASE_NAME`. Ask the integrator for the version of
   the engine's module to install (`@antelopejs/postgres`, `@antelopejs/mysql` for MySQL and
-  MariaDB alike, `@antelopejs/mongodb`, `@antelopejs/rethinkdb`): you cannot look it up. The user
-  approves the diff. Safe mode refuses `builder_configure_project`: ask the integrator to turn it
-  off for this one call.
+  MariaDB alike, `@antelopejs/mongodb`, `@antelopejs/rethinkdb`): you cannot look it up. Ask
+  the read-or-write question of _Connection access_. The user approves the diff. Safe mode
+  refuses `builder_configure_project`: ask the integrator to turn it off for this one call.
   - Then tell the integrator to put the URL in `.env` (`ERP_DATABASE_URL=postgres://…`,
     `mysql://…/<database>` for MySQL and MariaDB, `mongodb://…`, or `rethinkdb://…/<database>`;
     for MongoDB also `ERP_DATABASE_NAME`), or in the builder's _Database_ workspace when the
     project has one, which writes it there, and to restart the project. Every deployed
     environment needs the same variables, set where that environment keeps its secrets, never in
     git.
-  - Recommend an account that can only read for the analysis: a PostgreSQL role with SELECT, a
-    MySQL or MariaDB account granted SELECT on the database directly (the module does not see a
-    grant through a role), a MongoDB user with the built-in `read` role, a RethinkDB user with
-    `read` permission.
+  - Recommend an account that can only read: a PostgreSQL role with SELECT, a MySQL or MariaDB
+    account granted SELECT on the database directly (the module does not see a grant through a
+    role), a MongoDB user with the built-in `read` role, a RethinkDB user with `read`
+    permission. On read & write, the account also needs write privileges on the tables the
+    dashboard changes.
   - Stop here: the connection exists only after the restart.
 
 The builder and you each have a connection to the database, under the same id: the builder for
@@ -111,14 +113,17 @@ profile of the whole database again: the Builder did it.
   never from the database. An embedded document is one field: its subfields are not mappable, and
   neither is an array of ids as a relation.
 - **Editable.** Every TableView is proposed read-only. Make one editable only where the integrator
-  wants it; show `writes` beside it, so a read-only role in this environment is visible.
+  wants it and the connection's `access` is `read-write` (_Connection access_); show `writes`
+  beside it, so a read-only role in this environment is visible.
 - **Pages people can work with.** Load the `dms-page-design` skill. For every TableView, plan
   from its columns and their profiles (types, traits, distinct counts), as _Name every page_
   and _Tables_ there say: a title, an icon and a description; the tabs, saved views, display
-  modes, footer totals and KPI cards its shape supports. Decide each from that shape, and
-  leave out what it does not support. You never read a row's values.
-- **The analytics dashboard,** which the analysis does not make. Every run ends with one,
-  first in the menu, even when the integrator only asked for the tables. Plan it from the data:
+  modes, footer totals and KPI cards its shape supports; where its details and forms open, as
+  _Records, forms and links_ there picks. Decide each from that shape, and leave out what it
+  does not support. You never read a row's values.
+- **The analytics dashboard,** which the analysis does not make. Every run plans and builds
+  one, even when the integrator only asked for the tables, as `dms-page-design` _The analytics
+  dashboard_ says. Plan it from the data:
   1. **Inspect.** For each relation, read from the proposal its row count, its `time-axis`
      columns, its `measure` columns, and its `enum-like` columns with their distinct counts
      and, for a native enum, the labels its schema declares (`database_describe`). That shape
@@ -137,11 +142,14 @@ profile of the whole database again: the Builder did it.
      _Period_ there sets it.
 - **The minimum.** Your plan, and the pages you write, meet all of these:
   - one analytics dashboard, first in the connection's menu (`order: 0`), opened by a toolbar
-    with a period selector when the data has dates;
+    with a period selector when the data has dates, its KPI cards and charts each reading a
+    query over a mapped relation;
   - every page with a title in the owner's words, an icon and a description, never the raw
     relation name;
   - every table given the tabs, views, display modes, footer totals and KPI cards its data
     supports, as `dms-page-design` _Tables_ decides;
+  - 6 or more pages grouped into sections, as `dms-page-design` _Group pages into sections_
+    says;
   - at least 3 different chart kinds on it when the data has the shapes for them;
   - the default period `dms-page-design` _Period_ sets;
   - every page built with one `builder_compose_page` call, previewed first, and every block whose
@@ -152,8 +160,8 @@ profile of the whole database again: the Builder did it.
   never as pages.
 
 Write your plan (`ExitPlanMode` in plan mode, a message otherwise) in the format of REFERENCE.md _Plan_: what you change in the
-proposal and why, the questions and the analytics pages that answer them, the open items you
-leave, and what is not possible yet.
+proposal and why, the questions and the analytics pages that answer them, the sections, the
+open items you leave, and what is not possible yet.
 
 ## 4. Validate
 
@@ -162,36 +170,47 @@ again. Write nothing before they approve it (**Run** in the dms-assistant chat).
 
 ## 5. Apply
 
-Work in this order, so the most visible result lands first: map the tables, build the
-dashboard and check it, then add KPI rows above tables, then any second analytics page.
+Work in this order, so the most visible result lands first: create the sections, map the
+tables into them, build the dashboard and check it, then add KPI rows above tables, then any
+second analytics page.
 
-1. `builder_map_resources` in batches of 3 or 4 relations per call, TableViews and stats-only
+1. The sections you planned: one `builder_create_category` per section, `module` set to the
+   generated module (a category of another module cannot hold its pages). Keep each section's
+   ref.
+2. `builder_map_resources` in batches of 3 or 4 relations per call, TableViews and stats-only
    relations alike; the relations decided against go in `excluded` on the first call
    (REFERENCE.md _Mapping_). One call with every relation of a large database can abort.
    - Send the proposal's choices as they stand where you changed nothing, except `display`,
      which you leave out (REFERENCE.md _Mapping_), plus per resource
-     the `title`, `icon`, `description` and `tableOptions` you planned.
+     the `title`, `icon`, `description` and `tableOptions` you planned, and as `category` the
+     ref of its page's section.
    - On `invalid_config`, fix the choice it names and call again: a refused call writes nothing.
      When the same choice is refused twice, drop it (send the relation without that display or
      option) and say so in your report, rather than trying more variants.
    - It answers each relation's `ref`, which queries name it by, `category`, the connection's
      category ref (`pages.<connection>`), and `leftOut`: carry those into your report.
-2. Per analytics page, one `builder_compose_page` call with `create` (`name`, `displayName`,
+3. Per analytics page, the dashboard first and never skipped, one `builder_compose_page` call with `create` (`name`, `displayName`,
    `module` set to the generated module, `category` set to the `category` MapResources
    answered, an icon, a description, and `order: 0` for the dashboard, 1, 2… for the next
    ones) and every block in the order `dms-page-design` lays out, each data block with its
    query inline. Preview first, then write, as `dms-page-design` _Build a page in one call_
    says.
    - Queries read the mapped resources by their refs (`<connection>/<schema>/<relation>`).
-3. Per table page that gets KPI cards above its table, one `builder_compose_page` call with
+4. Per table page that gets KPI cards above its table, one `builder_compose_page` call with
    `placement: { "before": "table" }`, previewed first. When MapResources answers `page_not_written`
    for a relation's table options, none of them was written: send them all again with
    `builder_configure_table_view`, the refused one fixed or left out. Tabs it dropped stay off:
    say so in your report.
 
+The main dashboard stays in the connection's category, outside every section; a section's own
+dashboard takes that section's ref as `category`.
+
 To change a relation later, read its current choices with `builder_mapping`, then call
 `builder_map_resources` with that relation alone, its included columns as they are and only your
-change made: a mapped relation is rewritten from the choices sent, and its page follows.
+change made: a mapped relation is rewritten from the choices sent, and its page is updated where
+it is. A remap with no `title` keeps the page's current title: send `title` only to rename the
+page. Send `category` only to move the page to another section:
+its route changes (a `route_changed` warning), and nothing redirects the old one.
 
 ## 6. Check
 
@@ -209,12 +228,44 @@ change made: a mapped relation is rewritten from the choices sent, and its page 
 Then report:
 
 - what the builder mapped by its rules, and what you changed;
-- the pages made, with each analytics page's default period,
-  and per table the features you gave it and why;
+- the dashboard: its route, and each KPI card and chart with the aggregate it reads;
+- the pages made, with each analytics page's default period, the section each table page
+  sits in, and per table the features you gave it and why;
 - every block that still shows no data, and why;
 - what was left out and why;
 - the open items left, which the integrator finds in the builder's _Database_ workspace;
 - the variable every deployment must set.
+
+## Connection access
+
+A connection's access is `"read"` (the default) or `"read-write"`: what the project lets the
+dashboard write to the database. `builder_analyse_database` and `builder_mapping` answer it at
+the top level as `access`, and each resource's `writes` (`{ insert, update, delete }`) says what
+the database account may do in that relation. This holds in every flow over a connected
+database: a mockup, a page built through the builder or in code.
+
+- **On `read`**: propose no write action (add, edit, delete, archive, restore, duplicate,
+  `archiveMode`, a draggable kanban, a `ResourceForm` not in `mode: "view"`), and map every
+  relation `writable: false`. A mockup over the connection writes `data`, and the validator
+  refuses those options there ([SPEC.md](../dms-mockup/SPEC.md) _Connection access_).
+- **Connecting**: ask "only read, or also change rows?". The connect batch writes
+  `access: "read"` either way. On read & write, raise it as below once `database_connections`
+  lists the connection after the restart.
+- **The integrator asks for add, edit or delete on a `read` connection**: say the connection is
+  read-only, and ask for an explicit OK. On yes:
+  1. Call `builder_set_connection_access` with
+     `{ "connection": "<id>", "access": "read-write" }`. Its first call answers
+     `confirmation_required` and writes nothing; the same call repeated within 10 minutes runs
+     it. Safe mode refuses it: ask the integrator to turn Safe mode off for this one call.
+  2. Remap each relation with `writable: true` (a later change, as _5. Apply_ says), then add
+     the actions **dms-page-design** _Records, forms and links_ decides. In a mockup, set
+     `data.access` to `read-write` and add them to the spec.
+  - Refused because the account may write nothing (`invalid_config`): tell the integrator to
+    grant the account write privileges on those tables. A relation the account still cannot
+    write maps `writable: false` with a `relation_read_only` warning: report it.
+  - The builder reads the new access at once. The running backend applies it to the write
+    routes when it restarts, which `ajs project dev` does on its own.
+- Raise an access only on the integrator's explicit OK.
 
 ## Guardrails
 

@@ -1,6 +1,6 @@
 ---
 name: dms-page-design
-description: Designs AntelopeJS DMS pages that show data. Use when building or changing an analytics, stats or dashboard page or a table page, choosing a chart or a KPI for some data, picking a page's period, naming a page and its icon, or deciding how a table displays (badges, prices, relation labels, status tabs, saved views, kanban, cards, footer totals, KPI cards above the table).
+description: Designs AntelopeJS DMS pages that show data. Use when building or changing an analytics, stats or dashboard page or a table page, choosing a chart or a KPI for some data, picking a page's period, naming a page and its icon, grouping an app's pages into menu sections, giving a list its details view and forms, linking pages together, or deciding how a table displays (badges, prices, relation labels, status tabs, saved views, kanban, cards, footer totals, KPI cards above the table).
 ---
 
 # Designing data pages
@@ -52,6 +52,23 @@ arguments are in `dms-builder-mcp`, the code in `dms-pages`.
   currency is the euro, and a wrong symbol is worse than none.
 - Grouping by a foreign key shows ids. Group by the relation's own columns only; a breakdown by
   a related entity's name goes under _Not possible yet_ in your report.
+
+## The analytics dashboard
+
+An app over an external database always has an analytics dashboard, asked for or not: every
+plan, mockup and build over that data proposes and builds it.
+
+- It holds `KpiCard`s and charts over real aggregates of the relations: sums of their measures
+  and row counts, over their time axis and their category columns. A build reads each one
+  through a query on a mapped relation, never a `static*` value; a mockup's fixtures stand for
+  those queries.
+- It is laid out as _Lay out an analytics page_ says and sits first in the menu (`order: 0`),
+  outside every section.
+- An app of 3 or more sections may also give each section a dashboard of its own, first in
+  that section.
+
+An app over a database is not done without that dashboard, or with one whose figures are not
+aggregates of the data.
 
 ## Lay out an analytics page
 
@@ -115,6 +132,22 @@ never a title.
 Set them with `builder_create_page` on new pages, per resource in `builder_map_resources`
 (`title`, `icon`, `description`, `order`), or with `builder_configure_page` afterwards.
 
+## Group pages into sections
+
+An app of 6 or more pages is grouped into 2 to 5 **sections** by job, each titled in the
+owner's words with an icon of its own: Sales (Orders, Payments, Coupons), Catalog (Products,
+Categories), Customers (Customers, Reviews, Support tickets). Each section holds 2 to 6 pages;
+a page with no partner joins the nearest section. The main dashboard sits on top, outside every
+section: it stays in the category it is created in. A section's own dashboard (_The analytics
+dashboard_) sits first in its section. An app of fewer pages has no sections. You decide the sections; the user edits them.
+A page that belongs in a section the project has already goes there: in a mockup, a section of
+that exact title, which the viewer draws as the app's own.
+
+A section is a menu category: `builder_create_category` (`name`, `displayName`, `icon`,
+`order`, `module`) answers its `ref`, which `builder_create_page` takes as `category`,
+`builder_map_resources` per resource as `category` (create the section first, in the tables'
+`module`), and `builder_configure_page` in `{ "category": "<ref>" }` to move a page there.
+
 ## Tables
 
 A table page is a working tool: the reader finds a row, sees its state, and acts. Read the
@@ -123,6 +156,9 @@ is one), then give the table every feature its data supports, and none it does n
 rule below names the shape that earns the feature; decide from the columns' types, traits and
 distinct counts, never from the relation's name. You never read a row's values: a value you
 name comes from the schema, as a native enum's label.
+
+**Caption.** Every table has a caption, the title above its rows: its page's title for the
+page's main table, the question it answers otherwise ("Orders awaiting shipment").
 
 **Columns.** A primary key gets no display and is never a row's label. A boolean keeps its
 default display (no badge). A column that a view filters on, a tab splits on, or a footer
@@ -159,8 +195,9 @@ first, the highest amount first). Each view has a short label that states the qu
 top, and `count: true` when the number itself matters. Keep views and tabs from repeating each
 other: views for questions that cross columns or dates, tabs for the plain split by state.
 
-**Display modes.** Offer another display when the data reads better that way, and make it the
-default only when it is the main way to work the table:
+**Display modes.** Offer another display when the data reads better that way. The default
+display (`defaultDisplay`) is the kanban for a status workflow, the cards for a catalogue whose
+rows carry an image, and the table otherwise:
 
 - **Kanban** (`kanban.groupBy`) when a single-choice status or stage column drawn as a badge
   (by the Builder or over a native enum) describes a flow
@@ -188,6 +225,62 @@ Set displays, views and footer per resource as `tableOptions` in `builder_map_re
 an existing page with `builder_configure_table_view`. Through `builder_configure_table_view`
 a refused choice comes back as `invalid_config` with the setting it names: fix that one and
 send again. Through `builder_map_resources` it comes back as a `page_not_written` warning.
+
+## Records, forms and links
+
+An app clicks through: from a figure to its rows, from a row to its record, and back.
+
+- **A record needs a details view.** A list whose records the reader acts on (opens, edits,
+  approves, follows up) gets one; a lookup list (tags, settings, reference data) gets none.
+- **Pick each table's details view and its add and edit forms.** When the user named none,
+  pick the most usable one per table from the tables below, and state each choice in your plan
+  or summary ("Customers: details, add and edit in a right drawer"). A mockup shows
+  it, so the user can change it. The real `TableView` with no `formContainer` opens a page per
+  form: write the chosen container explicitly, with `builder_configure_block` on the table or
+  in the page class.
+
+  | Details view                                                | When                                            |
+  | ----------------------------------------------------------- | ----------------------------------------------- |
+  | `{ "type": "modal" }`, `size` `sm` to `full` (default `xl`) | about 8 fields or fewer, a quick look           |
+  | `{ "type": "drawer", "direction": "right" }`                | reading a row while the list stays in view      |
+  | `{ "type": "drawer" }` (`direction: "bottom"`, the default) | wide content, such as line items or a sub-table |
+  | `{ "type": "page" }`, a generated page                      | a long record, or one people share by link      |
+
+  | Add and edit forms                           | When                    |
+  | -------------------------------------------- | ----------------------- |
+  | `{ "type": "modal" }`                        | up to about 6 fields    |
+  | `{ "type": "drawer", "direction": "right" }` | 7 to 15 fields          |
+  | `{ "type": "page" }`, a generated page       | long or sectioned forms |
+
+  One table has one `formContainer`: when its details view and its forms point at different
+  containers, take the one for the forms when people edit rows, else the one for the details.
+
+- **Group the fields.** Related fields (contact, address, billing) share a group. A generated
+  form groups the columns `@ColumnGroup(id, config)` and `@Column({ group })` declare; a mockup
+  writes a column's `group` and the table's `columnGroups`. A `ResourceForm` or a `Form` takes
+  `sections` (`{ id, label, description?, icon?, fields }`) with `sectionNav` `side`, `jump` or
+  `none`, and field groups `{ id, label?, fields }` inside them.
+- **A custom details page is the user's call.** A details page of blocks, such as a `StatGroup`
+  or `KpiCard`s above a `ResourceForm` in `mode: "view"`, or the record's related lists, is
+  never chosen unasked. When it would clearly help, suggest it in one sentence ("a details page
+  could show the order's KPIs above the record, want it?") and build it only on a yes: a
+  sub-page of the list, left out of the menu, that opens on a click on its row, built as
+  **dms-best-practices** _Custom pages are blocks_ says.
+- **Turn on only the actions the reader takes.** A connected database's table writes only on a
+  `read-write` connection, as **dms-external-database** _Connection access_ says.
+- **Archive in place of delete** when records must not be erased (invoices, orders, people):
+  `archiveMode: true` on the `TableView` gives Archive and Restore: archive, edit and duplicate
+  on active rows, restore and delete on archived ones, behind a _Show archived_ toggle. The
+  archive field is `isArchived` (`@ArchiveField` in code). Only on a table that writes rows, so
+  over a connected database only with `read-write` access.
+- **Link pages together.** Every summary links to what it summarises: a KPI or a card to the
+  table it counts, a dashboard tile to its page, a detail page back to its list, a toolbar
+  button to the page it opens. `KpiCard` takes no link: a figure that links is a `StatGroup`
+  cell (`to`), or sits in a `Card` whose head action (`actions: [{ label, to }]`) opens the
+  table.
+
+A mockup writes these as [SPEC.md](../dms-mockup/SPEC.md) _Links and sub-pages_, _Table
+forms_ and _Archive mode_ say.
 
 ## Build a page in one call, and check it first
 

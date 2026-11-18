@@ -8,6 +8,7 @@ import {
   codexPrompt,
   execRun,
   readExecutorRecords,
+  spawnRun,
 } from "../scripts/lib/executors.mjs";
 import { MATRIX } from "../scripts/lib/matrix.mjs";
 import { listTasks, readAnswer, writeRun } from "../scripts/lib/requests.mjs";
@@ -213,6 +214,44 @@ void test("the codex call gets a home with only the auth link and reads the repl
   assert.deepEqual(failed, []);
   assert.equal(homes[0].includes("codex-home"), true);
   assert.equal(exists(homes[0]), false);
+});
+
+void test("a missing codex CLI is reported once, leaves its requests pending and spares the other models", async () => {
+  writeRun({
+    dir,
+    cases: [caseOf("pages", ["dms-pages"]), caseOf("tables", ["dms-pages"])],
+    skills: [skillOf("dms-pages")],
+    models: [OPUS, CODEX],
+    options: { modes: ["trigger"] },
+  });
+  /** @type {SpawnCall[]} */
+  const calls = [];
+  const claude = fakeRun(calls);
+  /** @type {SpawnRunner} */
+  const run = (call) => {
+    calls.push(call);
+    return call.command === "claude" ? claude(call) : spawnRun(call);
+  };
+
+  const { failed, missing } = await execRun({
+    dir,
+    options: {
+      run,
+      jobs: 1,
+      bins: { claude: "claude", codex: join(dir, "no-codex") },
+    },
+  });
+
+  assert.deepEqual(failed, []);
+  assert.deepEqual(missing, ["codex"]);
+  assert.equal(calls.filter((call) => call.command !== "claude").length, 1);
+  assert.ok(exists(join(dir, OPUS.id, "trigger", "tables.1.answer.txt")));
+  for (const file of [
+    "trigger/pages.1.error.txt",
+    "trigger/tables.1.error.txt",
+    "executor.json",
+  ])
+    assert.equal(exists(join(dir, CODEX.id, file)), false, file);
 });
 
 void test("an executor.json written by hand keeps its well-typed fields and drops the others", () => {

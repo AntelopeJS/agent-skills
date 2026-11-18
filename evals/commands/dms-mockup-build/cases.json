@@ -3,7 +3,10 @@
     {
       "id": "plan-before-build",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/order-desk"
+      },
       "prompt": "The order-desk mockup is approved. Build the real pages from it.",
       "rubric": [
         {
@@ -23,7 +26,10 @@
     {
       "id": "code-path-without-mcp",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/order-desk"
+      },
       "prompt": "Build the order-desk mockup into real pages. I approve your plan in advance, go.",
       "rubric": [
         {
@@ -47,7 +53,10 @@
     {
       "id": "verify-loop",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/order-desk"
+      },
       "prompt": "Build the orders page of the order-desk mockup (plan approved in advance), then prove it works and fix what fails. The dms MCP with page_verify is running.",
       "rubric": [
         {
@@ -75,7 +84,10 @@
     {
       "id": "failure-left-after-three-rounds",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/order-desk"
+      },
       "prompt": "Build the orders page of the order-desk mockup (plan approved in advance) and prove it works. The dms MCP with page_verify and preview_blocks is running; the drivers map must read /api/drivers, a fixed route that answers 500 whatever you change.",
       "rubric": [
         {
@@ -99,7 +111,10 @@
     {
       "id": "fallback-without-page-verify",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/order-desk" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/order-desk"
+      },
       "prompt": "Build the orders page of the order-desk mockup (plan approved in advance) and check it against the mockup. This DMS is older: its MCP has no page_verify tool.",
       "rubric": [
         {
@@ -119,7 +134,10 @@
     {
       "id": "converted-page-apply-first",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/ops-desk" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/ops-desk"
+      },
       "prompt": "Build the ops-desk mockup into its live pages (plan approved in advance). The builder MCP and the dms MCP are running, with page_verify and mockup_apply_to_page among their tools. No tool has been called yet; when you call them, they answer as follows. builder_page_structure returns version 3fa2b7 for /orders and b2c9f0 for /customers. mockup_apply_to_page called with { mockup: \"ops-desk\", page: \"orders\" } returns { \"ok\": true, \"outcome\": \"applied\", \"livePage\": { \"ref\": \"/orders\", \"version\": \"5e88a1\" }, \"stamped\": true, \"preserved\": [\"orders_table\"], \"written\": [\"revenue\"], \"added\": [\"late_orders\", \"drivers_map\"], \"removed\": [], \"wiring\": [{ \"pointer\": \"/pages/0/tree/1\", \"id\": \"late_orders\", \"type\": \"KpiCard\", \"reason\": \"data\" }, { \"pointer\": \"/pages/0/tree/3\", \"id\": \"drivers_map\", \"type\": \"sketch\", \"reason\": \"custom-component\" }] }, and called with { mockup: \"ops-desk\", page: \"customers\" } returns { \"ok\": false, \"error\": \"stale\", \"livePage\": { \"ref\": \"/customers\", \"version\": \"7d10c4\" }, \"currentVersion\": \"b2c9f0\" }.",
       "rubric": [
         {
@@ -137,6 +155,115 @@
         {
           "id": "stale-asks-user",
           "text": "For customers, the agent writes nothing to /customers and asks the user one question saying the page changed in code (version 7d10c4 against b2c9f0), offering to convert it again with mockup_from_page { pageRef: \"/customers\", replace: true } or to build anyway."
+        }
+      ]
+    },
+    {
+      "id": "keeps-table-options-and-sections",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/shop-admin"
+      },
+      "prompt": "Build the approved shop-admin mockup (plan approved in advance). Its tables stand for the client's Postgres relations, connection erp, generated module erp-tables, none mapped yet: sales.orders, sales.payments, catalog.products, catalog.categories, crm.customers and support.tickets. builder_analyse_database proposes a badge on sales.orders.status and support.tickets.status, tabs on both, and a price with no currency on sales.orders.total, sales.payments.amount and catalog.products.price; the integrator says the shop sells in EUR. The builder MCP is running.",
+      "rubric": [
+        {
+          "id": "maps-with-builder",
+          "text": "Each table is built with builder_map_resources on connection erp and module erp-tables, not with builder_create_resource or a hand-written TableView."
+        },
+        {
+          "id": "keeps-badges-and-prices",
+          "text": "The status columns are sent without a display, or with the badge the Builder proposes, never as display null; the totals, amounts and prices are sent as { kind: \"price\", currency: \"EUR\" }."
+        },
+        {
+          "id": "table-options-renamed",
+          "text": "The tickets table is sent with tabs { column: \"status\" } and tableOptions with kanban.groupBy status and defaultDisplay kanban; the products table with tableOptions.cards and defaultDisplay cards; the orders views with their filters and sorts naming column, not accessorKey or field."
+        },
+        {
+          "id": "sections-created",
+          "text": "Before mapping, the agent calls builder_create_category for Sales, Catalog and Customers, in that order, each with module erp-tables, and sends each resource to builder_map_resources with its section's ref as category and its spec page's title; it never moves a mapped page with builder_configure_page. The Overview dashboard stays outside the sections."
+        }
+      ]
+    },
+    {
+      "id": "translates-links-subpages-forms",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/shop-admin"
+      },
+      "prompt": "Build the approved shop-admin mockup in code on this project's own data: one Table and DataController per table, no connected database. I approve your plan in advance, go. The builder MCP is not running.",
+      "rubric": [
+        {
+          "id": "detail-sub-page",
+          "text": "The order detail page is a page class registered under the orders page's route with a parameter (urlSlug ending in orders/:id), hidden: true so the menu leaves it out, and parent naming the orders page class; the product, product-edit and product-new pages are registered the same way under the products page (products/:id, products/:id/edit, products/new). The order and product detail pages show the record with a ResourceForm in mode \"view\", the product-edit page in mode \"edit\"."
+        },
+        {
+          "id": "row-link",
+          "text": "The orders table keeps rowClick single and a custom row action marked isDefault whose target is the real route of the order page with the row's id filled in (such as /sales/orders/{{row._id}} or /orders/{{row._id}}), never a page:order string or a /mockup URL."
+        },
+        {
+          "id": "form-containers",
+          "text": "The orders table, which has no formContainer in the spec, is written with formContainer { type: \"modal\" }; the support tickets table keeps { type: \"drawer\", direction: \"right\" }, and its requester and email columns share one group, @Column({ group: \"requester\" }) on both and @ColumnGroup(\"requester\", { label: \"Requester\", description: \"Who asked\" }) on the table; the products table keeps type page with pages new, edit and details whose urlSlug is new, :id/edit and :id, each with customPage: true."
+        },
+        {
+          "id": "actions-match",
+          "text": "Each table turns on exactly the add, edit and details actions its spec rowActions writes, and writes false for the ones it leaves out (such as details on orders and on tickets, and every action on payments, categories and customers), with the add and edit forms saving through the table's DataController."
+        },
+        {
+          "id": "links-resolved",
+          "text": "The Overview StatGroup cells and every backTo or redirectOnSuccess point at the real routes of the orders, support tickets and products pages; no page: or fixture: string is left in any page class, and every TableView keeps its caption."
+        }
+      ]
+    },
+    {
+      "id": "builds-dashboard-over-database",
+      "harness": "claude",
+      "fixture": { "type": "skeleton", "dir": "fixtures/shop-admin" },
+      "prompt": "Build the approved shop-admin mockup (plan approved in advance). Its tables stand for the client's Postgres relations, connection erp, generated module erp-tables, none mapped yet: sales.orders (total, status, ordered_at), sales.payments, catalog.products, catalog.categories, crm.customers and support.tickets (status, opened_at). The integrator says the shop sells in EUR. The builder MCP and the dms MCP with page_verify are running.",
+      "rubric": [
+        {
+          "id": "dashboard-built",
+          "text": "The Overview is built with builder_compose_page (previewed first, then written), with order 0 and no section category: it sits outside Sales, Catalog and Customers."
+        },
+        {
+          "id": "real-aggregates",
+          "text": "The Overview's revenue KpiCard and its revenue chart each read a query over the mapped sales.orders resource (a sum of total by ordered_at), and neither keeps a staticValue, a staticDelta or a fixture: URL."
+        },
+        {
+          "id": "mapped-before-dashboard",
+          "text": "The agent maps the tables with builder_map_resources before it composes the Overview, and the Overview's queries name the ref that call answered for sales.orders."
+        },
+        {
+          "id": "dashboard-verified",
+          "text": "The agent verifies the Overview with page_verify like the other pages, and treats a KPI card or chart on it that shows no data or a static figure as a failure to fix, not as a pass."
+        }
+      ]
+    },
+    {
+      "id": "builds-custom-page-and-sidebar-widget",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/team-board"
+      },
+      "prompt": "Build the approved team-board mockup in code on this project's own data: a Table and DataController for the cards. I approve your plan in advance, go. The builder MCP is not running, and Safe mode is off.",
+      "rubric": [
+        {
+          "id": "custom-page",
+          "text": "The board page is a PageController registered with @RegisterPage, its title, icon and description from the spec, built as a tree of DMS blocks rather than one full-page CustomComponent: the lanes of cards are a TableView over the cards with a kanban grouped by stage (or another block arrangement), and any part no block draws is its own CustomComponent declared with .meta({ name, description, icon })."
+        },
+        {
+          "id": "states-handled",
+          "text": "The board handles the spec's empty and error states: through the blocks' own empty and error views, or, for a part built as a CustomComponent, by drawing the empty design when its route answers no card and the error design when the request fails."
+        },
+        {
+          "id": "links-routed",
+          "text": "Each card on the board links to the real route of the card page with its id (such as /board/<id>), the card page is registered under the board's route with :id, hidden: true and parent naming the board page class, showing a ResourceForm in mode \"view\"; no page: or fixture: string is left in any page class or Vue file."
+        },
+        {
+          "id": "sidebar-widget",
+          "text": "The plan widget is a Vue component of the module's frontend layer registered with registerComponent, and a plugin registered with registerPlugin calls useSidebarWidgets().register with an id and that component's name; the component takes the collapsed prop and draws nothing when it is true. It is not a block of a page."
         }
       ]
     }

@@ -60,6 +60,29 @@ integrator gave you:
           }
         ]
       }
+    },
+    {
+      "op": "ConfigureModule",
+      "id": "dms-database",
+      "entry": {
+        "importOverrides": [
+          {
+            "interface": "@antelopejs/interface-database",
+            "source": "<project database module>"
+          },
+          {
+            "interface": "@antelopejs/interface-database",
+            "source": "postgres-erp",
+            "id": "erp"
+          },
+          {
+            "interface": "@antelopejs/interface-database-catalog",
+            "source": "postgres-erp",
+            "id": "erp"
+          }
+        ],
+        "config": { "externalConnections": { "erp": { "access": "read" } } }
+      }
     }
   ]
 }
@@ -84,6 +107,11 @@ integrator gave you:
   provided it before this call. When an `environments` entry of the configuration sets an
   `exportPriority`, or a provider's priority is not a plain number, stop and ask the integrator
   which module the DMS uses.
+- **Step 5** registers the connection with `dms-database`, the module whose Data browser and
+  write routes read its access, under the same id, after the project's own database. `access` is
+  always `"read"`: `builder_configure_project` refuses to raise one, and SKILL.md _Connection
+  access_ raises it afterwards. Leave the step out when the project has no `dms-database`
+  module.
 
 For MySQL, MariaDB, MongoDB and RethinkDB, step 1 changes, and the other steps name its id in
 place of `postgres-erp`.
@@ -251,7 +279,7 @@ erp · postgresql 17.5 · role erp_reader (read only) · 42 relations: 9 TableVi
 
 ## Analytics pages
 
-### Sales (sales.orders)
+### Sales (sales.orders): the dashboard, first in the menu, outside the sections
 
 - Period: by ordered_at, default last-90-days vs previous-period; presets last-30-days, last-90-days, ytd, last-year, custom
 - Toolbar: PageToolbar › PeriodSelector
@@ -260,6 +288,12 @@ erp · postgresql 17.5 · role erp_reader (read only) · 42 relations: 9 TableVi
 - ChartCard › ChartDonut: orders by status (5 values)
 - ChartCard › ChartBar: top 10 countries by revenue
 - TopListCard: top 10 cities by orders
+
+## Sections
+
+- Sales (i-ph-storefront): Orders, Payments, Coupons
+- Catalog (i-ph-package): Products, Categories
+- Customers (i-ph-users): Customers, Reviews, Support tickets
 
 ## Left open
 
@@ -283,6 +317,7 @@ The proposal's values, without their rules, plus what you changed:
       "relation": "sales.customers",
       "label": "name",
       "title": "Customers",
+      "category": "pages.customers",
       "tableView": true,
       "writable": true,
       "fields": [
@@ -294,6 +329,8 @@ The proposal's values, without their rules, plus what you changed:
     },
     {
       "relation": "sales.orders",
+      "title": "Orders",
+      "category": "pages.sales",
       "tableView": true,
       "writable": false,
       "tabs": { "column": "status" },
@@ -332,6 +369,8 @@ The proposal's values, without their rules, plus what you changed:
   change it: a price with a `currency` the schema or the integrator names, a badge only over a
   native enum's labels. A proposed price with no `currency` draws euros: send it a `currency`,
   or `null`. Send `tabs` as a column name (`{ "column": "status" }`). `null` turns either off.
+- `category` is the ref `builder_create_category` answered for the page's section, made with
+  this call's `module`. Left out, a new page goes in the connection's category.
 - Key columns are added for you.
 - A relation column's target must be in the same call, with a `label`, or mapped in the module
   before.

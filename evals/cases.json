@@ -129,10 +129,15 @@
       "style": "clean",
       "prompt": "Add a drag-and-drop kanban board for the support tickets, one column per status.",
       "expect": {
-        "skills": ["dms-best-practices", "dms-pages"],
-        "acceptable": ["dms", "dms-module", "dms-frontend"],
-        "mustMention": ["CustomComponent"],
-        "behaviour": "asks-first"
+        "skills": ["dms-best-practices", "dms-page-design"],
+        "acceptable": [
+          "dms",
+          "dms-module",
+          "dms-frontend",
+          "dms-pages",
+          "dms-builder-mcp"
+        ],
+        "mustMention": ["TableView", "kanban"]
       }
     },
     {
@@ -465,6 +470,17 @@
       }
     },
     {
+      "id": "plugin-dms-external-database-tables-only-dashboard",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "The Builder already analysed our client's Postgres database. Map its orders, customers and products relations into table pages; tables are all I asked for. What will you build?",
+      "expect": {
+        "skills": ["dms-external-database"],
+        "acceptable": ["dms-page-design", "dms-builder-mcp", "dms"],
+        "mustMention": ["ChartCard", "KpiCard", "builder_compose_page"]
+      }
+    },
+    {
       "id": "plugin-dms-mockup-crm",
       "area": "dms",
       "style": "clean",
@@ -589,6 +605,174 @@
         "acceptable": ["dms-best-practices", "dms-frontend"],
         "avoid": ["dms-page-design"],
         "mustMention": ["builder_set_theme"]
+      }
+    },
+    {
+      "id": "plugin-dms-mockup-database",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Mock up the admin over our client's Postgres database before we build it. The builder already mapped orders, payments, products, categories, customers and support tickets into erp-tables.",
+      "expect": {
+        "skills": ["dms-mockup"],
+        "acceptable": [
+          "dms-page-design",
+          "dms-external-database",
+          "dms-builder-mcp",
+          "dms-best-practices"
+        ],
+        "avoid": ["dms-mockup-build"],
+        "mustMention": ["builder_mapping", "tabsFrom", "categories"]
+      }
+    },
+    {
+      "id": "plugin-dms-mockup-build-database",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Build the approved shop mockup into real pages. Its tables stand for the client's Postgres relations, with status badges, status tabs and a kanban, and its pages sit in three sections. The builder MCP is running.",
+      "expect": {
+        "skills": ["dms-mockup-build"],
+        "acceptable": [
+          "dms-external-database",
+          "dms-builder-mcp",
+          "dms-page-design",
+          "dms-pages",
+          "dms-best-practices"
+        ],
+        "avoid": ["dms-mockup"],
+        "mustMention": [
+          "builder_map_resources",
+          "tableOptions",
+          "builder_create_category"
+        ]
+      }
+    },
+    {
+      "id": "plugin-dms-page-design-sections-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "the dms menu has 9 pages in one flat list now, how should i group them",
+      "expect": {
+        "skills": ["dms-page-design"],
+        "acceptable": ["dms-builder-mcp", "dms-pages", "dms-external-database"],
+        "mustMention": ["builder_create_category"]
+      }
+    },
+    {
+      "id": "dms-reuse-mail-template-installed",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "In our DMS project, when an order's status changes to shipped, the order service must email the customer with the tracking number. The project's package.json lists @antelopejs/dms, @antelopejs/dms-frontend and @antelopejs/dms-mailing. Write the business logic.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": ["dms-mailing", "dms", "dms-pages", "dms-automation"],
+        "mustMention": ["SendTemplate", "DeclareTemplate"]
+      }
+    },
+    {
+      "id": "dms-reuse-mail-absent-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "send a welcome email when someone signs up to our dms app. deps are @antelopejs/dms, @antelopejs/dms-frontend and @antelopejs/dms-saas, nothing else",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": ["dms-mailing", "dms", "dms-saas", "dms-auth"],
+        "mustMention": ["@antelopejs/dms-mailing"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "dms-reuse-saas-absent",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Turn our DMS app into a SaaS: each customer company gets its own tenant with its own users and data, and pays a monthly subscription. The project's package.json lists @antelopejs/dms, @antelopejs/dms-frontend and @antelopejs/dms-mailing.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": ["dms-saas", "dms", "dms-auth", "dms-project"],
+        "mustMention": ["@antelopejs/dms-saas"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "dms-reuse-localized-field",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Our DMS products table has a name and a description. The shop sells in English and French, so make both fields translatable and editable in each language from the product form.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": [
+          "database-decorators-interface",
+          "dms-pages",
+          "dms",
+          "dms-lang",
+          "dms-builder-mcp"
+        ],
+        "mustMention": ["Localized"]
+      }
+    },
+    {
+      "id": "dms-reuse-archive-rows",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "On the DMS customers table, staff must be able to archive customers they no longer work with instead of deleting them, hide archived ones by default and restore them later.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": [
+          "dms-pages",
+          "dms",
+          "dms-builder-mcp",
+          "dms-page-design"
+        ],
+        "mustMention": ["ArchiveField"]
+      }
+    },
+    {
+      "id": "plugin-dms-page-design-customers-forms",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Add a customers table page to the dashboard: name, email, phone, company, street, city, country and notes. People add and edit customers from it. What will you build?",
+      "expect": {
+        "skills": ["dms-page-design"],
+        "acceptable": [
+          "dms-pages",
+          "dms-best-practices",
+          "dms-builder-mcp",
+          "dms"
+        ],
+        "avoid": ["dms-mockup", "dms-external-database"],
+        "mustMention": ["formContainer", "drawer"]
+      }
+    },
+    {
+      "id": "plugin-dms-best-practices-order-details-blocks",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Build a custom order details page: the order's status at the top, its line items with the totals, the customer, the shipping address, and a delivery timeline.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": [
+          "dms-pages",
+          "dms-page-design",
+          "dms-builder-mcp",
+          "dms"
+        ],
+        "avoid": ["dms-mockup"],
+        "mustMention": ["TableView", "Card", "CustomComponent"]
+      }
+    },
+    {
+      "id": "plugin-dms-external-database-read-only-edit",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "the orders table over the client's postgres connection is read only, let people edit an order's status from it",
+      "expect": {
+        "skills": ["dms-external-database"],
+        "acceptable": [
+          "dms-page-design",
+          "dms-builder-mcp",
+          "dms-pages",
+          "dms"
+        ],
+        "mustMention": ["builder_set_connection_access", "writable"]
       }
     }
   ]

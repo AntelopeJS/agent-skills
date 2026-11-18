@@ -7,7 +7,7 @@ description: Drives the AntelopeJS DMS builder MCP tools (builder_catalog, build
 
 The DMS builder edits the project's own TypeScript: a page is a `PageController` class, a block a static field or `.child()` call, a resource a `Table` + `DataController` + model. Every builder operation is **atomic and typecheck-gated**: on success it returns the file changes; on `typecheck_failed` nothing is written.
 
-Load **dms-best-practices** first and follow it: it decides what a page is made of and runs the design-fidelity protocol. This skill covers driving the builder tools.
+Load **dms-best-practices** first and follow it: it decides what a page is made of and runs the design-fidelity protocol. A data page follows **dms-page-design**, which also picks where each table's details and forms open. This skill covers driving the builder tools.
 
 ## Detect what the project has
 
@@ -41,7 +41,7 @@ Settle these three before the first edit. They decide every later branch.
 3. **Create a page** with `builder_create_page` (a real `CategoryRef`); it returns `{ ref, filepath }`. Then give the user the URL `navigate_to_page` answers for it, so they can watch it fill in.
 4. **Build the blocks.** A whole page, or a set of blocks, goes in one `builder_compose_page` call: the blocks as an ordered tree, each data block with its `query` inline. Preview it first (`"preview": true`), as **dms-page-design** _Build a page in one call_ says. For one block, `builder_add_block`: omit `parent` for a top-level block or pass a container's BlockPath; `name` unique among siblings. A controller-leading block (catalog `controllerArg: true`, e.g. `TableView`) takes `controller` = the resource `ref`; other types refuse it.
 5. **Configure or rearrange.** `builder_configure_block` merges options (`replace: true` overwrites); `builder_configure_table_view` sets a table's displays, views and footer. Children change only through `builder_add_block`, `builder_move_block` and `builder_remove_block` (which removes the subtree).
-6. **Pages and categories.** `builder_configure_page` edits displayName, icon, order and description; `builder_delete_page` removes a page and its barrel import; `builder_create_category`, `builder_configure_category` and `builder_delete_category` manage categories. A category delete is refused with `referential_integrity` while a page references it.
+6. **Pages and categories.** `builder_configure_page` edits displayName, icon, order, description, `hidden` and `category` (a move changes the page's ref and route); `builder_delete_page` removes a page and its barrel import; `builder_create_category`, `builder_configure_category` and `builder_delete_category` manage categories. A category delete is refused with `referential_integrity` while a page references it.
 7. **Verify.** A typecheck-clean edit can still fail at runtime (a `fetchUrl` that 404s). Before the write, the `builder_compose_page` preview answers each block's data status. After it, `query_logs` shows the host's reload and runtime output, and `navigate_to_page` answers the page's dashboard URL (`unknown_route` until the reload registers the page); it drives no browser. Open that URL with your browser tool when you have one and look at every block; without one, give the URL to the user and ask them to check it. The step is done when every block the change touched shows data and the logs show no error from it.
 
 On the code path, verify with the project's typecheck (the `typecheck` MCP tool, or the project's own script), then open the page in the browser as **dms-pages** _Verify in the browser_ says.
@@ -63,6 +63,7 @@ On the code path, edit the theme yourself in the `app/app.config.ts` of the proj
 ## Errors
 
 - `typecheck_failed`: read `diagnostics`, fix the `config` or `type`, retry. Nothing was written.
+- A refusal that names a read-only connection (a `writable: true` mapping, a `ResourceForm` in `new` or `edit` mode, a `TableView` that serves write routes): follow **dms-external-database** _Connection access_.
 - `invalid_config`, `duplicate_name`, `not_found`: fix the input.
 - `stale`: the page changed under you; read it again with `builder_page_structure` and retry.
 - `builder_unavailable`, `request_failed`: the builder engine is unreachable or does not implement the operation (`HTTP 400` means `unknown_op`). Explain the limitation; retry nothing.
