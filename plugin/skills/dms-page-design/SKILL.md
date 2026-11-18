@@ -267,12 +267,21 @@ An app clicks through: from a figure to its rows, from a row to its record, and 
   sub-page of the list, left out of the menu, that opens on a click on its row, built as
   **dms-best-practices** _Custom pages are blocks_ says.
 - **Turn on only the actions the reader takes.** A connected database's table writes only on a
-  `read-write` connection, as **dms-external-database** _Connection access_ says.
+  `read-write` connection, as **dms-external-database** _Connection access_ says. On one,
+  propose each table's write actions from its `writes` and its shape, and the integrator
+  confirms them in the plan:
+  - Entity tables (customers, products, orders) and reference or lookup tables (categories,
+    statuses, tags) get add and edit where `writes.insert` and `writes.update` allow them.
+  - Delete only where `writes.delete` allows it and erasing the row is safe, such as a lookup
+    nothing references. Records that must not be erased take the archive below.
+  - Log, event, history and audit tables stay read-only, whatever `writes` allows.
+  - An action `writes` forbids is not proposed; the plan says which and why.
 - **Archive in place of delete** when records must not be erased (invoices, orders, people):
   `archiveMode: true` on the `TableView` gives Archive and Restore: archive, edit and duplicate
   on active rows, restore and delete on archived ones, behind a _Show archived_ toggle. The
   archive field is `isArchived` (`@ArchiveField` in code). Only on a table that writes rows, so
-  over a connected database only with `read-write` access.
+  over a connected database only on `read-write`, and only where the table has an archive
+  column (`archived`, `is_archived`, `archived_at`). A table with none gets no archive.
 - **Link pages together.** Every summary links to what it summarises: a KPI or a card to the
   table it counts, a dashboard tile to its page, a detail page back to its list, a toolbar
   button to the page it opens. `KpiCard` takes no link: a figure that links is a `StatGroup`

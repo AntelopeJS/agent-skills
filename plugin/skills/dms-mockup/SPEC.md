@@ -485,7 +485,7 @@ A mockup over a connected database names the connection and its access at the to
 }
 ```
 
-With `read`, each option that writes rows is an issue at its pointer, and the save is refused: on a `TableView`, `rowActions` `add`, `edit`, `delete`, `archive`, `restore` or `duplicate` turned on, `archiveMode: true` and `kanban.draggable: true`; a `ResourceForm` in any `mode` but `view`. `rowActions.details` and an action at `false` stay allowed. With `read-write`, or no `data`, nothing is restricted. **dms-external-database** _Connection access_ says when the access may change.
+With `read`, each option that writes rows is an issue at its pointer, and the save is refused: on a `TableView`, `rowActions` `add`, `edit`, `delete`, `archive`, `restore` or `duplicate` turned on, `archiveMode: true` and `kanban.draggable: true`; a `ResourceForm` in any `mode` but `view`. `rowActions.details` and an action at `false` stay allowed. With `read-write`, or no `data`, nothing is restricted, and the mockup proposes the write actions that **dms-page-design** _Records, forms and links_ decides from each relation's `writes`. **dms-external-database** _Connection access_ says when the access may change.
 
 ## Sketches
 
