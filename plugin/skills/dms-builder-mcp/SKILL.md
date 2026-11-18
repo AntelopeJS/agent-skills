@@ -24,7 +24,7 @@ Settle these three before the first edit. They decide every later branch.
 
 - **PageRef** = the page's route, e.g. `/charts/revenue`.
 - **BlockPath** = `<pageRef>#<name>[/<childId>...]`: `#<name>` is a top-level block; each `/<childId>` descends into a container's child.
-- **CategoryRef** = a dotted id, e.g. `pages.charts` (top-level pages under `pages.*`; module pages under `modules.<id>.*`). Take exact refs from `builder_list_pages`, never guess.
+- **CategoryRef** = a dotted id, e.g. `pages.charts` (a category under the built-in Pages; module pages under `modules.<id>.*`). A sidebar section's ref is just its name, e.g. `sales`, not `pages.sales`. `builder_list_pages` answers `{ pages, categories }`: each page carries `section`, the ref of the section it shows under, and each section in `categories` carries `section: true`. Take exact refs from it, never guess.
 - **ResourceRef** = a data resource's id, its `/api/<name>` route segment. **FieldPath** = `<resourceRef>#<fieldName>`. Take refs from `builder_list_resources`.
 - **QueryRef** = `<pageRef>@<queryName>`, e.g. `/catalog/books@inStockCount`. Take refs from `builder_page_structure`'s `queries`.
 
