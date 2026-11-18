@@ -99,6 +99,7 @@ Fallback with no running DMS: `@antelopejs/dms` ships the same files at `node_mo
 - `pages`: 0 to 50 pages. An empty `pages` is valid: it is how a mockup starts. `options` is optional: `theme` (`light` or `dark`), `locale`, `padding` (default `true`).
 - `categories` (optional): the menu's sections, in menu order, at most 50, each `{ id, title, icon? }` with `id` in the page `id` format. A page's `category` names one; a page without one is in the default _Pages_ section, where the dashboards stay. An unknown or repeated id is an issue. The sections follow **dms-page-design** _Group pages into sections_. The viewer draws the app's own menu too: a section whose `title` is an app section's (case and spaces aside) is drawn as that section, the app's pages first, and the default section joins the app's _Pages_.
 - `sidebar` (optional): the sidebar widgets, as _Sidebar widgets_ says.
+- `data` (optional): the connected database the app reads, `{ connection, access? }`, as _Connection access_ says.
 - `custom`, `html`, `css`, `height` and `states` (optional, per page): a custom page, as _Custom pages_ says.
 - `icon`, `description` and `headerActions` (optional, per page): the page header the DMS draws above the blocks, with `title`. `icon` is an icon name (`i-ph-receipt`), `description` one line under the title, `headerActions` the header's buttons, each `{ label, icon?, color?, variant? }`. A button holds no target: what it does is decided at build. Give every page an icon and a description, as **dms-page-design** _Name every page_ says.
 - `fixtures`: a key (`^[A-Za-z0-9_-]{1,64}$`) to any JSON value, the data the page's blocks read, or to a `$generate` object that the server turns into rows ([Generated fixtures](#generated-fixtures)).
@@ -302,9 +303,9 @@ A row action's link passes the row's id, read at the table's `rowIdKey` (`_id` b
 
 ## Table forms
 
-A mockup table is read-only: an action is on only when `rowActions` writes it, `add`, `edit` or `details`, each `true` or a row action config such as `{ "rule": { "field": "status", "equals": "draft" } }`. `formContainer` says where the forms open, as in the real `TableView`:
+A mockup table is read-only: an action is on only when `rowActions` writes it, `add`, `edit` or `details`, each `true` or a row action config such as `{ "rule": { "field": "status", "equals": "draft" } }`. `formContainer` says where the forms open, as in the real `TableView`; **dms-page-design** _Records, forms and links_ picks it:
 
-- `{ "type": "modal" }`, the default when `formContainer` is left out, or `{ "type": "drawer" }`: the add, edit and details forms are generated from the table's columns, the details form read-only, as the real `TableView`'s, and saving keeps nothing. `pages.new`, `pages.edit` and `pages.details` take their `displayName` and `description` only.
+- `{ "type": "modal", "size"? }`, the default when `formContainer` is left out, `size` `sm` to `5xl` or `full` (default `xl`), or `{ "type": "drawer", "direction"? }`, from the `bottom` (the default) or the `right`: the add, edit and details forms are generated from the table's columns, the details form read-only, as the real `TableView`'s, and saving keeps nothing. `pages.new`, `pages.edit` and `pages.details` take their `displayName` and `description` only.
 - `{ "type": "page", "pages": { ... } }`: each action on opens a spec page, `{ "urlSlug": "page:<id>", "customPage": true }`, which holds the custom form or the detail view, a `ResourceForm` in the page's `mode`. The edit and details pages need a `route`.
 
 ```json
@@ -381,6 +382,111 @@ A mockup table is read-only: an action is on only when `rowActions` writes it, `
 }
 ```
 
+### Field groups and sections
+
+A column's `group` and the table's `columnGroups` group the generated forms' fields, as `@Column({ group })` and `@ColumnGroup(id, config)` do: each group `{ label, description?, orientation?, order? }`, keyed by its id, gathered where its first column stands. A generated form has no sections.
+
+```json
+{
+  "id": "customers-table",
+  "type": "TableView",
+  "options": {
+    "fetchUrl": "fixture:customers",
+    "caption": "Customers",
+    "columns": {
+      "name": { "name": "Name", "type": "string", "order": 1 },
+      "email": {
+        "name": "Email",
+        "type": "string",
+        "order": 2,
+        "group": "contact"
+      },
+      "phone": {
+        "name": "Phone",
+        "type": "string",
+        "order": 3,
+        "group": "contact"
+      }
+    },
+    "columnGroups": {
+      "contact": { "label": "Contact", "orientation": "horizontal" }
+    },
+    "rowActions": { "add": true, "edit": true, "details": true },
+    "formContainer": { "type": "drawer", "direction": "right" }
+  }
+}
+```
+
+A `ResourceForm` or a `Form` takes `sections`, each `{ id, label, description?, icon?, fields }`, with `sectionNav` `side`, `jump` or `none`, and field groups `{ id, label?, fields }` among a section's `fields`:
+
+```json
+{
+  "id": "customer-details",
+  "type": "ResourceForm",
+  "options": {
+    "mode": "view",
+    "fetchUrl": "fixture:customers",
+    "sectionNav": "jump",
+    "sections": [
+      {
+        "id": "general",
+        "label": "General",
+        "icon": "i-ph-identification-card",
+        "fields": [
+          { "id": "name", "label": "Name", "type": "string" },
+          {
+            "id": "contact",
+            "label": "Contact",
+            "fields": [
+              { "id": "email", "label": "Email", "type": "string" },
+              { "id": "phone", "label": "Phone", "type": "string" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## Archive mode
+
+`"archiveMode": true` draws the table as the real one in archive mode: a _Show archived_ toggle, Archive and Edit on the rows not archived, Restore on the archived ones. It draws no Duplicate or Delete. A row is archived when its `isArchived` is `true`; a fixture with no `isArchived` gets its last quarter archived. `archivedCountLabel` is the count while the archived rows show, `{count}` standing for their number. `rowActions.archive` or `rowActions.restore` at `false` turns one off. Either turned on without `archiveMode` is an issue.
+
+```json
+{
+  "id": "invoices-table",
+  "type": "TableView",
+  "options": {
+    "fetchUrl": "fixture:invoices",
+    "caption": "Invoices",
+    "columns": {
+      "number": { "name": "Number", "type": "string" },
+      "total": { "name": "Total", "type": "number" }
+    },
+    "archiveMode": true,
+    "archivedCountLabel": "{count} archived invoices",
+    "rowActions": { "edit": true, "details": true },
+    "formContainer": { "type": "drawer", "direction": "right" }
+  }
+}
+```
+
+## Connection access
+
+A mockup over a connected database names the connection and its access at the top level, `access` being `read` (the default) or `read-write`, as `builder_mapping` answers it:
+
+```json
+{
+  "version": 1,
+  "title": "CRM desk",
+  "data": { "connection": "crm", "access": "read" },
+  "pages": []
+}
+```
+
+With `read`, each option that writes rows is an issue at its pointer, and the save is refused: on a `TableView`, `rowActions` `add`, `edit`, `delete`, `archive`, `restore` or `duplicate` turned on, `archiveMode: true` and `kanban.draggable: true`; a `ResourceForm` in any `mode` but `view`. `rowActions.details` and an action at `false` stay allowed. With `read-write`, or no `data`, nothing is restricted. **dms-external-database** _Connection access_ says when the access may change.
+
 ## Sketches
 
 A sketch is the static HTML and CSS of one custom part, drawn hatched, outlined and labelled _Custom_. Keep it to the element alone; the blocks around it stay blocks.
@@ -427,7 +533,7 @@ A sketch is the static HTML and CSS of one custom part, drawn hatched, outlined 
 
 ## Custom pages
 
-A page with `"custom": true` is one whole-page sketch, drawn inside the real layout: the sidebar and the page header stay the dashboard's own, fed by its `title`, `icon`, `description` and `headerActions`. It takes the sketch's `html` (required), `css`, `height` (80 to 3000 px, default 800) and `states` at the page's level, under the rules of _Sketches_, and its `tree` is absent or `[]`. An `html`, `css`, `height` or `states` on a page of blocks is an issue. A comment on a custom page is a comment on the page.
+A page with `"custom": true` is one whole-page sketch, drawn inside the real layout, and the build splits it into blocks (**dms-best-practices** _Custom pages are blocks_): the sidebar and the page header stay the dashboard's own, fed by its `title`, `icon`, `description` and `headerActions`. It takes the sketch's `html` (required), `css`, `height` (80 to 3000 px, default 800) and `states` at the page's level, under the rules of _Sketches_, and its `tree` is absent or `[]`. An `html`, `css`, `height` or `states` on a page of blocks is an issue. A comment on a custom page is a comment on the page.
 
 ```json
 {

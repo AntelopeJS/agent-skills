@@ -38,7 +38,8 @@ read only. Nothing is written before the integrator approves your plan.
 
 Call `database_connections`.
 
-- **A connection is listed** with an `engine`: use its id and go to 2.
+- **A connection is listed** with an `engine`: use its id and go to 2. When the integrator chose
+  read & write as they connected it, raise its access first, as _Connection access_ says.
 - **An entry answers `error`**: say what it says (an owned instance, the catalog not enabled, a
   role that cannot read) and stop.
 - **A database tool answers `unreachable_connection`**: the DMS MCP reaches only the catalog
@@ -51,19 +52,20 @@ Call `database_connections`.
   (`mysql-erp`, `mongodb-erp`, `rethinkdb-erp`), generated module `erp-tables`, variable
   `ERP_DATABASE_URL`, and for MongoDB `ERP_DATABASE_NAME`. Ask the integrator for the version of
   the engine's module to install (`@antelopejs/postgres`, `@antelopejs/mysql` for MySQL and
-  MariaDB alike, `@antelopejs/mongodb`, `@antelopejs/rethinkdb`): you cannot look it up. The user
-  approves the diff. Safe mode refuses `builder_configure_project`: ask the integrator to turn it
-  off for this one call.
+  MariaDB alike, `@antelopejs/mongodb`, `@antelopejs/rethinkdb`): you cannot look it up. Ask
+  the read-or-write question of _Connection access_. The user approves the diff. Safe mode
+  refuses `builder_configure_project`: ask the integrator to turn it off for this one call.
   - Then tell the integrator to put the URL in `.env` (`ERP_DATABASE_URL=postgres://…`,
     `mysql://…/<database>` for MySQL and MariaDB, `mongodb://…`, or `rethinkdb://…/<database>`;
     for MongoDB also `ERP_DATABASE_NAME`), or in the builder's _Database_ workspace when the
     project has one, which writes it there, and to restart the project. Every deployed
     environment needs the same variables, set where that environment keeps its secrets, never in
     git.
-  - Recommend an account that can only read for the analysis: a PostgreSQL role with SELECT, a
-    MySQL or MariaDB account granted SELECT on the database directly (the module does not see a
-    grant through a role), a MongoDB user with the built-in `read` role, a RethinkDB user with
-    `read` permission.
+  - Recommend an account that can only read: a PostgreSQL role with SELECT, a MySQL or MariaDB
+    account granted SELECT on the database directly (the module does not see a grant through a
+    role), a MongoDB user with the built-in `read` role, a RethinkDB user with `read`
+    permission. On read & write, the account also needs write privileges on the tables the
+    dashboard changes.
   - Stop here: the connection exists only after the restart.
 
 The builder and you each have a connection to the database, under the same id: the builder for
@@ -111,12 +113,14 @@ profile of the whole database again: the Builder did it.
   never from the database. An embedded document is one field: its subfields are not mappable, and
   neither is an array of ids as a relation.
 - **Editable.** Every TableView is proposed read-only. Make one editable only where the integrator
-  wants it; show `writes` beside it, so a read-only role in this environment is visible.
+  wants it and the connection's `access` is `read-write` (_Connection access_); show `writes`
+  beside it, so a read-only role in this environment is visible.
 - **Pages people can work with.** Load the `dms-page-design` skill. For every TableView, plan
   from its columns and their profiles (types, traits, distinct counts), as _Name every page_
   and _Tables_ there say: a title, an icon and a description; the tabs, saved views, display
-  modes, footer totals and KPI cards its shape supports. Decide each from that shape, and
-  leave out what it does not support. You never read a row's values.
+  modes, footer totals and KPI cards its shape supports; where its details and forms open, as
+  _Records, forms and links_ there picks. Decide each from that shape, and leave out what it
+  does not support. You never read a row's values.
 - **The analytics dashboard,** which the analysis does not make. Every run plans and builds
   one, even when the integrator only asked for the tables, as `dms-page-design` _The analytics
   dashboard_ says. Plan it from the data:
@@ -231,6 +235,37 @@ Then report:
 - what was left out and why;
 - the open items left, which the integrator finds in the builder's _Database_ workspace;
 - the variable every deployment must set.
+
+## Connection access
+
+A connection's access is `"read"` (the default) or `"read-write"`: what the project lets the
+dashboard write to the database. `builder_analyse_database` and `builder_mapping` answer it at
+the top level as `access`, and each resource's `writes` (`{ insert, update, delete }`) says what
+the database account may do in that relation. This holds in every flow over a connected
+database: a mockup, a page built through the builder or in code.
+
+- **On `read`**: propose no write action (add, edit, delete, archive, restore, duplicate,
+  `archiveMode`, a draggable kanban, a `ResourceForm` not in `mode: "view"`), and map every
+  relation `writable: false`. A mockup over the connection writes `data`, and the validator
+  refuses those options there ([SPEC.md](../dms-mockup/SPEC.md) _Connection access_).
+- **Connecting**: ask "only read, or also change rows?". The connect batch writes
+  `access: "read"` either way. On read & write, raise it as below once `database_connections`
+  lists the connection after the restart.
+- **The integrator asks for add, edit or delete on a `read` connection**: say the connection is
+  read-only, and ask for an explicit OK. On yes:
+  1. Call `builder_set_connection_access` with
+     `{ "connection": "<id>", "access": "read-write" }`. Its first call answers
+     `confirmation_required` and writes nothing; the same call repeated within 10 minutes runs
+     it. Safe mode refuses it: ask the integrator to turn Safe mode off for this one call.
+  2. Remap each relation with `writable: true` (a later change, as _5. Apply_ says), then add
+     the actions **dms-page-design** _Records, forms and links_ decides. In a mockup, set
+     `data.access` to `read-write` and add them to the spec.
+  - Refused because the account may write nothing (`invalid_config`): tell the integrator to
+    grant the account write privileges on those tables. A relation the account still cannot
+    write maps `writable: false` with a `relation_read_only` warning: report it.
+  - The builder reads the new access at once. The running backend applies it to the write
+    routes when it restarts, which `ajs project dev` does on its own.
+- Raise an access only on the integrator's explicit OK.
 
 ## Guardrails
 

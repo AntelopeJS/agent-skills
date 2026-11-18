@@ -37,7 +37,7 @@ Run this before any feature, a page or business logic alike. Most needs already 
 ## The rules
 
 1. **A page is always blocks.** Describe every page on the backend as a tree of DMS blocks: `PeriodSelector`, `Grid` / `GridRow`, `KpiCard`, `TableView`, `Form`, … Each static field and each `.child()` is a line in the roles editor, a `.watch()` target, a `periodScope` subscriber and a node the builder can move. One block that draws the whole screen loses all of that.
-2. **Custom = the missing block only.** When a part has no DMS equivalent, build **that block** as a `CustomComponent` and keep everything around it (toolbar, filters, stats, tables) as DMS blocks on the backend.
+2. **Custom = the missing block only.** When a part has no DMS equivalent, build **that block** as a `CustomComponent` and keep everything around it (toolbar, filters, stats, tables) as DMS blocks on the backend. A whole custom page too, as _Custom pages are blocks_ says.
 3. **Every custom block carries `.meta()`.** `.meta({ name, description, icon })` in its backend declaration, `name` and `description` as `$` i18n keys added to every locale file. Without it the roles editor shows the raw component name. Every other text (page names, titles, labels) is a `$` key too.
 
 ```ts
@@ -66,7 +66,11 @@ A custom block is a deviation, and you **propose** it: the user decides, after t
 | The user asked for pixel perfect on **this** element                                   | Another element of the page is custom: a custom block never pulls its neighbours along                   |
 | A measured constraint (performance, data volume) the block cannot meet                 | The constraint is a guess, not a measurement                                                             |
 
-A whole page leaves DMS blocks only when no arrangement of blocks draws it, such as a kanban of a custom shape or a landing page: it becomes a **custom page**, a page whose one block is a full-page `CustomComponent`, proposed as any custom block is (a mockup writes it as [SPEC.md](../dms-mockup/SPEC.md) _Custom pages_ says).
+## Custom pages are blocks
+
+A **custom page** is a page the user designs rather than one a table generates: a mockup's `custom: true` sketch ([SPEC.md](../dms-mockup/SPEC.md) _Custom pages_) or a custom page asked for directly. Build it as a tree of DMS blocks (`TableView`, `KpiCard` / `StatGroup`, `Card`, `ResourceForm`, a `ChartCard`, …), and only the parts no block draws as `CustomComponent`s, each through the path below, with its `.meta()` and a permissioned `.action()` per action it takes. A page whose one block is a full-page `CustomComponent` is never the result.
+
+An order details page, say, becomes a header with a status badge, a `TableView` of the items with a totals row (`footer.summary`), and `Card`s for the customer and the shipping. Only a timeline, when no block draws it, is a `CustomComponent`.
 
 ## Before any custom block
 

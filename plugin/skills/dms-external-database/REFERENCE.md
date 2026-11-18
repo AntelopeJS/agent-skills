@@ -60,6 +60,29 @@ integrator gave you:
           }
         ]
       }
+    },
+    {
+      "op": "ConfigureModule",
+      "id": "dms-database",
+      "entry": {
+        "importOverrides": [
+          {
+            "interface": "@antelopejs/interface-database",
+            "source": "<project database module>"
+          },
+          {
+            "interface": "@antelopejs/interface-database",
+            "source": "postgres-erp",
+            "id": "erp"
+          },
+          {
+            "interface": "@antelopejs/interface-database-catalog",
+            "source": "postgres-erp",
+            "id": "erp"
+          }
+        ],
+        "config": { "externalConnections": { "erp": { "access": "read" } } }
+      }
     }
   ]
 }
@@ -84,6 +107,11 @@ integrator gave you:
   provided it before this call. When an `environments` entry of the configuration sets an
   `exportPriority`, or a provider's priority is not a plain number, stop and ask the integrator
   which module the DMS uses.
+- **Step 5** registers the connection with `dms-database`, the module whose Data browser and
+  write routes read its access, under the same id, after the project's own database. `access` is
+  always `"read"`: `builder_configure_project` refuses to raise one, and SKILL.md _Connection
+  access_ raises it afterwards. Leave the step out when the project has no `dms-database`
+  module.
 
 For MySQL, MariaDB, MongoDB and RethinkDB, step 1 changes, and the other steps name its id in
 place of `postgres-erp`.

@@ -1,6 +1,6 @@
 ---
 name: dms-page-design
-description: Designs AntelopeJS DMS pages that show data. Use when building or changing an analytics, stats or dashboard page or a table page, choosing a chart or a KPI for some data, picking a page's period, naming a page and its icon, grouping an app's pages into menu sections, giving a list a detail page and linking pages together, or deciding how a table displays (badges, prices, relation labels, status tabs, saved views, kanban, cards, footer totals, KPI cards above the table).
+description: Designs AntelopeJS DMS pages that show data. Use when building or changing an analytics, stats or dashboard page or a table page, choosing a chart or a KPI for some data, picking a page's period, naming a page and its icon, grouping an app's pages into menu sections, giving a list its details view and forms, linking pages together, or deciding how a table displays (badges, prices, relation labels, status tabs, saved views, kanban, cards, footer totals, KPI cards above the table).
 ---
 
 # Designing data pages
@@ -232,22 +232,55 @@ An app clicks through: from a figure to its rows, from a row to its record, and 
 
 - **A record needs a details view.** A list whose records the reader acts on (opens, edits,
   approves, follows up) gets one; a lookup list (tags, settings, reference data) gets none.
-  Prefer the table's own, `rowActions.details` in its modal or drawer. Give it a custom
-  details page only when the page adds something on top of the record, such as KPI cards or
-  related lists: a sub-page of the list, left out of the menu, that opens on a click on its
-  row and shows the record read-only, a `ResourceForm` with `mode: "view"`.
-- **Choosing a form.** A plain create or edit form is the table's own: a modal for up to about 6
-  fields, a drawer beyond. A form with a layout, sections or steps is a custom form page, a
-  sub-page of the list left out of the menu, its `ResourceForm` in `mode: "edit"` on an edit
-  page and `mode: "new"` on a new page. Turn on only the actions the reader takes.
+- **Pick each table's details view and its add and edit forms.** When the user named none,
+  pick the most usable one per table from the tables below, and state each choice in your plan
+  or summary ("Customers: details, add and edit in a right drawer"). A mockup shows
+  it, so the user can change it. The real `TableView` with no `formContainer` opens a page per
+  form: write the chosen container explicitly, with `builder_configure_block` on the table or
+  in the page class.
+
+  | Details view                                                | When                                            |
+  | ----------------------------------------------------------- | ----------------------------------------------- |
+  | `{ "type": "modal" }`, `size` `sm` to `full` (default `xl`) | about 8 fields or fewer, a quick look           |
+  | `{ "type": "drawer", "direction": "right" }`                | reading a row while the list stays in view      |
+  | `{ "type": "drawer" }` (`direction: "bottom"`, the default) | wide content, such as line items or a sub-table |
+  | `{ "type": "page" }`, a generated page                      | a long record, or one people share by link      |
+
+  | Add and edit forms                           | When                    |
+  | -------------------------------------------- | ----------------------- |
+  | `{ "type": "modal" }`                        | up to about 6 fields    |
+  | `{ "type": "drawer", "direction": "right" }` | 7 to 15 fields          |
+  | `{ "type": "page" }`, a generated page       | long or sectioned forms |
+
+  One table has one `formContainer`: when its details view and its forms point at different
+  containers, take the one for the forms when people edit rows, else the one for the details.
+
+- **Group the fields.** Related fields (contact, address, billing) share a group. A generated
+  form groups the columns `@ColumnGroup(id, config)` and `@Column({ group })` declare; a mockup
+  writes a column's `group` and the table's `columnGroups`. A `ResourceForm` or a `Form` takes
+  `sections` (`{ id, label, description?, icon?, fields }`) with `sectionNav` `side`, `jump` or
+  `none`, and field groups `{ id, label?, fields }` inside them.
+- **A custom details page is the user's call.** A details page of blocks, such as a `StatGroup`
+  or `KpiCard`s above a `ResourceForm` in `mode: "view"`, or the record's related lists, is
+  never chosen unasked. When it would clearly help, suggest it in one sentence ("a details page
+  could show the order's KPIs above the record, want it?") and build it only on a yes: a
+  sub-page of the list, left out of the menu, that opens on a click on its row, built as
+  **dms-best-practices** _Custom pages are blocks_ says.
+- **Turn on only the actions the reader takes.** A connected database's table writes only on a
+  `read-write` connection, as **dms-external-database** _Connection access_ says.
+- **Archive in place of delete** when records must not be erased (invoices, orders, people):
+  `archiveMode: true` on the `TableView` gives Archive and Restore: archive, edit and duplicate
+  on active rows, restore and delete on archived ones, behind a _Show archived_ toggle. The
+  archive field is `isArchived` (`@ArchiveField` in code). Only on a table that writes rows, so
+  over a connected database only with `read-write` access.
 - **Link pages together.** Every summary links to what it summarises: a KPI or a card to the
   table it counts, a dashboard tile to its page, a detail page back to its list, a toolbar
   button to the page it opens. `KpiCard` takes no link: a figure that links is a `StatGroup`
   cell (`to`), or sits in a `Card` whose head action (`actions: [{ label, to }]`) opens the
   table.
 
-A mockup writes these as [SPEC.md](../dms-mockup/SPEC.md) _Links and sub-pages_ and _Table
-forms_ say.
+A mockup writes these as [SPEC.md](../dms-mockup/SPEC.md) _Links and sub-pages_, _Table
+forms_ and _Archive mode_ say.
 
 ## Build a page in one call, and check it first
 
