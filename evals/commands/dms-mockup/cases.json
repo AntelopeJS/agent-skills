@@ -169,7 +169,10 @@
     {
       "id": "database-mockup-has-dashboard",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
       "prompt": "Mock up the table pages over our client's Postgres database: one page per mapped relation, that's all I asked for. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. builder_mapping on connection erp, module erp-tables answers: sales.orders (title Orders, label number; status: display { kind: \"badge\", values: 4 }, filterable; total: display { kind: \"price\" }, no currency; ordered_at: date, sortable), crm.customers (name, email, city; created_at: date, sortable), support.tickets (subject; status: native enum open, in_progress, waiting, closed, filterable; opened_at: date, sortable).",
       "rubric": [
         {
@@ -220,7 +223,10 @@
     {
       "id": "read-only-connection-no-writes",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
       "prompt": "Mock up the admin over our client's Postgres database: an orders list and a customers list. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. builder_mapping on connection erp, module erp-tables answers access \"read\": sales.orders (title Orders, label number; status: native enum pending, paid, refunded, filterable; total: display { kind: \"price\", currency: \"EUR\" }; ordered_at: date, sortable; writes { insert: true, update: true, delete: false }), crm.customers (name, email, city; created_at: date, sortable; writes { insert: true, update: true, delete: false }).",
       "rubric": [
         {
@@ -240,7 +246,10 @@
     {
       "id": "read-write-connection-proposes-writes",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
       "prompt": "Mock up the admin over our client's Postgres database: customers, orders and the audit log. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. builder_mapping on connection erp, module erp-tables answers access \"read-write\": crm.customers (name, email, city; created_at: date, sortable; writes { insert: true, update: true, delete: true }), sales.orders (title Orders, label number; status: native enum pending, paid, refunded, filterable; total: display { kind: \"price\", currency: \"EUR\" }; ordered_at: date, sortable; is_archived: boolean; writes { insert: true, update: true, delete: true }), audit.events (action, actor, occurred_at: date, sortable; writes { insert: true, update: false, delete: false }).",
       "rubric": [
         {
@@ -264,7 +273,10 @@
     {
       "id": "read-write-already-chosen-not-asked",
       "harness": "claude",
-      "fixture": { "type": "skeleton", "dir": "fixtures/dms-app" },
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
       "prompt": "Mock up a customers list over our client's Postgres database. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. The connection was made in the dms-assistant onboarding, where I chose read & write. builder_mapping on connection erp, module erp-tables answers access \"read-write\": crm.customers (name, email, city; created_at: date, sortable; writes { insert: true, update: true, delete: false }).",
       "rubric": [
         {
@@ -278,6 +290,52 @@
         {
           "id": "writes-respected",
           "text": "The customers TableView turns on rowActions add and edit and no delete, because writes.delete is false."
+        }
+      ]
+    },
+    {
+      "id": "dashboard-data-in-fixtures",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
+      "prompt": "Mock up a sales dashboard. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. The dashboard shows revenue this month (184,320 USD, +8.6%), orders by status (paid 2737, pending 119, refunded 111, cancelled 20), revenue by channel (Web 113,200, Mobile app 43,080, Marketplace 28,040) and new customers by country (US 102, GB 36, DE 29, FR 28).",
+      "rubric": [
+        {
+          "id": "data-in-fixtures",
+          "text": "The chart and top-list blocks read their data through fetchUrl \"fixture:<key>\" from the page's fixtures; none carries a series or a list of items inline in its options (no staticItems, no staticDataset)."
+        },
+        {
+          "id": "hand-values-kept",
+          "text": "The figures given in the prompt appear in the page's fixtures as written, not replaced by $generate."
+        },
+        {
+          "id": "one-patch-per-page",
+          "text": "The dashboard page is added in one mockup_patch_spec call (or a skeleton then a section or two), not one call per block."
+        }
+      ]
+    },
+    {
+      "id": "unparseable-patch-not-resent",
+      "harness": "claude",
+      "fixture": {
+        "type": "skeleton",
+        "dir": "fixtures/dms-app"
+      },
+      "prompt": "Continue the mockup sales-desk: its overview page exists. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. Your last mockup_patch_spec call, adding a TopListCard 'Revenue by channel' with its three channels, was refused with: InputValidationError: mcp__dms__mockup_patch_spec was called with input that could not be parsed as JSON. Add that block now, and a ChartDonut card 'Orders by status' after it.",
+      "rubric": [
+        {
+          "id": "not-resent",
+          "text": "The agent does not resend the refused payload unchanged: it sends the change again as smaller patches, such as the page's fixtures in one and the blocks in another."
+        },
+        {
+          "id": "flat-options",
+          "text": "The added blocks read their data through fetchUrl \"fixture:<key>\" and carry no staticItems or staticDataset."
+        },
+        {
+          "id": "block-order",
+          "text": "The TopListCard 'Revenue by channel' comes before the 'Orders by status' card in the page's tree, and both are on the overview page."
         }
       ]
     }

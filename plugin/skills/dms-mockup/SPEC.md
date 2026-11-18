@@ -607,7 +607,7 @@ A fixture value `{ "$generate": { "rows"?: number, "fields": { "<key>": <Kind> }
 }
 ```
 
-`fixture:orders` then reads 8 rows. A value that must read true (a KPI headline, a total another page repeats) is a plain JSON fixture or a `static*` option. A hand-written date stays as written.
+`fixture:orders` then reads 8 rows. A value that must read true (a KPI headline, a total another page repeats) is a plain JSON fixture, read through `fixture:<key>` like generated rows; keep series and item lists out of `static*` options, so each block's options stay flat. A hand-written date stays as written.
 
 ## Writing in steps
 
@@ -617,7 +617,7 @@ A mockup is written live, in saves small enough to show a change each. A save re
 2. Add a page as a skeleton, its blocks titled and its data generated: `mockup_patch_spec` with `{ "mockup": "<name>", "patch": [{ "op": "add", "path": "/pages/-", "value": { "id": "orders", "title": "Orders", "fixtures": { "orders": { "$generate": { "fields": { "customer": "company", "total": { "money": [40, 900] } } } } }, "tree": [{ "id": "orders-table", "type": "TableView", "options": { "fetchUrl": "fixture:orders", "caption": "Orders", "columns": { "customer": { "name": "Customer", "type": "string" }, "total": { "name": "Total", "type": "number" } } } }] } }] }`.
 3. Fill a section: one patch of 2 or 3 operations on the blocks that belong together, `replace` on a node's `options` or `add` at `/pages/<i>/tree/-`, `<i>` the page's index.
 
-A patch applies whole or not at all: a failed one leaves the spec as it was, so fix it and send it again. After an `add` or `remove` that shifts a node, re-read the pointers you still use.
+A patch applies whole or not at all: a failed one leaves the spec as it was, so fix it and send it again. An input refused as not parseable JSON never reached the mockup: split it into two smaller patches instead of sending it again. After an `add` or `remove` that shifts a node, re-read the pointers you still use.
 
 ## Validation
 
