@@ -223,7 +223,7 @@ amount, rows waiting, a share of a status, the last two over a native enum label
 
 Set displays, views and footer per resource as `tableOptions` in `builder_map_resources`, or on
 an existing page with `builder_configure_table_view`. Through `builder_configure_table_view`
-a refused choice comes back as `invalid_config` with the setting it names: fix that one and
+a refused choice comes back as `invalid_config` with the setting it names (for an enum value, the allowed ones: take the closest yourself and mention it in your reply, as **dms-builder-mcp** _Errors_ says): fix that one and
 send again. Through `builder_map_resources` it comes back as a `page_not_written` warning.
 
 ## Records, forms and links

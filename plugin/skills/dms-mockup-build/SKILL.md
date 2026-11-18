@@ -17,7 +17,7 @@ The spec is the contract: the pages it lists, their blocks in its order, their o
 
 ## 1. Read the mockup
 
-Read `mockups/<name>/spec.json` and its open annotations ([SPEC.md](../dms-mockup/SPEC.md) _annotations.json_). An open annotation is a change the user still wants: ask whether to apply it first with **dms-mockup**, or to build the spec as it stands.
+Read the spec with `mockup_read_spec` (`{ mockup, path? }`, read-only, allowed in Safe mode; `path` a JSON pointer, the whole spec when left out), else `mockups/<name>/spec.json` with the file tools. After this first read, read only the parts you need, and never probe the spec with JSON-patch `test` operations or temporary keys. Read its open annotations ([SPEC.md](../dms-mockup/SPEC.md) _annotations.json_). An open annotation is a change the user still wants: ask whether to apply it first with **dms-mockup**, or to build the spec as it stands.
 
 ## 2. Plan
 
@@ -95,7 +95,7 @@ Without the tool, write the page yourself. An existing block whose fixture key i
 
 Every write of yours to a converted page, a `wiring` entry included, updates the page at `livePage.ref`, never another: no `builder_create_page`. Move a live sketch's neighbours around it, never the block itself. A builder tool's `stale` answer (your read of the structure is outdated): read the page again with `builder_page_structure` and retry. A builder tool's `not_found` answer for the page: ask the user; never create it.
 
-After the last round of step 4, stamp each converted page you wrote yourself (a `wiring` entry, a fix, or the whole page without the tool) with its new version; a page only `mockup_apply_to_page` wrote, answering `stamped: true`, keeps the tool's stamp. Read the version with a fresh `builder_page_structure` and write it with `mockup_patch_spec`: `{ "mockup": "<name>", "patch": [{ "op": "replace", "path": "/pages/<i>/livePage/version", "value": "<version>" }] }`, `<i>` the page's index in the spec. Without `mockup_patch_spec`, set that field in `spec.json`. Without the builder MCP, stamp nothing.
+After the last round of step 4, stamp each converted page you wrote yourself (a `wiring` entry, a fix, or the whole page without the tool) with its new version; a page only `mockup_apply_to_page` wrote, answering `stamped: true`, keeps the tool's stamp. Read the version with a fresh `builder_page_structure` and write it with `mockup_patch_spec`: `{ "mockup": "<name>", "patch": [{ "op": "replace", "path": "/pages/<i>/livePage/version", "value": "<version>" }] }`, `<i>` the page's index in the spec. Without `mockup_patch_spec`, set that field in `spec.json`. Without the builder MCP, stamp nothing. A patch refused for a value outside an enum's allowed values: pick the closest allowed value the error lists, send it, and mention the substitution in your report; ask the user only when none is close.
 
 ## 4. Verify and fix
 

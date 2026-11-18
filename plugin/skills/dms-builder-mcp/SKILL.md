@@ -64,7 +64,7 @@ On the code path, edit the theme yourself in the `app/app.config.ts` of the proj
 
 - `typecheck_failed`: read `diagnostics`, fix the `config` or `type`, retry. Nothing was written.
 - A refusal that names a read-only connection (a `writable: true` mapping, a `ResourceForm` in `new` or `edit` mode, a `TableView` that serves write routes): follow **dms-external-database** _Connection access_.
-- `invalid_config`, `duplicate_name`, `not_found`: fix the input.
+- `invalid_config`, `duplicate_name`, `not_found`: fix the input. A value refused as not one of an enum's allowed values (the error lists them): pick the closest allowed value yourself, send it and mention the substitution in your reply (a badge tone `pink` becomes `warning`); ask the user only when none is close.
 - `stale`: the page changed under you; read it again with `builder_page_structure` and retry.
 - `builder_unavailable`, `request_failed`: the builder engine is unreachable or does not implement the operation (`HTTP 400` means `unknown_op`). Explain the limitation; retry nothing.
 - `opaque_target`, `unsupported`: the builder cannot make this change. Without Safe mode, make it in code with **dms-pages**, then call `builder_refresh` (scoped to the page): it clears the builder's caches, so it reads the file again. In Safe mode, ask the user whether to turn Safe mode off for that one step; never force it.
