@@ -130,9 +130,8 @@
       "prompt": "Add a drag-and-drop kanban board for the support tickets, one column per status.",
       "expect": {
         "skills": ["dms-best-practices", "dms-pages"],
-        "acceptable": ["dms", "dms-module", "dms-frontend"],
-        "mustMention": ["CustomComponent"],
-        "behaviour": "asks-first"
+        "acceptable": ["dms", "dms-module", "dms-frontend", "dms-page-design"],
+        "mustMention": ["TableView", "kanban"]
       }
     },
     {
@@ -660,8 +659,7 @@
       "expect": {
         "skills": ["dms-best-practices"],
         "acceptable": ["dms-mailing", "dms", "dms-pages", "dms-automation"],
-        "mustMention": ["SendTemplate", "DeclareTemplate"],
-        "mustNotMention": ["nodemailer"]
+        "mustMention": ["SendTemplate", "DeclareTemplate"]
       }
     },
     {

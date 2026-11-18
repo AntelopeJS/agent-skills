@@ -1,6 +1,6 @@
 ---
 name: dms-best-practices
-description: Enforces the rules for building AntelopeJS DMS pages (every page a tree of DMS blocks, custom code only for the missing block, `.meta()` on every custom block), finds the DMS module or block feature a need already has before anything is built (mails, tenants and SaaS, translated fields, archiving) and proposes installing a missing module, decides when to leave DMS blocks and proposes that deviation to the user, and runs the design-fidelity protocol. Use when creating or changing any DMS page, dashboard or screen, before building a feature or business logic in a DMS project (sending an email, tenants or subscriptions, translatable fields, archiving rows), before writing a CustomComponent or Vue for one, or when the user provides a design, mockup, Figma frame or screenshot to reproduce.
+description: Enforces the rules for building AntelopeJS DMS pages (every page a tree of DMS blocks, custom code only for the missing block, `.meta()` on every custom block), finds the DMS module or block feature a need already has before anything is built (mails, tenants and SaaS, translated fields, archiving) and proposes installing a missing module, decides when to leave DMS blocks and proposes that deviation to the user, and runs the design-fidelity protocol. Use when creating or changing any DMS page, dashboard or screen, before building a feature or business logic in a DMS project (sending an email, tenants or subscriptions, translatable fields, archiving rows), before writing a CustomComponent or Vue for one, or when the user provides a design, mockup, Figma frame or screenshot to reproduce. Not for a question about one block option or DataType (dms-pages).
 ---
 
 # DMS best practices
@@ -17,19 +17,19 @@ Three facts about the project change the steps below. **dms-builder-mcp** _Detec
 
 Run this before any feature, a page or business logic alike. Most needs already have a DMS module or a block feature, and a home-made copy loses its admin pages, permissions and upgrades.
 
-1. **List what the project has**: the `@antelopejs/*` dependencies of `package.json`, the modules of `antelope.config.*`, and the synced skills (**skills**).
+1. **List what the project has**: the `@antelopejs/*` dependencies of `package.json`, the modules of `antelope.config.*`, and the synced skills (**skills**). Table syntax (`Table`, its decorators and modifiers) is in **database-decorators-interface**.
 2. **Match the need.** The table holds the needs most often rebuilt. For any other, the module catalog is the resolver's `list` (**interface**): each `dms-*` interface there is a module's contract.
 
-| Need                                                     | Use                                                                                                                                                |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| An email, its template, its sends                        | `@antelopejs/dms-mailing`: a mail is a template, sent with `SendTemplate` and shipped with `DeclareTemplate` (`@antelopejs/interface-dms-mailing`) |
-| Tenants, workspaces, SaaS, plans, subscriptions, billing | `@antelopejs/dms-saas`                                                                                                                             |
-| An image or file on a record                             | `@antelopejs/dms-media` (`AssetType`)                                                                                                              |
-| A procedure run on a schedule, a webhook or a data event | `@antelopejs/dms-automation`                                                                                                                       |
-| Translated interface texts, translations for another app | `@antelopejs/dms-lang`                                                                                                                             |
-| A field in several languages                             | `@Localized()` with `LocalizationModifier` (`@antelopejs/interface-database-decorators/modifiers/localization`); the DMS form edits each locale    |
-| Archive and restore rows instead of deleting them        | `@ArchiveField()` on the table's boolean field and `TableViewRoutes.Archive` / `Restore` (`@antelopejs/interface-dms/base`)                        |
-| Status tabs, saved views, kanban, footer totals          | `TableView` options (**dms-page-design**)                                                                                                          |
+| Need                                                     | Use                                                                                                                                                                    |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| An email, its template, its sends                        | `@antelopejs/dms-mailing`: a mail is a template, sent with `SendTemplate` and shipped with `DeclareTemplate` (`@antelopejs/interface-dms-mailing`)                     |
+| Tenants, workspaces, SaaS, plans, subscriptions, billing | `@antelopejs/dms-saas`                                                                                                                                                 |
+| An image or file on a record                             | `@antelopejs/dms-media` (`AssetType`)                                                                                                                                  |
+| A procedure run on a schedule, a webhook or a data event | `@antelopejs/dms-automation`                                                                                                                                           |
+| Translated interface texts, translations for another app | `@antelopejs/dms-lang`                                                                                                                                                 |
+| A field in several languages                             | `@Localized()` on a field of a `Table.with(LocalizationModifier)` (`@antelopejs/interface-database-decorators/modifiers/localization`); the DMS form edits each locale |
+| Archive and restore rows instead of deleting them        | `@ArchiveField()` on a boolean field of the `Table` and `TableViewRoutes.Archive` / `Restore` (`@antelopejs/interface-dms/base`)                                       |
+| Status tabs, saved views, kanban, footer totals          | `TableView` options (**dms-page-design**)                                                                                                                              |
 
 3. **Installed**: load that module's skill, or its contract through **interface**, and build on it. **Absent**: never build a copy. Before any code or command, ask with the asking tool whether to install it; on yes, run `ajs project modules add @antelopejs/<module>` and build on it.
 4. **Before adding a field, column, route or custom code to a block**, read what the block already offers: `builder_catalog` with the builder MCP, else the block's TSDoc through **interface** (`contract dms base`).
