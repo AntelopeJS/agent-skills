@@ -104,7 +104,7 @@ export async function prepare(values) {
  */
 export async function exec(values, positionals) {
   const dir = requireDir(positionals, 1, "the run directory");
-  const { failed } = await execRun({
+  const { failed, missing } = await execRun({
     dir,
     models: values.models ? listOption(values.models) : undefined,
     options: {
@@ -122,7 +122,11 @@ export async function exec(values, positionals) {
     process.stderr.write(
       `${task.model} ${task.mode} ${task.caseId} run ${task.run}: ${error}\n`,
     );
-  return failed.length ? EXIT.failed : EXIT.ok;
+  for (const executor of missing)
+    process.stderr.write(
+      `error: the ${executor} CLI is not installed or not on PATH: install it and log in, or pass --${executor}-bin <path>; its models' requests stay pending (leave them out with --models)\n`,
+    );
+  return failed.length || missing.length ? EXIT.failed : EXIT.ok;
 }
 
 /**
