@@ -17,7 +17,7 @@ Three facts about the project change the steps below. **dms-builder-mcp** _Detec
 
 Run this before any feature, a page or business logic alike. Most needs already have a DMS module or a block feature, and a home-made copy loses its admin pages, permissions and upgrades.
 
-1. **List what the project has**: the `@antelopejs/*` dependencies of `package.json`, the modules of `antelope.config.*`, and the synced skills (**skills**). Table syntax (`Table`, its decorators and modifiers) is in **database-decorators-interface**.
+1. **List what the project has**: the `@antelopejs/*` dependencies of `package.json`, the modules of `antelope.config.*`, and the synced skills (**skills**). A table is `@RegisterTable("<table>", "<schema>") class X extends Table` with `@Field("<type>") declare <name>: <T>` fields and an inherited `_id` (no primary-key decorator), read and written through `GetModel(BasicDataModel(X))`. From `@antelopejs/interface-database-decorators`: `Table` and `Field` from `/table`, `RegisterTable` from `/schema`, `GetModel` and `BasicDataModel` from `/model`. **database-decorators-interface** has the rest.
 2. **Match the need.** The table holds the needs most often rebuilt. For any other, the module catalog is the resolver's `list` (**interface**): each `dms-*` interface there is a module's contract.
 
 | Need                                                     | Use                                                                                                                                                                    |
@@ -28,11 +28,11 @@ Run this before any feature, a page or business logic alike. Most needs already 
 | A procedure run on a schedule, a webhook or a data event | `@antelopejs/dms-automation`                                                                                                                                           |
 | Translated interface texts, translations for another app | `@antelopejs/dms-lang`                                                                                                                                                 |
 | A field in several languages                             | `@Localized()` on a field of a `Table.with(LocalizationModifier)` (`@antelopejs/interface-database-decorators/modifiers/localization`); the DMS form edits each locale |
-| Archive and restore rows instead of deleting them        | `@ArchiveField()` on a boolean field of the `Table` and `TableViewRoutes.Archive` / `Restore` (`@antelopejs/interface-dms/base`)                                       |
+| Archive and restore rows instead of deleting them        | `@ArchiveField()` on a `@Field("boolean")` of the `Table`, and `TableViewRoutes.Archive` / `Restore`: both from `@antelopejs/interface-dms/base`, not the decorators   |
 | Status tabs, saved views, kanban, footer totals          | `TableView` options (**dms-page-design**)                                                                                                                              |
 
 3. **Installed**: load that module's skill, or its contract through **interface**, and build on it. **Absent**: never build a copy. Open with one question, asked with the asking tool, whether you may install it, and show no code or command before it. On yes, run `ajs project modules add @antelopejs/<module>` and build on it.
-4. **Before adding a field, column, route or custom code to a block**, read what the block already offers: `builder_catalog` with the builder MCP, else the block's TSDoc through **interface** (`contract dms base`).
+4. **Before adding a field, column, route or custom code to a block**, read what the block already offers: `builder_catalog` with the builder MCP, else the block's TSDoc through **interface**: `contract dms base/<block>` (`base/table-view`) lists what it re-exports from each file, and `contract dms base/<block>/<file>` (`base/table-view/meta`, `base/table-view/routes`) prints that file.
 
 ## The rules
 
