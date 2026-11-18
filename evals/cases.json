@@ -129,10 +129,15 @@
       "style": "clean",
       "prompt": "Add a drag-and-drop kanban board for the support tickets, one column per status.",
       "expect": {
-        "skills": ["dms-best-practices", "dms-pages"],
-        "acceptable": ["dms", "dms-module", "dms-frontend"],
-        "mustMention": ["CustomComponent"],
-        "behaviour": "asks-first"
+        "skills": ["dms-best-practices", "dms-page-design"],
+        "acceptable": [
+          "dms",
+          "dms-module",
+          "dms-frontend",
+          "dms-pages",
+          "dms-builder-mcp"
+        ],
+        "mustMention": ["TableView", "kanban"]
       }
     },
     {
@@ -650,6 +655,74 @@
         "skills": ["dms-page-design"],
         "acceptable": ["dms-builder-mcp", "dms-pages", "dms-external-database"],
         "mustMention": ["builder_create_category"]
+      }
+    },
+    {
+      "id": "dms-reuse-mail-template-installed",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "In our DMS project, when an order's status changes to shipped, the order service must email the customer with the tracking number. The project's package.json lists @antelopejs/dms, @antelopejs/dms-frontend and @antelopejs/dms-mailing. Write the business logic.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": ["dms-mailing", "dms", "dms-pages", "dms-automation"],
+        "mustMention": ["SendTemplate", "DeclareTemplate"]
+      }
+    },
+    {
+      "id": "dms-reuse-mail-absent-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "send a welcome email when someone signs up to our dms app. deps are @antelopejs/dms, @antelopejs/dms-frontend and @antelopejs/dms-saas, nothing else",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": ["dms-mailing", "dms", "dms-saas", "dms-auth"],
+        "mustMention": ["@antelopejs/dms-mailing"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "dms-reuse-saas-absent",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Turn our DMS app into a SaaS: each customer company gets its own tenant with its own users and data, and pays a monthly subscription. The project's package.json lists @antelopejs/dms, @antelopejs/dms-frontend and @antelopejs/dms-mailing.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": ["dms-saas", "dms", "dms-auth", "dms-project"],
+        "mustMention": ["@antelopejs/dms-saas"],
+        "behaviour": "asks-first"
+      }
+    },
+    {
+      "id": "dms-reuse-localized-field",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Our DMS products table has a name and a description. The shop sells in English and French, so make both fields translatable and editable in each language from the product form.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": [
+          "database-decorators-interface",
+          "dms-pages",
+          "dms",
+          "dms-lang",
+          "dms-builder-mcp"
+        ],
+        "mustMention": ["Localized"]
+      }
+    },
+    {
+      "id": "dms-reuse-archive-rows",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "On the DMS customers table, staff must be able to archive customers they no longer work with instead of deleting them, hide archived ones by default and restore them later.",
+      "expect": {
+        "skills": ["dms-best-practices"],
+        "acceptable": [
+          "dms-pages",
+          "dms",
+          "dms-builder-mcp",
+          "dms-page-design"
+        ],
+        "mustMention": ["ArchiveField"]
       }
     }
   ]
