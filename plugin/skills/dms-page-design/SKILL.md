@@ -144,7 +144,7 @@ A page that belongs in a section the project has already goes there: in a mockup
 that exact title, which the viewer draws as the app's own.
 
 A section is a menu category: `builder_create_category` (`name`, `displayName`, `icon`,
-`order`, `module`) answers its `ref`, which `builder_create_page` takes as `category`,
+`order`, `module`, and `section: true` for a sidebar section, a `RootCategory`) answers its `ref`, which `builder_create_page` takes as `category`,
 `builder_map_resources` per resource as `category` (create the section first, in the tables'
 `module`), and `builder_configure_page` in `{ "category": "<ref>" }` to move a page there.
 
@@ -219,7 +219,7 @@ that number is what the reader checks ("Refunded"). Never sum a unit price, a ra
 amount, rows waiting, a share of a status, the last two over a native enum label), put a `GridRow` of 3 or 4 `KpiCard`s above the
 `TableView`, each answering one question the table's reader asks ("Revenue this month",
 "Awaiting shipment", "Refund rate"), with the series and `compare` rules above. A lookup list
-(a reference table, tags, settings) gets none.
+(a reference table, tags, settings) gets none. A card's change figure (`delta`, `previousValue`) shows only on a page with a `PeriodSelector`: on a table page without one the card shows no change figure; add a `PeriodSelector` only when the user wants change figures.
 
 Set displays, views and footer per resource as `tableOptions` in `builder_map_resources`, or on
 an existing page with `builder_configure_table_view`. Through `builder_configure_table_view`

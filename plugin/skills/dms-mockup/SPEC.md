@@ -180,6 +180,7 @@ A `TableView` takes the features **dms-page-design** _Tables_ decides, in the na
 - **Column `display`**, one of:
   - a badge, `{ "kind": "badge", "items": [{ "value", "label", "tone" }] }`, on a `string` or `select` column: a `select` column carries its values this way. `tone` is `neutral`, `primary`, `secondary`, `success`, `warning`, `error` or `info`;
   - a price, `{ "kind": "price", "currency": "EUR" }`, on a `number` column, with an ISO 4217 code;
+  - a rating (1 to 5) is a badge, with a tone per value (1 and 2 `error`, 3 `warning`, 4 and 5 `success`), never a cell display;
   - a cell display, `{ "type", "options"? }`, `type` one of `identity`, `pills`, `relative_date`, `indicator`, `status_pill`, `two_line`, `progress`, `sparkline`, `duration`, `bytes`, `string` and `mono`, such as `{ "type": "identity", "options": { "subtitleField": "email" } }`.
 - **`tabsFrom`**, `{ "column" }`: "All", then one tab per badge item, in its tone. The column is `filterable` with a badge `display`, and the table has no `tabs`. Hand-written `tabs` colour a tab with `textColor` and `iconColor`; any other key, `color` included, is an issue.
 - **`kanban`**, `{ "groupByField", "columnMaxHeight"? }`, on a badge, `boolean` or `status` column. Its cards do not move in a mockup.
@@ -611,7 +612,7 @@ A fixture value `{ "$generate": { "rows"?: number, "fields": { "<key>": <Kind> }
 
 ## Fixture shapes
 
-A block reads the value of its `fixture:<key>` as written, so the value has the block's own shape. Only a `TableView` reads an array of rows (and so a `$generate` fixture); every other block below reads an object, and an array there draws no data.
+A block reads the value of its `fixture:<key>` as written, so the value has the block's own shape. A `KpiCard` or `ChartCard` fixture's `delta` and `previousValue` show on the built page only when it has a `PeriodSelector`: give them only on a page that has one, and leave them out elsewhere. Only a `TableView` reads an array of rows (and so a `$generate` fixture); every other block below reads an object, and an array there draws no data.
 
 | Block                                                                           | Shape of the fixture                                                                                                                                                                                 | Example                                                                                                                    |
 | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
