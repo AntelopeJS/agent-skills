@@ -1,6 +1,10 @@
 # Changelog
 
 
+## v0.8.1
+
+[compare changes](https://github.com/AntelopeJS/agent-skills/compare/agent-skills-v0.3.2...agent-skills-v0.8.1)
+
 ## v0.3.2
 
 [compare changes](https://github.com/AntelopeJS/agent-skills/compare/agent-skills-v0.3.1...v0.3.2)
