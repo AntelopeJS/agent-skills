@@ -270,13 +270,21 @@ An app clicks through: from a figure to its rows, from a row to its record, and 
   `read-write` connection, as **dms-external-database** _Connection access_ says. On one,
   propose each table's write actions from its `writes` and its shape, and the integrator
   confirms them in the plan:
-  - Entity tables (customers, products, orders) and reference or lookup tables (categories,
-    statuses, tags) get add and edit where `writes.insert` and `writes.update` allow them.
-  - Delete only where `writes.delete` allows it and erasing the row is safe, such as a lookup
-    nothing references. Records that must not be erased take the archive below.
-  - Log, event, history and audit tables stay read-only, whatever `writes` allows.
-  - An action `writes` forbids is not proposed; the plan says which and why.
-- **Archive in place of delete** when records must not be erased (invoices, orders, people):
+  - **Transactions are never erased.** Sales, orders and their lines, invoices, credit notes,
+    refunds, stock movements: no delete and no archive, whatever `writes` allows. Add and edit
+    where `writes` allows them and the reader records them by hand (an order's status, a
+    note).
+  - **Logs stay read-only.** Payments, log, event, history and audit tables: no write action.
+  - **Entities and lookups** (customers, products, categories, tags) get add and edit where
+    `writes.insert` and `writes.update` allow them.
+  - **Delete only a row nothing depends on**: where `writes.delete` allows it and no other
+    table references this one through a foreign key (an incoming relation in the analysis or
+    in `database_describe`). A referenced table gets no delete; it gets the archive below
+    when it has an archive column, and neither otherwise.
+  - An action `writes` forbids is not proposed; the plan says which and why, and why a table
+    gets no delete or archive.
+- **Archive in place of delete** when records must not be erased but may leave the lists
+  (people, products, a referenced lookup), never on a transaction:
   `archiveMode: true` on the `TableView` gives Archive and Restore: archive, edit and duplicate
   on active rows, restore and delete on archived ones, behind a _Show archived_ toggle. The
   archive field is `isArchived` (`@ArchiveField` in code). Only on a table that writes rows, so

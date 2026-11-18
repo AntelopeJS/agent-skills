@@ -250,7 +250,7 @@
         "type": "skeleton",
         "dir": "fixtures/dms-app"
       },
-      "prompt": "Mock up the admin over our client's Postgres database: customers, orders and the audit log. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. builder_mapping on connection erp, module erp-tables answers access \"read-write\": crm.customers (name, email, city; created_at: date, sortable; writes { insert: true, update: true, delete: true }), sales.orders (title Orders, label number; status: native enum pending, paid, refunded, filterable; total: display { kind: \"price\", currency: \"EUR\" }; ordered_at: date, sortable; is_archived: boolean; writes { insert: true, update: true, delete: true }), audit.events (action, actor, occurred_at: date, sortable; writes { insert: true, update: false, delete: false }).",
+      "prompt": "Mock up the admin over our client's Postgres database: customers, orders and the audit log. sales.orders.customer_id references crm.customers. The answers to your questions are all in this message, go ahead. The dms MCP is running with mockup_write_spec and mockup_patch_spec. builder_mapping on connection erp, module erp-tables answers access \"read-write\": crm.customers (name, email, city; created_at: date, sortable; writes { insert: true, update: true, delete: true }), sales.orders (title Orders, label number; status: native enum pending, paid, refunded, filterable; total: display { kind: \"price\", currency: \"EUR\" }; ordered_at: date, sortable; is_archived: boolean; writes { insert: true, update: true, delete: true }), audit.events (action, actor, occurred_at: date, sortable; writes { insert: true, update: false, delete: false }).",
       "rubric": [
         {
           "id": "data-written",
@@ -261,12 +261,16 @@
           "text": "The customers and orders TableViews turn on rowActions add and edit, and each states its formContainer choice (modal, drawer or page) as dms-page-design says."
         },
         {
-          "id": "archive-not-delete",
-          "text": "The orders table, whose records must not be erased and which has an is_archived column, uses archiveMode: true instead of a plain delete."
+          "id": "transaction-not-erased",
+          "text": "The orders table, a transaction, gets neither delete nor archive (no rowActions.delete, no archiveMode) even though writes.delete is true and it has an is_archived column."
         },
         {
           "id": "log-stays-read-only",
           "text": "The audit.events TableView turns on no add, edit, delete, archive, restore or duplicate action, although writes.insert is true."
+        },
+        {
+          "id": "referenced-no-delete",
+          "text": "The customers table, which orders reference through a foreign key, gets no rowActions.delete; it has no archive column, so it gets no archiveMode either."
         }
       ]
     },
