@@ -52,7 +52,7 @@ A **resource** is the data a table or form shows: a `Table` + `Model` and a `Dat
 
 A **query** is a derived-data endpoint on a page: an aggregate or one point per group, backed by a generated model method. Its `response` matches the block: `value` for a `KpiCard`, `card` for a `ChartCard`, `items` for a `TopListCard`, `series` for a bare chart. Run `builder_query_templates` and `builder_preview_query` first, add it with `builder_add_query` on the page that shows it, and wire the returned `route` as the block's `fetchUrl`.
 
-[REFERENCE.md](REFERENCE.md) has the resource and query workflows, field rules, `$param` binding and opaque queries.
+Fields take per-column presentation (`display`, `group`, `isVisible`, `size`, `cellWrap`, `description`) and `builder_configure_column_groups` writes form groups, in Safe mode too: see REFERENCE.md _Column presentation_. [REFERENCE.md](REFERENCE.md) has the resource and query workflows, field rules, `$param` binding and opaque queries.
 
 ## Theme and branding
 

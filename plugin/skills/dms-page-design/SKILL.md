@@ -178,6 +178,7 @@ with none, send `"display": null`, which leaves it a number. A relation
 column (a `customer_id`, an `order_id`) is titled by its target ("Customer") and shows the
 target's label, never the raw number: map the target relation with a label first, then send
 the relation column as a relation. Raw id columns stay off the list. A `display` you do send, and the relation's `tabs`, go in `builder_map_resources`.
+A cell display (`mono`, `two_line`, `identity`, `progress`...), `group`, `isVisible`, `size` and `cellWrap` go in the same `fields`, else `builder_configure_field`: no code needed, Safe mode included.
 
 **Tabs.** A single-choice column with 2 to 6 values that splits the rows into states people
 work through (a status, a stage) gives tabs when the column is drawn as a badge, by the
