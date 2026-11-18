@@ -108,6 +108,7 @@ import { isRecord, isText } from "../../plugin/scripts/lib/values.mjs";
  * @typedef {object} ExecResult
  * @property {number} executed
  * @property {ExecFailure[]} failed
+ * @property {string[]} missing The executors whose CLI was not found; their tasks stay pending.
  */
 
 /**
@@ -417,6 +418,20 @@ async function execute(context, entry, request) {
 }
 
 /**
+ * Whether `error` is the spawn of `command` failing because no such program exists.
+ * @param {unknown} error
+ * @param {string} command
+ * @returns {boolean}
+ */
+function isMissingCli(error, command) {
+  return (
+    error instanceof Error &&
+    fieldOf(error, "code") === "ENOENT" &&
+    fieldOf(error, "syscall") === `spawn ${command}`
+  );
+}
+
+/**
  * @param {ExecContext} context
  * @param {MatrixEntry} entry
  * @param {ModelRequest} request
@@ -429,6 +444,7 @@ async function attempt(context, entry, request) {
     try {
       return await execute(context, entry, request);
     } catch (error) {
+      if (isMissingCli(error, context.bins[entry.executor])) throw error;
       last = error;
     }
   }
@@ -564,7 +580,9 @@ function writeExecutorRecord(dir, entry, { bins, observed, at }) {
  * Answers every pending task of a prepared run through the local CLIs
  * (`claude -p`, `codex exec`), in sanitized directories. Tasks that already
  * have an answer file are skipped, so an interrupted run resumes. Returns the
- * tasks that failed after a retry; each leaves an `.error.txt` beside it.
+ * tasks that failed after a retry; each leaves an `.error.txt` beside it. An
+ * executor whose CLI is not found is called no more: it is listed in
+ * `missing`, and its tasks stay pending with no error file or `executor.json`.
  * @param {object} run
  * @param {string} run.dir
  * @param {string[]} [run.models] The matrix ids to answer; all of the run's by default.
@@ -586,12 +604,15 @@ export async function execRun({ dir, models, options = {} }) {
   const observed = new Map();
   /** @type {ExecFailure[]} */
   const failed = [];
+  /** @type {Set<string>} */
+  const missing = new Set();
   const pending = listTasks(manifest).filter(
     (task) => wanted.has(task.model) && !existsSync(answerFile(dir, task)),
   );
   try {
     await pool(pending, jobs, async (task) => {
       const entry = manifest.models.find((item) => item.id === task.model);
+      if (missing.has(entry.executor)) return;
       try {
         const { text, models: seen } = await attempt(
           context,
@@ -602,6 +623,10 @@ export async function execRun({ dir, models, options = {} }) {
         rmSync(errorFile(dir, task), { force: true });
         observed.set(entry.id, [...(observed.get(entry.id) ?? []), ...seen]);
       } catch (error) {
+        if (isMissingCli(error, bins[entry.executor])) {
+          missing.add(entry.executor);
+          return;
+        }
         const message = error instanceof Error ? error.message : String(error);
         writeFileSync(errorFile(dir, task), `${message}\n`);
         failed.push({ task, error: message });
@@ -615,13 +640,20 @@ export async function execRun({ dir, models, options = {} }) {
     rmSync(root, { recursive: true, force: true });
   }
   const at = new Date().toISOString();
-  for (const entry of manifest.models.filter((item) => wanted.has(item.id)))
+  for (const entry of manifest.models.filter(
+    (item) => wanted.has(item.id) && !missing.has(item.executor),
+  ))
     writeExecutorRecord(dir, entry, {
       bins,
       observed: observed.get(entry.id) ?? [],
       at,
     });
-  return { executed: pending.length - failed.length, failed };
+  const skipped = pending.filter((task) => !existsSync(answerFile(dir, task)));
+  return {
+    executed: pending.length - skipped.length,
+    failed,
+    missing: [...missing],
+  };
 }
 
 /**
