@@ -702,8 +702,7 @@
           "dms-lang",
           "dms-builder-mcp"
         ],
-        "mustMention": ["Localized"],
-        "mustNotMention": ["name_fr", "nameFr"]
+        "mustMention": ["Localized"]
       }
     },
     {

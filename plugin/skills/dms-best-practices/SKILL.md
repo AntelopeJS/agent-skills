@@ -31,7 +31,7 @@ Run this before any feature, a page or business logic alike. Most needs already 
 | Archive and restore rows instead of deleting them        | `@ArchiveField()` on the table's boolean field and `TableViewRoutes.Archive` / `Restore` (`@antelopejs/interface-dms/base`)                        |
 | Status tabs, saved views, kanban, footer totals          | `TableView` options (**dms-page-design**)                                                                                                          |
 
-3. **Installed**: load that module's skill, or its contract through **interface**, and build on it. **Absent**: never build a copy. Propose installing it with the asking tool (`ajs project modules add @antelopejs/<module>`) and build once the user answers.
+3. **Installed**: load that module's skill, or its contract through **interface**, and build on it. **Absent**: never build a copy. Before any code or command, ask with the asking tool whether to install it; on yes, run `ajs project modules add @antelopejs/<module>` and build on it.
 4. **Before adding a field, column, route or custom code to a block**, read what the block already offers: `builder_catalog` with the builder MCP, else the block's TSDoc through **interface** (`contract dms base`).
 
 ## The rules
