@@ -38,6 +38,16 @@ installed engine doesn't support it — explain the limitation instead of retryi
    `list`, `select`, `count`, `new`, `edit`, `delete`, `archive`, `restore`,
    `exportStart`, `exportStatus`, `exportDownload`) are rejected with `invalid_config`.
 
+## Column presentation
+
+`builder_add_field`, `builder_configure_field`, `builder_create_resource` `fields` and `builder_map_resources` `fields[]` also take, in Safe mode too:
+
+- `display: { type, options? }`, a cell display: `identity`, `pills`, `relative_date`, `indicator`, `status_pill`, `two_line`, `progress`, `sparkline`, `duration`, `bytes`, `string` or `mono`. Options are checked per display: a bad one is `invalid_config` naming it (`builder_map_resources` skips the relation with a `relation_skipped` warning). On a mapped column it is a badge or a price, or a cell display over a column with neither.
+- `group` (a form group id), `isVisible`, `size` (> 0), `cellWrap`, `description`.
+- In `builder_configure_field`'s patch each may be `null` to remove it.
+
+`builder_configure_column_groups { resource, groups }` writes the class's `@ColumnGroup`, the groups of the add, edit and details forms: `groups` is `{ [id]: { label, description?, orientation?, order? } | null }`, a group sent replaces its id, `null` removes it, a group left out stays. `builder_resource_structure` reads fields' presentation and `columnGroups` back.
+
 **Displaying a resource on a page is a builder step**: create and populate the
 resource, then `builder_add_block` a `TableView` with `controller` = the resource `ref`
 and display options in `config`. Relation columns work via `$ref` (see

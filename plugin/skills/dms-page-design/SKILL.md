@@ -144,7 +144,7 @@ A page that belongs in a section the project has already goes there: in a mockup
 that exact title, which the viewer draws as the app's own.
 
 A section is a menu category: `builder_create_category` (`name`, `displayName`, `icon`,
-`order`, `module`) answers its `ref`, which `builder_create_page` takes as `category`,
+`order`, `module`, and `section: true` for a sidebar section, a `RootCategory`) answers its `ref`, which `builder_create_page` takes as `category`,
 `builder_map_resources` per resource as `category` (create the section first, in the tables'
 `module`), and `builder_configure_page` in `{ "category": "<ref>" }` to move a page there.
 
@@ -178,6 +178,7 @@ with none, send `"display": null`, which leaves it a number. A relation
 column (a `customer_id`, an `order_id`) is titled by its target ("Customer") and shows the
 target's label, never the raw number: map the target relation with a label first, then send
 the relation column as a relation. Raw id columns stay off the list. A `display` you do send, and the relation's `tabs`, go in `builder_map_resources`.
+A cell display (`mono`, `two_line`, `identity`, `progress`...), `group`, `isVisible`, `size` and `cellWrap` go in the same `fields`, else `builder_configure_field`: no code needed, Safe mode included.
 
 **Tabs.** A single-choice column with 2 to 6 values that splits the rows into states people
 work through (a status, a stage) gives tabs when the column is drawn as a badge, by the
@@ -219,11 +220,11 @@ that number is what the reader checks ("Refunded"). Never sum a unit price, a ra
 amount, rows waiting, a share of a status, the last two over a native enum label), put a `GridRow` of 3 or 4 `KpiCard`s above the
 `TableView`, each answering one question the table's reader asks ("Revenue this month",
 "Awaiting shipment", "Refund rate"), with the series and `compare` rules above. A lookup list
-(a reference table, tags, settings) gets none.
+(a reference table, tags, settings) gets none. A card's change figure (`delta`, `previousValue`) shows only on a page with a `PeriodSelector`: on a table page without one the card shows no change figure; add a `PeriodSelector` only when the user wants change figures.
 
 Set displays, views and footer per resource as `tableOptions` in `builder_map_resources`, or on
 an existing page with `builder_configure_table_view`. Through `builder_configure_table_view`
-a refused choice comes back as `invalid_config` with the setting it names: fix that one and
+a refused choice comes back as `invalid_config` with the setting it names (for an enum value, the allowed ones: take the closest yourself and mention it in your reply, as **dms-builder-mcp** _Errors_ says): fix that one and
 send again. Through `builder_map_resources` it comes back as a `page_not_written` warning.
 
 ## Records, forms and links
@@ -267,12 +268,29 @@ An app clicks through: from a figure to its rows, from a row to its record, and 
   sub-page of the list, left out of the menu, that opens on a click on its row, built as
   **dms-best-practices** _Custom pages are blocks_ says.
 - **Turn on only the actions the reader takes.** A connected database's table writes only on a
-  `read-write` connection, as **dms-external-database** _Connection access_ says.
-- **Archive in place of delete** when records must not be erased (invoices, orders, people):
+  `read-write` connection, as **dms-external-database** _Connection access_ says. On one,
+  propose each table's write actions from its `writes` and its shape, and the integrator
+  confirms them in the plan:
+  - **Transactions are never erased.** Sales, orders and their lines, invoices, credit notes,
+    refunds, stock movements: no delete and no archive, whatever `writes` allows. Add and edit
+    where `writes` allows them and the reader records them by hand (an order's status, a
+    note).
+  - **Logs stay read-only.** Payments, log, event, history and audit tables: no write action.
+  - **Entities and lookups** (customers, products, categories, tags) get add and edit where
+    `writes.insert` and `writes.update` allow them.
+  - **Delete only a row nothing depends on**: where `writes.delete` allows it and no other
+    table references this one through a foreign key (an incoming relation in the analysis or
+    in `database_describe`). A referenced table gets no delete; it gets the archive below
+    when it has an archive column, and neither otherwise.
+  - An action `writes` forbids is not proposed; the plan says which and why, and why a table
+    gets no delete or archive.
+- **Archive in place of delete** when records must not be erased but may leave the lists
+  (people, products, a referenced lookup), never on a transaction:
   `archiveMode: true` on the `TableView` gives Archive and Restore: archive, edit and duplicate
   on active rows, restore and delete on archived ones, behind a _Show archived_ toggle. The
   archive field is `isArchived` (`@ArchiveField` in code). Only on a table that writes rows, so
-  over a connected database only with `read-write` access.
+  over a connected database only on `read-write`, and only where the table has an archive
+  column (`archived`, `is_archived`, `archived_at`). A table with none gets no archive.
 - **Link pages together.** Every summary links to what it summarises: a KPI or a card to the
   table it counts, a dashboard tile to its page, a detail page back to its list, a toolbar
   button to the page it opens. `KpiCard` takes no link: a figure that links is a `StatGroup`

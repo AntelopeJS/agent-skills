@@ -24,7 +24,7 @@ Settle these three before the first edit. They decide every later branch.
 
 - **PageRef** = the page's route, e.g. `/charts/revenue`.
 - **BlockPath** = `<pageRef>#<name>[/<childId>...]`: `#<name>` is a top-level block; each `/<childId>` descends into a container's child.
-- **CategoryRef** = a dotted id, e.g. `pages.charts` (top-level pages under `pages.*`; module pages under `modules.<id>.*`). Take exact refs from `builder_list_pages`, never guess.
+- **CategoryRef** = a dotted id, e.g. `pages.charts` (a category under the built-in Pages; module pages under `modules.<id>.*`). A sidebar section's ref is just its name, e.g. `sales`, not `pages.sales`. `builder_list_pages` answers `{ pages, categories }`: each page carries `section`, the ref of the section it shows under, and each section in `categories` carries `section: true`. Take exact refs from it, never guess.
 - **ResourceRef** = a data resource's id, its `/api/<name>` route segment. **FieldPath** = `<resourceRef>#<fieldName>`. Take refs from `builder_list_resources`.
 - **QueryRef** = `<pageRef>@<queryName>`, e.g. `/catalog/books@inStockCount`. Take refs from `builder_page_structure`'s `queries`.
 
@@ -41,7 +41,7 @@ Settle these three before the first edit. They decide every later branch.
 3. **Create a page** with `builder_create_page` (a real `CategoryRef`); it returns `{ ref, filepath }`. Then give the user the URL `navigate_to_page` answers for it, so they can watch it fill in.
 4. **Build the blocks.** A whole page, or a set of blocks, goes in one `builder_compose_page` call: the blocks as an ordered tree, each data block with its `query` inline. Preview it first (`"preview": true`), as **dms-page-design** _Build a page in one call_ says. For one block, `builder_add_block`: omit `parent` for a top-level block or pass a container's BlockPath; `name` unique among siblings. A controller-leading block (catalog `controllerArg: true`, e.g. `TableView`) takes `controller` = the resource `ref`; other types refuse it.
 5. **Configure or rearrange.** `builder_configure_block` merges options (`replace: true` overwrites); `builder_configure_table_view` sets a table's displays, views and footer. Children change only through `builder_add_block`, `builder_move_block` and `builder_remove_block` (which removes the subtree).
-6. **Pages and categories.** `builder_configure_page` edits displayName, icon, order, description, `hidden` and `category` (a move changes the page's ref and route); `builder_delete_page` removes a page and its barrel import; `builder_create_category`, `builder_configure_category` and `builder_delete_category` manage categories. A category delete is refused with `referential_integrity` while a page references it.
+6. **Pages and categories.** `builder_configure_page` edits displayName, icon, order, description, `hidden` and `category` (a move changes the page's ref and route); `builder_delete_page` removes a page and its barrel import; `builder_create_category`, `builder_configure_category` and `builder_delete_category` manage categories; `builder_create_category` with `section: true` writes a sidebar section (a `RootCategory`, `type: "label"`), as a mockup's `categories` need, where a plain call writes a collapsible category. A category delete is refused with `referential_integrity` while a page references it.
 7. **Verify.** A typecheck-clean edit can still fail at runtime (a `fetchUrl` that 404s). Before the write, the `builder_compose_page` preview answers each block's data status. After it, `query_logs` shows the host's reload and runtime output, and `navigate_to_page` answers the page's dashboard URL (`unknown_route` until the reload registers the page); it drives no browser. Open that URL with your browser tool when you have one and look at every block; without one, give the URL to the user and ask them to check it. The step is done when every block the change touched shows data and the logs show no error from it.
 
 On the code path, verify with the project's typecheck (the `typecheck` MCP tool, or the project's own script), then open the page in the browser as **dms-pages** _Verify in the browser_ says.
@@ -52,7 +52,7 @@ A **resource** is the data a table or form shows: a `Table` + `Model` and a `Dat
 
 A **query** is a derived-data endpoint on a page: an aggregate or one point per group, backed by a generated model method. Its `response` matches the block: `value` for a `KpiCard`, `card` for a `ChartCard`, `items` for a `TopListCard`, `series` for a bare chart. Run `builder_query_templates` and `builder_preview_query` first, add it with `builder_add_query` on the page that shows it, and wire the returned `route` as the block's `fetchUrl`.
 
-[REFERENCE.md](REFERENCE.md) has the resource and query workflows, field rules, `$param` binding and opaque queries.
+Fields take per-column presentation (`display`, `group`, `isVisible`, `size`, `cellWrap`, `description`) and `builder_configure_column_groups` writes form groups, in Safe mode too: see REFERENCE.md _Column presentation_. [REFERENCE.md](REFERENCE.md) has the resource and query workflows, field rules, `$param` binding and opaque queries.
 
 ## Theme and branding
 
@@ -64,7 +64,7 @@ On the code path, edit the theme yourself in the `app/app.config.ts` of the proj
 
 - `typecheck_failed`: read `diagnostics`, fix the `config` or `type`, retry. Nothing was written.
 - A refusal that names a read-only connection (a `writable: true` mapping, a `ResourceForm` in `new` or `edit` mode, a `TableView` that serves write routes): follow **dms-external-database** _Connection access_.
-- `invalid_config`, `duplicate_name`, `not_found`: fix the input.
+- `invalid_config`, `duplicate_name`, `not_found`: fix the input. A value refused as not one of an enum's allowed values (the error lists them): pick the closest allowed value yourself, send it and mention the substitution in your reply (a badge tone `pink` becomes `warning`); ask the user only when none is close.
 - `stale`: the page changed under you; read it again with `builder_page_structure` and retry.
 - `builder_unavailable`, `request_failed`: the builder engine is unreachable or does not implement the operation (`HTTP 400` means `unknown_op`). Explain the limitation; retry nothing.
 - `opaque_target`, `unsupported`: the builder cannot make this change. Without Safe mode, make it in code with **dms-pages**, then call `builder_refresh` (scoped to the page): it clears the builder's caches, so it reads the file again. In Safe mode, ask the user whether to turn Safe mode off for that one step; never force it.

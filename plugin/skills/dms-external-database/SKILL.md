@@ -38,8 +38,9 @@ read only. Nothing is written before the integrator approves your plan.
 
 Call `database_connections`.
 
-- **A connection is listed** with an `engine`: use its id and go to 2. When the integrator chose
-  read & write as they connected it, raise its access first, as _Connection access_ says.
+- **A connection is listed** with an `engine`: use its id and go to 2. Its `access` is the one
+  the integrator chose, in dms-assistant's onboarding or as they connected it: read it from
+  `builder_mapping` or `builder_analyse_database`, as _Connection access_ says.
 - **An entry answers `error`**: say what it says (an owned instance, the catalog not enabled, a
   role that cannot read) and stop.
 - **A database tool answers `unreachable_connection`**: the DMS MCP reaches only the catalog
@@ -53,7 +54,7 @@ Call `database_connections`.
   `ERP_DATABASE_URL`, and for MongoDB `ERP_DATABASE_NAME`. Ask the integrator for the version of
   the engine's module to install (`@antelopejs/postgres`, `@antelopejs/mysql` for MySQL and
   MariaDB alike, `@antelopejs/mongodb`, `@antelopejs/rethinkdb`): you cannot look it up. Ask
-  the read-or-write question of _Connection access_. The user approves the diff. Safe mode
+  the read-or-write question of _Connection access_ when it says to. The user approves the diff. Safe mode
   refuses `builder_configure_project`: ask the integrator to turn it off for this one call.
   - Then tell the integrator to put the URL in `.env` (`ERP_DATABASE_URL=postgres://…`,
     `mysql://…/<database>` for MySQL and MariaDB, `mongodb://…`, or `rethinkdb://…/<database>`;
@@ -112,9 +113,11 @@ profile of the whole database again: the Builder did it.
   catalog reads types from a sample, and every reference comes from a name and a `CheckReference`,
   never from the database. An embedded document is one field: its subfields are not mappable, and
   neither is an array of ids as a relation.
-- **Editable.** Every TableView is proposed read-only. Make one editable only where the integrator
-  wants it and the connection's `access` is `read-write` (_Connection access_); show `writes`
-  beside it, so a read-only role in this environment is visible.
+- **Editable.** On `read`, every TableView is read-only. On `read-write`, propose each table's
+  write actions as **dms-page-design** _Records, forms and links_ decides from its `writes` and
+  its shape, and show them in the plan beside `writes` for the integrator to confirm or drop.
+  Map the relations that keep a write action `writable: true`. A relation whose `writes` forbids
+  the action stays `writable: false`, with the reason shown.
 - **Pages people can work with.** Load the `dms-page-design` skill. For every TableView, plan
   from its columns and their profiles (types, traits, distinct counts), as _Name every page_
   and _Tables_ there say: a title, an icon and a description; the tabs, saved views, display
@@ -248,11 +251,18 @@ database: a mockup, a page built through the builder or in code.
   `archiveMode`, a draggable kanban, a `ResourceForm` not in `mode: "view"`), and map every
   relation `writable: false`. A mockup over the connection writes `data`, and the validator
   refuses those options there ([SPEC.md](../dms-mockup/SPEC.md) _Connection access_).
-- **Connecting**: ask "only read, or also change rows?". The connect batch writes
-  `access: "read"` either way. On read & write, raise it as below once `database_connections`
-  lists the connection after the restart.
+- **On `read-write`**: propose the write actions of each table, as **dms-page-design** _Records,
+  forms and links_ decides, in every flow: a mockup, a page built through the builder or in
+  code, with or without dms-assistant.
+- **The access is already chosen** when the connection was made in dms-assistant's onboarding:
+  its popup asks "read only" or "read & write" when the pasted account can write, and writes
+  the answer as the connection's `access`. Read it from `builder_mapping` or
+  `builder_analyse_database`, and never ask again or lower it.
+- **Connecting without that popup** (the MCP alone): ask "only read, or also change rows?". The
+  connect batch writes `access: "read"` either way. On read & write, raise it as below once
+  `database_connections` lists the connection after the restart.
 - **The integrator asks for add, edit or delete on a `read` connection**: say the connection is
-  read-only, and ask for an explicit OK. On yes:
+  read-only, and ask for an explicit OK. Propose none unasked. On yes:
   1. Call `builder_set_connection_access` with
      `{ "connection": "<id>", "access": "read-write" }`. Its first call answers
      `confirmation_required` and writes nothing; the same call repeated within 10 minutes runs
