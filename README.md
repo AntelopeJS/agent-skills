@@ -10,7 +10,7 @@
 
 </div>
 
-![Screen recording from the AntelopeJS DMS film. A dashboard page is written as a TypeScript class under the caption Code. Your editor. Your repo., edited on the page with Ctrl B, then described to the assistant running Claude Code under the caption Or describe it. A git diff then shows the hand-written line, the Builder line and the assistant line in the same dashboard/page.ts under the caption One codebase. No export step.](./.github/assets/three-ways.gif)
+![Claude Code in a terminal mocks up a support desk, and the mockup opens in the AntelopeJS DMS dashboard.](./.github/assets/mockup-from-claude-code.gif)
 
 Tools for coding agents building with [AntelopeJS](https://github.com/AntelopeJS) — the Node.js framework where a tight core + `ajs` CLI orchestrate modules that communicate **only** through versioned _interface_ contracts — and with the AntelopeJS DMS. Every skill ships inside an npm package (the framework skills in `@antelopejs/core`, the DMS suite in `@antelopejs/dms`, one per module or interface); this plugin syncs them into your project, resolves interface contracts live, and adds skills of its own: four that drive the sync and the resolver, and the DMS workflow skills that build pages, through the DMS builder MCP or in code.
 
