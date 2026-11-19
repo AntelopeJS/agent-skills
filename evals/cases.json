@@ -774,6 +774,23 @@
         ],
         "mustMention": ["builder_set_connection_access", "writable"]
       }
+    },
+    {
+      "id": "plugin-dms-external-database-read-write-proposes-writes",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Map the client's postgres database into this DMS project. builder_mapping answers access \"read-write\" because the integrator chose read & write in the dms-assistant onboarding: customers and product categories allow insert, update and delete, invoices allow insert and update, an audit_log table allows insert only. Plan the pages.",
+      "expect": {
+        "skills": ["dms-external-database"],
+        "acceptable": [
+          "dms-page-design",
+          "dms-builder-mcp",
+          "dms-pages",
+          "dms"
+        ],
+        "mustMention": ["writable", "archive"],
+        "mustNotMention": ["builder_set_connection_access"]
+      }
     }
   ]
 }
