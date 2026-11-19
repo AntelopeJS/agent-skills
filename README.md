@@ -10,7 +10,7 @@
 
 </div>
 
-![Claude Code runs in a terminal with the antelopejs plugin. The prompt Mock up a support desk for our tickets is typed, the skill antelopejs:dms-mockup loads, and Claude Code reports a mockup with a ticket board, a customers list and a page per customer. The mockup then shows in the AntelopeJS DMS dashboard.](./.github/assets/mockup-from-claude-code.gif)
+![Claude Code in a terminal mocks up a support desk, and the mockup opens in the AntelopeJS DMS dashboard.](./.github/assets/mockup-from-claude-code.gif)
 
 Tools for coding agents building with [AntelopeJS](https://github.com/AntelopeJS) — the Node.js framework where a tight core + `ajs` CLI orchestrate modules that communicate **only** through versioned _interface_ contracts — and with the AntelopeJS DMS. Every skill ships inside an npm package (the framework skills in `@antelopejs/core`, the DMS suite in `@antelopejs/dms`, one per module or interface); this plugin syncs them into your project, resolves interface contracts live, and adds skills of its own: four that drive the sync and the resolver, and the DMS workflow skills that build pages, through the DMS builder MCP or in code.
 
