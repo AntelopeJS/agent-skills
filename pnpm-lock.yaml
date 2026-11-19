@@ -13,8 +13,8 @@ importers:
         version: 0.135.0(zod@4.6.7)
     devDependencies:
       '@antelopejs/tooling-configs':
-        specifier: '>=0.8.0 <0.9.0'
-        version: 0.8.0(knip@6.43.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2005))
+        specifier: ^0.8.9
+        version: 0.8.9(knip@6.43.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2005))
       '@types/node':
         specifier: ^24
         version: 24.19.2
@@ -51,8 +51,8 @@ importers:
 
 packages:
 
-  '@antelopejs/tooling-configs@0.8.0':
-    resolution: {integrity: sha512-o2sec/CFUH//QtXUjGpbeFp0D/QI0H5+59nDoihgz4biEE2D5Z+o1r69yY9c7cRyOY1nnFxiHluuhKoylasc1g==}
+  '@antelopejs/tooling-configs@0.8.9':
+    resolution: {integrity: sha512-DMar3gDUBy73qpAqv8coGCmvIBrZ12FtyYwD+Igqn6jrb92GMxZAuI2YlW9pED9tS3tdk17+aZRIyVO0oDacHA==}
     engines: {node: '>=22.18.0'}
     hasBin: true
     peerDependencies:
@@ -60,8 +60,8 @@ packages:
       eslint-plugin-perfectionist: '>=5.0.0'
       knip: '>=6.0.0'
       mongodb-memory-server: '>=10.0.0'
-      oxfmt: ^0.66.0 || ^0.77.0
-      oxlint: 1.81.0
+      oxfmt: ^0.66.0 || ^0.77.0 || ^0.79.0
+      oxlint: 1.81.0 || 1.94.0
       pixelmatch: '>=7.0.0'
       playwright-core: '>=1.56.0'
       sharp: '>=0.34.0'
@@ -783,8 +783,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@oxlint/plugins@1.81.0':
-    resolution: {integrity: sha512-HhD8kd3r6XpelZkhxhRty/po8V6yK1VV63Eq4kSsOS2IoHUywG3DV2EX+z/ZHw46aLI74Y6aA604NRiAqLKW9w==}
+  '@oxlint/plugins@1.94.0':
+    resolution: {integrity: sha512-YT6htikBOBQ00XDxZpRZLZ0anEDo7h9s4+YvjRU0/Ng/cLd0D6SZQ3tsms4g/GDer/z8UKlegC5iptEfyRXJcw==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
   '@phun-ky/typeof@2.0.3':
@@ -974,8 +974,8 @@ packages:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
     engines: {node: '>=8'}
 
-  brace-expansion@5.0.12:
-    resolution: {integrity: sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==}
+  brace-expansion@5.0.13:
+    resolution: {integrity: sha512-Vh3dmFbc4wZeox7M9I/0L9GfFd83Su4+yCck/OF9Gi/P/dAHn0RT7X4K9R7gMNMhDck3DvhR6QXsnQdjjgwNvQ==}
     engines: {node: 20 || >=22}
 
   braces@3.0.3:
@@ -1904,9 +1904,9 @@ packages:
 
 snapshots:
 
-  '@antelopejs/tooling-configs@0.8.0(knip@6.43.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2005))':
+  '@antelopejs/tooling-configs@0.8.9(knip@6.43.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2005))':
     dependencies:
-      '@oxlint/plugins': 1.81.0
+      '@oxlint/plugins': 1.94.0
       dts-bundle-generator: 9.5.1
       minimatch: 10.2.6
       semver: 7.8.6
@@ -2422,7 +2422,7 @@ snapshots:
   '@oxlint/binding-win32-x64-msvc@1.81.0':
     optional: true
 
-  '@oxlint/plugins@1.81.0': {}
+  '@oxlint/plugins@1.94.0': {}
 
   '@phun-ky/typeof@2.0.3': {}
 
@@ -2536,7 +2536,7 @@ snapshots:
 
   binary-extensions@2.3.0: {}
 
-  brace-expansion@5.0.12:
+  brace-expansion@5.0.13:
     dependencies:
       balanced-match: 4.0.4
 
@@ -2999,7 +2999,7 @@ snapshots:
 
   minimatch@10.2.6:
     dependencies:
-      brace-expansion: 5.0.12
+      brace-expansion: 5.0.13
 
   minipass@3.3.6:
     dependencies:
