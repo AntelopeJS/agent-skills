@@ -399,14 +399,14 @@ pnpm test                         # node:test suites (no install needed)
 pnpm evals:baseline               # trigger eval against the plugin's and the published skills, as CI runs it
 pnpm evals:check                  # case files valid, rubric suites well formed
 pnpm check:plugin                 # the plugin loads in both tools and passes the directory review rules
-pnpm check:plugin-version         # a plugin change since origin/main comes with a version bump
+pnpm check:plugin-version         # a branch that changes the plugin bumps its version past origin/main
 claude plugin validate --profile directory --strict ./plugin  # what the Claude plugin directory checks
 claude plugin validate .          # the Claude Code marketplace
 claude --plugin-dir ./plugin      # load this checkout in a Claude Code session
 codex plugin marketplace add .    # register this checkout as a Codex marketplace
 ```
 
-Each merge to `main` releases the plugin. A pull request that changes the plugin bumps `version` in `plugin/.claude-plugin/plugin.json`, `plugin/.codex-plugin/plugin.json` and `package.json` together, since installed copies only update when it changes, and adds its user-facing changes to [`CHANGELOG.md`](./CHANGELOG.md). `pnpm check:plugin-version` fails in CI when it does not.
+Each merge to `main` releases the plugin. A pull request that changes the plugin bumps `version` in `plugin/.claude-plugin/plugin.json`, `plugin/.codex-plugin/plugin.json` and `package.json` together, since installed copies only update when it changes, and adds its user-facing changes to [`CHANGELOG.md`](./CHANGELOG.md). `pnpm check:plugin-version` fails in CI when the version is not bumped.
 
 ## License
 

@@ -19,7 +19,13 @@ jobs:
     with:
       extra-commands: |
         pnpm check:plugin
-        pnpm check:plugin-version
+        if [ "$GITHUB_EVENT_NAME" = merge_group ]; then
+          released=$(jq -r .merge_group.base_sha "$GITHUB_EVENT_PATH")
+        else
+          git fetch --quiet --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+          released=origin/main
+        fi
+        pnpm check:plugin-version --released "$released"
         pnpm evals:check
         pnpm evals:baseline
       docs-files: |

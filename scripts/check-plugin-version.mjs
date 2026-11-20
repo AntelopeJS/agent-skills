@@ -18,9 +18,9 @@ const PACKAGE_RUNTIME = new Set([`${PACKAGE_DIR}index.mjs`]);
 const SEMVER_RE = /^(\d+)\.(\d+)\.(\d+)$/;
 const USAGE = `Usage: check-plugin-version [--released <ref>] [dir]
 
-Fails when files the plugin ships under dir/${PLUGIN_DIR} (dir defaults to cwd)
-differ from <ref> (default ${RELEASED_REF}, the released plugin) while the
-version in ${MANIFEST} is not greater than the one at <ref>.
+Fails when the checkout at dir (default cwd) changes a file the plugin ships
+under ${PLUGIN_DIR}/ since it left <ref> (default ${RELEASED_REF}, the released
+plugin) while the version in ${MANIFEST} is not greater than the one at <ref>.
 `;
 
 /**
@@ -47,16 +47,47 @@ function isShipped(path) {
 /**
  * @param {string} root
  * @param {string} ref
- * @returns {string[]} the shipped paths that differ between ref and the working tree, untracked files included
+ * @returns {string | null} the commit ref names, or null when this checkout lacks it
  */
-function changedShippedPaths(root, ref) {
+function commitOf(root, ref) {
+  try {
+    return git(root, [
+      "rev-parse",
+      "--verify",
+      "--quiet",
+      `${ref}^{commit}`,
+    ]).trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {string} root
+ * @param {string} released
+ * @returns {string} where the checkout left the released history, or the released commit when a shallow clone cannot tell
+ */
+function branchPoint(root, released) {
+  try {
+    return git(root, ["merge-base", released, "HEAD"]).trim();
+  } catch {
+    return released;
+  }
+}
+
+/**
+ * @param {string} root
+ * @param {string} base
+ * @returns {string[]} the shipped paths that differ between base and the working tree, untracked files included
+ */
+function changedShippedPaths(root, base) {
   const changed = git(root, [
     "-c",
     "core.quotepath=off",
     "diff",
     "--name-only",
     "--no-renames",
-    ref,
+    base,
     "--",
     PLUGIN_DIR,
   ]);
@@ -97,10 +128,15 @@ function isGreater(left, right) {
  * @returns {string[]}
  */
 function check(root, ref) {
-  const shipped = changedShippedPaths(root, ref);
+  const commit = commitOf(root, ref);
+  if (!commit)
+    return [
+      `cannot read ${ref}, the released plugin; fetch it (git fetch origin main) or name another commit with --released.`,
+    ];
+  const shipped = changedShippedPaths(root, branchPoint(root, commit));
   if (shipped.length === 0) return [];
   const releasedVersion = fieldOf(
-    JSON.parse(git(root, ["show", `${ref}:${MANIFEST}`])),
+    JSON.parse(git(root, ["show", `${commit}:${MANIFEST}`])),
     "version",
   );
   const currentVersion = fieldOf(
@@ -115,36 +151,38 @@ function check(root, ref) {
     ];
   if (isGreater(current, released)) return [];
   return [
-    `${MANIFEST}: version ${String(currentVersion)} is not greater than ${String(releasedVersion)} at ${ref}, but the plugin changed since then; installed copies update only when version grows. Bump it (patch for a fix, minor for a new skill or behaviour, major for a breaking change) in both plugin manifests and package.json, and add a CHANGELOG.md entry. Changed:`,
+    `${MANIFEST}: version ${String(currentVersion)} is not greater than ${String(releasedVersion)} at ${ref}, but this branch changes the plugin; installed copies update only when version grows. Bump it (patch for a fix, minor for a new skill or behaviour, major for a breaking change) in both plugin manifests and package.json, and add a CHANGELOG.md entry. Changed:`,
     ...shipped.map((path) => `  ${path}`),
   ];
 }
 
-/**
- * @returns {number}
- */
-function main() {
-  const { values, positionals } = parseArgs({
+function parseCommandLine() {
+  return parseArgs({
     options: {
       help: { type: "boolean", short: "h" },
       released: { type: "string", default: RELEASED_REF },
     },
     allowPositionals: true,
   });
-  if (values.help || positionals.length > 1) {
-    process.stdout.write(USAGE);
-    return values.help ? EXIT.ok : EXIT.usage;
-  }
-  const root = resolve(positionals[0] ?? process.cwd());
-  /** @type {string[]} */
-  let failures;
+}
+
+/**
+ * @returns {number}
+ */
+function main() {
+  /** @type {ReturnType<typeof parseCommandLine> | null} */
+  let args;
   try {
-    failures = check(root, values.released);
-  } catch (error) {
-    failures = [
-      `cannot compare the plugin with ${values.released}; run git fetch origin main (${error instanceof Error ? error.message.trim() : "git failed"}).`,
-    ];
+    args = parseCommandLine();
+  } catch {
+    args = null;
   }
+  if (!args || args.values.help || args.positionals.length > 1) {
+    process.stdout.write(USAGE);
+    return args?.values.help ? EXIT.ok : EXIT.usage;
+  }
+  const root = resolve(args.positionals[0] ?? process.cwd());
+  const failures = check(root, args.values.released);
   for (const failure of failures) process.stderr.write(`${failure}\n`);
   return failures.length ? EXIT.failed : EXIT.ok;
 }
