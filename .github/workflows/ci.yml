@@ -33,6 +33,7 @@ jobs:
         plugin/packages/agent-skills/README.md
       renovate-sync: false
       test-job: true
+      # The plugin is Markdown, JSON and Node scripts with no Windows-specific code or target (a plugin install runs under Claude Code and Codex); ci-node skips the skill evals on Windows, so a Windows leg would only repeat the Linux checks.
       windows: false
     permissions:
       contents: read
