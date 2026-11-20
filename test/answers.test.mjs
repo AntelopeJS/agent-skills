@@ -66,6 +66,30 @@ void test("asks-first accepts a closed choice as a table or numbered options and
   assert.equal(behaviour(`${fence}ts\nx\n${fence}\n${numbered}`), false);
 });
 
+void test("asks-first reads the cue in the line that introduces the options, not in the steps or the closing prose", () => {
+  const behaviour = (/** @type {string} */ answer) =>
+    checkAnswer(CASE, answer).behaviourOk;
+  const build =
+    "I'll build the customers page now:\n1. Create the page\n2. Add a TableView block\nLet me know if you want changes.\n";
+  const plan =
+    "Here is the plan:\n1. Select the TableView block\n2. Add the columns\n";
+
+  assert.equal(behaviour(`${build}${fence}ts\nx\n${fence}`), false);
+  assert.equal(behaviour(`${plan}${fence}ts\nx\n${fence}`), false);
+  assert.equal(
+    behaviour("Two ways, pick one:\n- A TableView page\n- A CustomComponent\n"),
+    true,
+  );
+  assert.equal(
+    behaviour("Pick one:\n**A.** A TableView page\n**B.** A CustomComponent\n"),
+    true,
+  );
+  assert.equal(
+    behaviour("Pick one:\n**1.** TableView\n**2.** CustomComponent\n"),
+    true,
+  );
+});
+
 void test("a case without expectations passes every check", () => {
   const plain = { ...CASE, expect: { skills: ["dms-pages"] } };
 
