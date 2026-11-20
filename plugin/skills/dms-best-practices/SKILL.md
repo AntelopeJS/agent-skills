@@ -98,14 +98,6 @@ In **Safe mode** step 4 is out of reach, since the builder tools cannot write Vu
 
 The path is done when the user has answered for the element. [REFERENCE.md](REFERENCE.md) has worked calls and the fallback table.
 
-## When the DMS lacks it
-
-A **workaround** is code that stands in for a module or block feature the DMS lacks; a custom block the user chose through the path is not one. The project carries a workaround until the module covers the need.
-
-1. **Propose the generic fix.** Ask one question with the asking tool: may you open a pull request on the module's repository? The change is generic, with nothing of the project in it, and the module's maintainers review and merge it. On no, log it only.
-2. **Log the workaround** in the project's `docs/dms-wishlist/<topic>.md`: the need, the workaround, the module that should cover it, and where the workaround lives in the code.
-3. **Report it** when you hand the project back: from that log, what blocked in the DMS, what needed custom code, and which generic blocks to create.
-
 ## Design-fidelity protocol
 
 Run it whenever the user hands you a design, mockup or screenshot. When the user wants to iterate on the design before any page exists, run **dms-mockup** instead: it applies this protocol inside the spec.
@@ -130,6 +122,4 @@ A `docs/<path>` link is `https://dms.antelopejs.com/docs/<path>`.
 - An automation action with side effects (email, notification, write) declares `dryRun(input, ctx)`: it checks the input as `execute` would and acts on nothing, so a builder Test run sends nothing (`docs/building/backend-services`, Test runs).
 - Locale values escape vue-i18n's special characters as literals (`{'@'}`, `{'{'}`, `{'}'}`, `{'|'}`): a raw `@` or brace breaks the message's compilation (`docs/building/localization`, Special characters).
 - Data comes from routes (`fetchUrl`) rather than options computed at registration; a custom block reads its route with `useApiData` (server-rendered, refreshed with the page) and writes with `$authFetch`.
-- Every workaround is logged as _When the DMS lacks it_ says.
 - Verified live, as **dms-builder-mcp** _Verify_ says, or in the browser without the MCP (**dms-project**). The build typechecks `src/` only.
-- Before the final hand-back of a project, ask with the asking tool whether to move the DMS and its modules to their latest versions (`ajs project modules update`); on yes, verify the project live again.
