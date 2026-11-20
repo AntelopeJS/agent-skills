@@ -2,6 +2,10 @@
 
 Releases of the `antelopejs` plugin for Claude Code and OpenAI Codex. The `@antelopejs/agent-skills` npm package has its own releases, tagged `agent-skills-v<version>`.
 
+## 0.9.3
+
+- A week- or date-grouped chart in a mockup is a vertical `ChartBar` with `xaxisType: "datetime"` and `xAxis.datetimeFormat`, with `valueFormat` and `currencyCode` on the wrapping `ChartCard` (a bare chart ignores them); a horizontal `ChartBar` stays bare on a category axis. The mockup spec notes that a duplicate module id is an issue.
+
 ## 0.9.2
 
 - A KPI that is a share or a rate is built on the builder's `ratio` query template with `valueFormat: "percent"` (dms-builder-mcp, dms-page-design), and the mockup build never swaps a block no builder tool can build for another figure: it leaves it unbuilt, reports it under what remains and offers Code mode.

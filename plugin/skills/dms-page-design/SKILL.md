@@ -111,10 +111,7 @@ Pick the bucket so the default window holds 8 to 31 points: `day` up to 31 days,
 about 7 months (a 90-day window is 13 weeks), `month` beyond. A time chart with fewer than 8 points reads as a curve with no story. An axis
 chart (area, line, column, bar) over time takes `xaxisType: "category"`: a bucketed series
 answers its periods as labels. Use `"datetime"` only for a route you wrote yourself that
-answers timestamps, and in a mockup, where a chart grouped by week or date (a `ChartBar` of
-revenue per week) takes `xaxisType: "datetime"` with a `datetimeFormat` (`dd MMM`), plus
-`valueFormat: "currency"` and `currencyCode: "EUR"` for the values only: the category axis
-never takes the value format, or its week labels read as amounts. A donut or pie takes no axis option.
+answers timestamps, and in a mockup, where a vertical `ChartBar` grouped by week or date (revenue per week) takes `xaxisType: "datetime"` with `xAxis.datetimeFormat` (`dd MMM`). Put `valueFormat: "currency"` and `currencyCode: "EUR"` on the wrapping `ChartCard`, never on the chart, which ignores them. A horizontal `ChartBar` forces a category axis and stays bare, so none of this applies to it. A donut or pie takes no axis option.
 
 ## Name every page
 
