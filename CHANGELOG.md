@@ -2,6 +2,10 @@
 
 Releases of the `antelopejs` plugin for Claude Code and OpenAI Codex. The `@antelopejs/agent-skills` npm package has its own releases, tagged `agent-skills-v<version>`.
 
+## 0.9.4
+
+- A week- or date-grouped `ChartBar` sets `orientation: "vertical"` in the mockup spec example, the mockup spec and dms-page-design: an unset orientation is horizontal, which forces a category axis and reads `NaN` inside a currency `ChartCard`. The mockup spec's `ResourceForm` example lists its `fields` once and names them in each section's `fieldIds`, so it validates.
+
 ## 0.9.3
 
 - A week- or date-grouped chart in a mockup is a vertical `ChartBar` with `xaxisType: "datetime"` and `xAxis.datetimeFormat`, with `valueFormat` and `currencyCode` on the wrapping `ChartCard` (a bare chart ignores them); a horizontal `ChartBar` stays bare on a category axis. The mockup spec notes that a duplicate module id is an issue.
