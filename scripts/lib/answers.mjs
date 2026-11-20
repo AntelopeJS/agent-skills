@@ -68,6 +68,10 @@ import { answerRequest } from "./model.mjs";
 
 const PERCENT = 100;
 const FENCE_RE = /^\s*(```|~~~)/m;
+const OPTION_LINE_RE = /^\s*(?:\d+[.)]|[A-Da-d][.)]|\|[^|\n]+\|)\s*\S/gm;
+const CHOICE_CUE_RE =
+  /\b(?:which|choose|pick|select|prefer|let me know|tell me|reply)\b/i;
+const MIN_OPTIONS = 2;
 
 /**
  * @param {string} answer
@@ -85,7 +89,9 @@ function mentions(answer, name) {
 function asksFirst(answer) {
   const fence = answer.search(FENCE_RE);
   const prose = fence < 0 ? answer : answer.slice(0, fence);
-  return prose.includes("?");
+  if (prose.includes("?")) return true;
+  const options = prose.match(OPTION_LINE_RE) ?? [];
+  return options.length >= MIN_OPTIONS && CHOICE_CUE_RE.test(prose);
 }
 
 /** @type {Record<import("./dataset.mjs").EvalBehaviour, (answer: string) => boolean>} */

@@ -48,6 +48,24 @@ void test("mentions, forbidden names and the asks-first behaviour are checked on
   });
 });
 
+void test("asks-first accepts a closed choice as a table or numbered options and rejects a build without one", () => {
+  const behaviour = (/** @type {string} */ answer) =>
+    checkAnswer(CASE, `CustomComponent ${answer}`).behaviourOk;
+  const table =
+    "Which layout do you want?\n\n| Option | Result |\n| --- | --- |\n| A | TableView |\n| B | Kanban |\n";
+  const tableNoMark =
+    "Pick one:\n\n| Option | Result |\n| --- | --- |\n| A | TableView |\n";
+  const numbered = "Choose one:\n1. TableView\n2. CustomComponent\n";
+  const steps = "Steps:\n1. Create the page\n2. Add the block\n";
+
+  assert.equal(behaviour(table), true);
+  assert.equal(behaviour(tableNoMark), true);
+  assert.equal(behaviour(numbered), true);
+  assert.equal(behaviour(steps), false);
+  assert.equal(behaviour(`${numbered}${fence}ts\nx\n${fence}`), true);
+  assert.equal(behaviour(`${fence}ts\nx\n${fence}\n${numbered}`), false);
+});
+
 void test("a case without expectations passes every check", () => {
   const plain = { ...CASE, expect: { skills: ["dms-pages"] } };
 
