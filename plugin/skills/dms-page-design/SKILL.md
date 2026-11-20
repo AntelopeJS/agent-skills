@@ -66,6 +66,8 @@ plan, mockup and build over that data proposes and builds it.
   those queries.
 - It is laid out as _Lay out an analytics page_ says and sits first in the menu (`order: 0`),
   outside every section.
+- It is the dashboard's home: the `dms` module's `homepage` config key holds its path, as it
+  does for the main analytics page of any app.
 - An app of 3 or more sections may also give each section a dashboard of its own, first in
   that section.
 
@@ -91,7 +93,9 @@ alone is never done.
 Every card binds the page's period: `periodScope: "page"` on the block, and on its query
 `where` filters on the time axis bound to the request,
 `{ "field": "<time axis>", "op": "ge", "value": { "$param": { "name": "from" } } }` and
-`"le"` with `"to"`. A card over a relation with no time axis stays unbound.
+`"le"` with `"to"`. A block that ignores the period (a relation with no time axis, open tasks,
+the stock today) leaves a page with a `PeriodSelector`: it goes to the top of its list page, as
+_KPI cards above the table_ says.
 
 ## Period
 
@@ -144,6 +148,8 @@ section: it stays in the category it is created in. A section's own dashboard (_
 dashboard_) sits first in its section. An app of fewer pages has no sections. You decide the sections; the user edits them.
 A page that belongs in a section the project has already goes there: in a mockup, a section of
 that exact title, which the viewer draws as the app's own.
+A sub-process handled from a record (sending a quote, refunding an order) gets no section and
+no page in the menu: its actions sit on the record.
 
 A section is a menu category: `builder_create_category` (`name`, `displayName`, `icon`,
 `order`, `module`, and `section: true` for a sidebar section, a `RootCategory`) answers its `ref`, which `builder_create_page` takes as `category`,
@@ -181,6 +187,15 @@ column (a `customer_id`, an `order_id`) is titled by its target ("Customer") and
 target's label, never the raw number: map the target relation with a label first, then send
 the relation column as a relation. Raw id columns stay off the list. A `display` you do send, and the relation's `tabs`, go in `builder_map_resources`.
 A cell display (`mono`, `two_line`, `identity`, `progress`...), `group`, `isVisible`, `size` and `cellWrap` go in the same `fields`, else `builder_configure_field`: no code needed, Safe mode included.
+
+**Rows at a glance.** The list keeps the columns a reader scans to pick a row; a field read only
+once the row is open (a note, a secondary contact) stays in the record.
+
+- A list of people or companies leads with an `identity` cell: the person's photo or the
+  company's logo (`avatarField`) beside the name.
+- A log, history or audit list shows each entry's date with its time.
+- A due date that has passed shows red in its own column: the route answers the row's tone
+  (`error`) in a field the column's display reads as `toneField`.
 
 **Tabs.** A single-choice column with 2 to 6 values that splits the rows into states people
 work through (a status, a stage) gives tabs when the column is drawn as a badge, by the
@@ -268,7 +283,10 @@ An app clicks through: from a figure to its rows, from a row to its record, and 
   never chosen unasked. When it would clearly help, suggest it in one sentence ("a details page
   could show the order's KPIs above the record, want it?") and build it only on a yes: a
   sub-page of the list, left out of the menu, that opens on a click on its row, built as
-  **dms-best-practices** _Custom pages are blocks_ says.
+  **dms-best-practices** _Custom pages are blocks_ says. Its head shows what the blocks below do
+  not: no banner repeats the record's fields.
+- **Link a many-to-many from both sides.** Each record edits the link in a modal, with the same
+  wording on both sides ("Link a person" on a company, "Link a company" on a person).
 - **Turn on only the actions the reader takes.** A connected database's table writes only on a
   `read-write` connection, as **dms-external-database** _Connection access_ says. On one,
   propose each table's write actions from its `writes` and its shape, and the integrator
@@ -297,7 +315,8 @@ An app clicks through: from a figure to its rows, from a row to its record, and 
   table it counts, a dashboard tile to its page, a detail page back to its list, a toolbar
   button to the page it opens. `KpiCard` takes no link: a figure that links is a `StatGroup`
   cell (`to`), or sits in a `Card` whose head action (`actions: [{ label, to }]`) opens the
-  table.
+  table. The figure counts with the filter the list opens with (the view or tab it links to),
+  so it equals the list's row count.
 
 A mockup writes these as [SPEC.md](../dms-mockup/SPEC.md) _Links and sub-pages_, _Table
 forms_ and _Archive mode_ say.

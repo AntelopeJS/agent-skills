@@ -117,6 +117,14 @@ row's ⋯ button — `docs/components/tables/columns-and-displays#pinned-rows`.
   publishes to every tenant for a table of the shared schema, and a platform (module) page receives
   every tenant's changes.
 
+### Confirmations
+
+- An action asks in its `confirm` dialog, a modal over the page, never on a page of its own.
+  Confirm every action that sends something, removes data or changes a role or a right.
+- A dialog that names the row's data is worded by a route: `confirm: { from: "<url>" }` answers a
+  `ConfirmDialog` (`title`, `description`, `params`, `impact`, `fields`). A send's dialog names the
+  recipients, the CC and the channel before the user confirms.
+
 ### Live pages
 
 A monitoring page, `pageToolbar()`, `LiveToggle`, `liveHold` and pause: see [LIVE.md](LIVE.md).
@@ -207,6 +215,11 @@ LayoutBannerScope.EVERYWHERE` to a workspace-wide state (billing past due, suspe
   `NumberType` / `StringType` rather than filling the row; one bounded to 6 digits or a
   `maxLength` of 16 or less is compact already, and `width: "full"` opts out. Phones keep the
   full row.
+- A new record's obvious choice (the customer's only site, today's date) starts filled with its
+  real value through the field's `defaultValue`, never hinted in a `placeholder`.
+- A field the server fills when it is left empty shows, as its `placeholder`, the value the
+  server will store, computed by the same function the write route applies.
+- Every typed phone number is a `PhoneType` field, in every form that asks for one.
 - A long sectioned `Form` groups its navigation with `FormSection.navGroup`, in the side list and
   the `sectionNav: "jump"` chips alike.
 - A module's own `inputComponent` submits its form, adds a validator and focuses a field with

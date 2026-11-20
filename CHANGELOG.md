@@ -2,6 +2,13 @@
 
 Releases of the `antelopejs` plugin for Claude Code and OpenAI Codex. The `@antelopejs/agent-skills` npm package has its own releases, tagged `agent-skills-v<version>`.
 
+## 0.9.5
+
+- dms-best-practices builds on the DMS's own rights, tenancy and messages: every right is a DMS permission granted per role and code names no role, member and role editing stay with administrator roles, business data reads through `@TenantScopedModel`, one company's settings are tenant data, notifications go through `Notification()` with a subject per event, stored secrets use `@Encrypted`, and nobody hears of their own action. A DMS gap is fixed by a generic pull request on the module, its workaround logged in `docs/dms-wishlist/<topic>.md` and reported at hand-back, and a project ends on the latest DMS and modules.
+- dms-page-design makes the main analytics page the dashboard's `homepage`, moves blocks that ignore the period to their list page, keeps a record's sub-process out of the menu, trims list columns, leads people and companies with their photo or logo, shows log dates with their time and overdue dates in red, links a many-to-many from both sides, drops a record header that repeats the record, and counts a linked figure with its list's filter.
+- dms-pages confirms in a modal every send, removal or rights change, with a send's recipients, CC and channel; prefills an obvious choice with `defaultValue`, shows the server's fallback as the placeholder, and takes every phone with `PhoneType`.
+- dms-builder-mcp verifies each page after a reload and, with `page_verify`, as every role and at 360 px.
+
 ## 0.9.4
 
 - A week- or date-grouped `ChartBar` sets `orientation: "vertical"` in the mockup spec example, the mockup spec and dms-page-design: an unset orientation is horizontal, which forces a category axis and reads `NaN` inside a currency `ChartCard`. The mockup spec's `ResourceForm` example lists its `fields` once and names them in each section's `fieldIds`, so it validates.
