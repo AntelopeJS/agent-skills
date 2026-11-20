@@ -2,6 +2,10 @@
 
 Releases of the `antelopejs` plugin for Claude Code and OpenAI Codex. The `@antelopejs/agent-skills` npm package has its own releases, tagged `agent-skills-v<version>`.
 
+## 0.9.1
+
+- The DMS skills no longer call the preview tool, which the DMS dev MCP and assistant drop: the design-fidelity protocol builds or updates a mockup through `dms-mockup` for the user to annotate, with the text table as the fallback when there is no mockup tooling, and the mockup build compares pages through `page_verify` and the user's confirmation only.
+
 ## 0.9.0
 
 - Mockup specs carry a top-level `modules` (DMS module catalog ids such as `mailing`, `media`, `saas`): the mockup skill writes a matched module there instead of sketching a copy, and the build skill installs each missing package with `ajs project modules add`, loads its skill and builds on it.

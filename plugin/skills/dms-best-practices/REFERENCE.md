@@ -1,6 +1,6 @@
 # dms-best-practices reference
 
-Material for [SKILL.md](SKILL.md): mapping design elements to DMS blocks, the `preview_blocks` call with a sketch variant, the Safe mode question, and the text fallback. The block catalog is the source of truth: `builder_catalog` with the builder MCP, `ListBlockTypes()` from `@antelopejs/interface-dms/base/block-types`, or https://dms.antelopejs.com/docs/components (one page per block).
+Material for [SKILL.md](SKILL.md): mapping design elements to DMS blocks, the mockup comparison, the Safe mode question, and the text fallback. The block catalog is the source of truth: `builder_catalog` with the builder MCP, `ListBlockTypes()` from `@antelopejs/interface-dms/base/block-types`, or https://dms.antelopejs.com/docs/components (one page per block).
 
 ## Design element → DMS block
 
@@ -31,50 +31,11 @@ Material for [SKILL.md](SKILL.md): mapping design elements to DMS blocks, the `p
 
 Nothing matches — a canvas, a map, a bespoke visualization — → a custom block, under the rules of SKILL.md.
 
-## `preview_blocks`
+## Mockup comparison
 
-`preview_blocks({ title, description?, label?, tree?, sketch?, reference?, variants?: [{ label, tree?, sketch? }] })` — non-blocking; it renders the real blocks next to the reference image (in the dms-assistant chat, as an attachment card the user opens; elsewhere, show the user what the tool answers), one tab for the main view (named by `label`, default "Proposed") and one per variant. Every view needs a `tree`, a `sketch` or both (both are drawn side by side). `reference` is `{ attachmentId?, url?, caption? }`: `attachmentId` is the file name of an image the user attached in the dms-assistant chat, or `"latest"`; `url` is a same-origin path. `tree` is one `PreviewNode` or a list: `{ type, options?, children? }`, children also taking `id`, `slot` and `colSpan`. Use `static*` options (`staticValue`, `staticDataset`, `staticItems`, `items`) so the preview shows data without a route; URL options must be relative paths. `TableView` and `ResourceForm` need a backend class and render as a notice — describe them in the question instead.
-
-A variant holds a `tree` (the DMS block with other options), a `sketch` (`{ html, css?, caption?, height? }`: static HTML and CSS standing for the custom block you would build, `height` in px from 80 to 1200, default 320), or both, so the user compares it with the DMS option before any Vue exists. Keep a sketch to the element alone: static markup with no script, event handler, `@import` or external URL (the tool refuses them with `invalid_sketch`), images as `data:` URLs, and the `--sketch-*` theme variables the tool describes for colors, so it follows light and dark mode.
+Build or update a mockup through **dms-mockup**, with the user's design as the mockup's reference: the closest DMS block as the page's tree and, for the custom block, a sketch in the spec. The user annotates the mockup, then **dms-mockup** applies the annotations. Then ask with the asking tool (`ask_user` in the dms-assistant chat):
 
 ```ts
-preview_blocks({
-  title: "Revenue tile",
-  description: "Your tile as a DMS KPI card, adjusted, and as a custom block",
-  label: "DMS KpiCard",
-  tree: {
-    type: "KpiCard",
-    options: {
-      title: "Revenue",
-      valueFormat: "currency",
-      currencyCode: "EUR",
-      staticValue: 48200,
-      staticDelta: 12.4,
-      showDelta: true,
-      showSparkline: true,
-      staticSparkline: [31, 34, 33, 38, 41, 39, 44, 48],
-    },
-  },
-  reference: { attachmentId: "latest", caption: "Your design" },
-  variants: [
-    {
-      label: "DMS, compact",
-      tree: {
-        type: "KpiCard",
-        options: { title: "Revenue", variant: "stat", staticValue: 48200 },
-      },
-    },
-    {
-      label: "Custom sketch",
-      sketch: {
-        html: "<div class='tile'><span>Revenue</span><strong>€48,200</strong><div class='bars'><i style='height:40%'></i><i style='height:70%'></i><i style='height:100%'></i></div></div>",
-        css: ".tile{padding:16px;border:1px solid;border-radius:8px}.bars{display:flex;gap:4px;height:32px;align-items:end}.bars i{width:8px;background:currentColor}",
-        caption: "Bars under the figure, as in your design",
-      },
-    },
-  ],
-});
-// then, with the asking tool (ask_user in the dms-assistant chat)
 ask_user({
   questions: [
     {
@@ -84,7 +45,7 @@ ask_user({
         {
           label: "Keep the DMS block",
           description:
-            "KpiCard as previewed; themed, permissioned, editable in the builder",
+            "KpiCard as mocked up; themed, permissioned, editable in the builder",
         },
         {
           label: "Adjust it through its options",
@@ -104,7 +65,7 @@ ask_user({
 
 ## Safe mode: a custom block is out of reach
 
-The builder tools cannot write Vue. Show the closest composition with `preview_blocks` (the text table when it is missing), then:
+The builder tools cannot write Vue. Show the closest composition in a mockup through **dms-mockup** (the text table when there is no mockup tooling), then:
 
 ```ts
 ask_user({
@@ -116,7 +77,7 @@ ask_user({
       options: [
         {
           label: "Use the DMS composition",
-          description: "A Grid of KpiCard per zone, as previewed",
+          description: "A Grid of KpiCard per zone, as mocked up",
         },
         {
           label: "Turn Safe mode off for this block",
@@ -129,7 +90,7 @@ ask_user({
 });
 ```
 
-## Text fallback (no `preview_blocks`)
+## Text fallback (no mockup tooling)
 
 One table per batch of components, then one closed question per row:
 

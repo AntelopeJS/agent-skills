@@ -12,7 +12,6 @@ The spec is the contract: the pages it lists, their blocks in its order, their o
 - **The builder MCP and Safe mode**, as **dms-builder-mcp** _Detect what the project has_ says. With the builder MCP, build each new page through it with one `builder_compose_page` call; without it, write the TypeScript with **dms-pages**.
 - **`page_verify`** among your tools (the DMS development MCP): it opens each page in a headless browser and reports its render against the mockup, its data, errors, interactions and permissions. It drives step 4. Without it, step 4 falls back to the visual comparison, with **a browser tool** that opens a URL and takes a screenshot (a browser MCP, agent-browser, Playwright) when you have one.
 - **`mockup_apply_to_page`** among your tools: it writes a converted mockup page back to its live page and lists what it left to wire, as _Pages converted from a live page_ says.
-- **`preview_blocks`** among your tools: step 4 shows each comparison through it.
 - **The asking tool**: `ask_user` in the dms-assistant chat, your harness's question tool elsewhere, else one closed question in chat.
 
 ## 1. Read the mockup
@@ -119,8 +118,6 @@ A **round** verifies pages, then fixes what failed. Keep going while a page fail
 3. Fix each difference with the builder tools or a code edit.
 
 A page compared by its tree fails until the user confirms it.
-
-When `preview_blocks` is among your tools, call it each time you compare a page with the mockup, with the page's tree as built (`static*` options in place of its data) and the mockup as `reference`: `{ url: "/mockup?name=<name>&page=<id>", caption: "Mockup <name>, page <id>" }`. Every `preview_blocks` call of the build carries that reference: the dms-assistant build dialog draws the latest preview beside it. Elsewhere, show the user what the tool answers.
 
 ## 5. Report
 

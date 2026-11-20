@@ -9,7 +9,7 @@ Three rules hold for every page, a path runs before any custom block, and a prot
 
 Three facts about the project change the steps below. **dms-builder-mcp** _Detect what the project has_ tells how to settle them:
 
-- **The builder MCP** answers (`builder_catalog` is among your tools), or not. **The preview** is a tool of its own: `preview_blocks` is among your tools, or not (an older DMS serves it to the dms-assistant chat only).
+- **The builder MCP** answers (`builder_catalog` is among your tools), or not. **Mockup tooling**: **dms-mockup** is available (its `mockup_*` tools answer), or not.
 - **Safe mode** is on (the builder tools are the only way to write), or not.
 - **The asking tool**: `ask_user` in the dms-assistant chat, your harness's question tool elsewhere, else one closed question in chat.
 
@@ -77,9 +77,9 @@ An order details page, say, becomes a header with a status badge, a `TableView` 
 Run this path before writing a `CustomComponent` or its Vue, one element at a time:
 
 1. **Search the catalog.** With the builder MCP, `builder_catalog`; otherwise the block catalog of the running DMS (`GET /api/block-preview/types`), else `ListBlockTypes()` from `@antelopejs/interface-dms/base/block-types` or the exports of `@antelopejs/interface-dms/base`. Try the block's options first, then a composition of blocks (`Card` + `KeyValueList`, `ChartCard` + a chart, `Grid` of `KpiCard`).
-2. **Show the comparison.** When `preview_blocks` is among your tools, call it with the closest DMS option as `tree`, the user's design as `reference`, and a **sketch variant** of the custom block, then show the user what it answers. Without it, write the text table of [REFERENCE.md](REFERENCE.md). When the page belongs to a mockup, the sketch goes in the spec instead (**dms-mockup**).
+2. **Show the comparison.** With mockup tooling, build or update a mockup through **dms-mockup**: the closest DMS option as the page's tree, the user's design as reference, a sketch of the custom block in the spec; have the user annotate it, and apply the annotations. Without it, write the text table of [REFERENCE.md](REFERENCE.md).
 3. **Ask.** One closed question with the asking tool, three options: _Keep the DMS block_ / _Adjust it through its options_ / _Build a custom block_.
-4. **Build.** On _Adjust_, change the block's options and preview again. Only on _Build a custom block_, build that block alone, under the rules above, with `.meta()`; the rest of the page stays blocks.
+4. **Build.** On _Adjust_, change the block's options and update the mockup. Only on _Build a custom block_, build that block alone, under the rules above, with `.meta()`; the rest of the page stays blocks.
 
 In **Safe mode** step 4 is out of reach, since the builder tools cannot write Vue: say so, offer the closest DMS composition, and ask whether to turn Safe mode off for that one block.
 
@@ -94,7 +94,7 @@ Run it whenever the user hands you a design, mockup or screenshot. When the user
    - _DMS equivalents_: map every component to its closest DMS block silently; an element no block or composition covers still goes through the path;
    - _Component by component_ (**recommended**): decide each visible difference together.
 2. **Map** every component of the design to its closest DMS block ([REFERENCE.md](REFERENCE.md) has the mapping table). Differences the right-hand column of the table above lists never trigger a question.
-3. **Decide.** _Component by component_: run [the path](#before-any-custom-block) for each visible difference (layout, a missing element, another chart kind), batching several components in one preview and one question. _Pixel perfect_ answers step 3 of the path for every element, so skip that question but still run step 1: only the parts no block or composition matches become custom.
+3. **Decide.** _Component by component_: run [the path](#before-any-custom-block) for each visible difference (layout, a missing element, another chart kind), batching several components in one mockup and one question. _Pixel perfect_ answers step 3 of the path for every element, so skip that question but still run step 1: only the parts no block or composition matches become custom.
 4. **Build** under the rules above.
 
 The protocol is done when every visibly different component has an answer and every custom block in the page carries `.meta()`.
