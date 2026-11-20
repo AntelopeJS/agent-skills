@@ -38,6 +38,7 @@ For each wish, find the closest DMS block or composition in the catalog, with th
 - **A block covers it** (through its options or a composition): use it. A difference the theme or the options handle is no question.
 - **Nothing covers it, or the user asked for exactly this look**: propose the choice as **dms-best-practices** _Before any custom block_ says, with the closest DMS option beside a **sketch** of the custom part, one closed question per element or batch: _Keep the DMS block_ / _Adjust it through its options_ / _Build a custom block_. Only _Build a custom block_ puts a sketch in the spec.
 - **A whole page no arrangement of blocks draws** goes through the same choice, offering a **custom page** ([SPEC.md](SPEC.md) _Custom pages_) in place of a custom block. The mockup draws it as one sketch; the build splits it into blocks.
+- **A DMS module covers it** (the table of **dms-best-practices** _Match the need_: mails, tenants and SaaS, media, automation, translations): write its catalog id in the spec's top-level `modules` ([SPEC.md](SPEC.md) _Modules_), such as `"mailing"`, and sketch no copy of what the module provides. Its admin pages come with the module; sketch only the pages of the app that read its data.
 - **A sidebar part no module provides** (a plan card, a help box) is a **sidebar widget** ([SPEC.md](SPEC.md) _Sidebar widgets_).
 
 This step is done when every wish maps to a block, a composition, or a sketch the user chose.

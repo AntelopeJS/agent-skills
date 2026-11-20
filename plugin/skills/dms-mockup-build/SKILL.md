@@ -21,6 +21,8 @@ Read the spec with `mockup_read_spec` (`{ mockup, path? }`, read-only, allowed i
 
 ## 2. Plan
 
+Read the spec's top-level `modules` first ([SPEC.md](../dms-mockup/SPEC.md) _Modules_; the state of `mockup_read_spec` or `GET /api/mockup/<name>` gives each as `{ id, package, icon }`). List in the plan each `package` that is neither a dependency of `package.json` nor a module of `antelope.config.*`: step 3 installs it before any page.
+
 Map every spec page and node, and present the plan before you write:
 
 - **Converted page:** a spec page with `livePage: { ref, version }` was converted from the live page at `livePage.ref` (a route). Read that page with `builder_page_structure` (without the builder MCP, its page class) and plan the changes that turn it into the spec page (blocks to configure, move, remove or add), not a new `PageController`; its fixtures whose key is in the spec page's `liveRoutes` keep reading those live routes (_Live route_ below). A **live sketch**, a Custom sketch whose `id` names a block of the live page, stands for code the conversion could not express: keep that block as it is, with no component to write and no Safe mode question. Check its version first, as _Pages converted from a live page_ says: a stale page goes in the plan as stopped, with no changes. With `mockup_apply_to_page` among your tools, the plan still lists every change and says that the tool writes the page first, and that you build only the changes its `wiring` answer lists.
@@ -60,7 +62,9 @@ Write nothing before the user approves it.
 
 ## 3. Build
 
-Create the sections first, then each page, in the spec's order:
+Install the modules first: for each package of the plan's module list, run `ajs project modules add <package>`, then load that module's skill (**skills**, else its contract through **interface**) and build the pages that use it on it, never a copy. A package already a dependency or a module of `antelope.config.*` is skipped.
+
+Create the sections next, then each page, in the spec's order:
 
 - **Builder MCP:** for a new page, `builder_create_page`, then one `builder_compose_page` call with the page's whole tree, previewed first (`"preview": true`) as **dms-page-design** _Build a page in one call_ says. Create the resources and queries the page reads before the page. A page whose table maps a database relation is written by `builder_map_resources` instead: add its other blocks with `builder_compose_page` on that page's `pageRef` and a `placement`.
 - **Code:** write the page class, its routes and DataControllers with **dms-pages**, then run the typecheck. Page code imports from `@antelopejs/interface-dms` and the other interface packages **dms-pages** names, never from `@antelopejs/dms`, which exports no page API.
@@ -123,6 +127,8 @@ When `preview_blocks` is among your tools, call it each time you compare a page 
 Open with one summary line, the same in the dms-assistant chat and in any harness: `<passing>/<planned> pages pass, <n> errors`, such as `3/3 pages pass, 0 errors`, even when nothing was built (`0/3 pages pass, 3 errors`). `<planned>` counts the pages of the approved plan, built or not; `<n>` counts the failure lines and differences of the last verify, one per distinct block or check, accepted differences and live sketches' lines excluded, plus one for each failing page that has none (a typecheck error, a page the user has not confirmed, a stale page left unbuilt). When `page_verify` did not compare some pages with the mockup, end the line with how they were compared: without `page_verify`, `(compared visually, page_verify is not available)`, or `(compared by tree, page_verify is not available)` without a browser tool; otherwise `(<k> of <planned> compared visually: <why>)` or `(<k> of <planned> compared by tree: <why>)`, where `<why>` is the `unavailable` text or the answer without `pages`.
 
 Then list every page still failing after the last round, never fewer: its route, each failure line or difference, the error behind it (the console text, the failed request with its status, the typecheck error, a stale page with both versions), and its screenshots: the page's `render.viewports[].screenshot`, the block's `render.viewports[].blocks[].screenshot`, `pageScreenshot` and `mockupScreenshot`, all project-relative, or your own screenshots in the visual comparison. Then the `notes` that qualify a pass (a role checked as the owner, writes held back), and the differences the user accepted, each with its reason.
+
+Then the modules installed, by package, and those already there.
 
 Then, per page: the blocks built (for a converted page, the blocks configured, moved, removed and added, and the live sketches kept; when `mockup_apply_to_page` wrote the page, read them from its `written`, `added` and `removed`, and the live sketches among its `preserved`), the resources and queries created, and the custom components.
 
