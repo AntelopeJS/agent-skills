@@ -117,6 +117,16 @@ row's ⋯ button — `docs/components/tables/columns-and-displays#pinned-rows`.
   publishes to every tenant for a table of the shared schema, and a platform (module) page receives
   every tenant's changes.
 
+### Confirmations
+
+- Every action that sends something, removes data or changes a role or a right takes a
+  `confirm` dialog. Its texts name the row with `{field}` ("Remove {name}?").
+- A dialog whose content is not on the row (the recipients and CC a send resolves, what a delete
+  takes with it) is worded by a route: `confirm: { from: "<url>" }`, answering
+  `serializeConfirmDialog({ title, description, params, impact, fields })`
+  (`@antelopejs/interface-dms/base/table-view`). A send's dialog names the recipients, the CC and
+  the channel.
+
 ### Live pages
 
 A monitoring page, `pageToolbar()`, `LiveToggle`, `liveHold` and pause: see [LIVE.md](LIVE.md).
@@ -207,6 +217,9 @@ LayoutBannerScope.EVERYWHERE` to a workspace-wide state (billing past due, suspe
   `NumberType` / `StringType` rather than filling the row; one bounded to 6 digits or a
   `maxLength` of 16 or less is compact already, and `width: "full"` opts out. Phones keep the
   full row.
+- A new record's constant first choice (a default status, a usual quantity) starts filled through
+  the field's `defaultValue`, rather than hinted in a `placeholder`.
+- Every typed phone number is a `PhoneType` field, in every form that asks for one.
 - A long sectioned `Form` groups its navigation with `FormSection.navGroup`, in the side list and
   the `sectionNav: "jump"` chips alike.
 - A module's own `inputComponent` submits its form, adds a validator and focuses a field with
