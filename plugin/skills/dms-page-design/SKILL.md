@@ -66,8 +66,6 @@ plan, mockup and build over that data proposes and builds it.
   those queries.
 - It is laid out as _Lay out an analytics page_ says and sits first in the menu (`order: 0`),
   outside every section.
-- It is the dashboard's home: the `dms` module's `homepage` config key holds its path, as it
-  does for the main analytics page of any app.
 - An app of 3 or more sections may also give each section a dashboard of its own, first in
   that section.
 
@@ -94,8 +92,8 @@ Every card binds the page's period: `periodScope: "page"` on the block, and on i
 `where` filters on the time axis bound to the request,
 `{ "field": "<time axis>", "op": "ge", "value": { "$param": { "name": "from" } } }` and
 `"le"` with `"to"`. A block that ignores the period (a relation with no time axis, open tasks,
-the stock today) leaves a page with a `PeriodSelector`: it goes to the top of its list page, as
-_KPI cards above the table_ says.
+the stock today) leaves a page with a `PeriodSelector` and goes to the top of its list page: a
+figure as _KPI cards above the table_ says, a chart with the same `placement: { "before": "table" }`.
 
 ## Period
 
@@ -133,7 +131,10 @@ never a title.
 - **Description**: one sentence on what the page holds or answers, from the data
   ("Every order with its payment and shipping status").
 - **Order**: the main analytics page first (`order: 0`), then the most used lists. Keep a
-  table page's order at 100 or more unless it must sit among the dashboards.
+  table page's order at 100 or more unless it must sit among the dashboards. The main
+  analytics page is also the dashboard's home: the `homepage` config key of `@antelopejs/dms`
+  holds its path, written with `builder_configure_project` (`ConfigureModule`), or in
+  `antelope.config.ts` without the builder MCP.
 
 Set them with `builder_create_page` on new pages, per resource in `builder_map_resources`
 (`title`, `icon`, `description`, `order`), or with `builder_configure_page` afterwards.
@@ -148,8 +149,9 @@ section: it stays in the category it is created in. A section's own dashboard (_
 dashboard_) sits first in its section. An app of fewer pages has no sections. You decide the sections; the user edits them.
 A page that belongs in a section the project has already goes there: in a mockup, a section of
 that exact title, which the viewer draws as the app's own.
-A sub-process handled from a record (sending a quote, refunding an order) gets no section and
-no page in the menu: its actions sit on the record.
+A step handled from a record (sending a quote, approving an expense) gets no section and no
+page in the menu: its actions sit on the record. A table of records in its own right stays a
+page.
 
 A section is a menu category: `builder_create_category` (`name`, `displayName`, `icon`,
 `order`, `module`, and `section: true` for a sidebar section, a `RootCategory`) answers its `ref`, which `builder_create_page` takes as `category`,
@@ -191,11 +193,11 @@ A cell display (`mono`, `two_line`, `identity`, `progress`...), `group`, `isVisi
 **Rows at a glance.** The list keeps the columns a reader scans to pick a row; a field read only
 once the row is open (a note, a secondary contact) stays in the record.
 
-- A list of people or companies leads with an `identity` cell: the person's photo or the
-  company's logo (`avatarField`) beside the name.
-- A log, history or audit list shows each entry's date with its time.
-- A due date that has passed shows red in its own column: the route answers the row's tone
-  (`error`) in a field the column's display reads as `toneField`.
+- A list of people or companies whose relation has a photo or logo column leads with an
+  `identity` cell: the photo or logo (`avatarField`) beside the name.
+- A due date shows in its own column as a `relative_date` display with `style: "day"`,
+  `pastTone: "error"` (red once it has passed) and `soonTone: "warning"` with `soonWithinMs` for a
+  date coming due.
 
 **Tabs.** A single-choice column with 2 to 6 values that splits the rows into states people
 work through (a status, a stage) gives tabs when the column is drawn as a badge, by the
@@ -285,8 +287,9 @@ An app clicks through: from a figure to its rows, from a row to its record, and 
   sub-page of the list, left out of the menu, that opens on a click on its row, built as
   **dms-best-practices** _Custom pages are blocks_ says. Its head shows what the blocks below do
   not: no banner repeats the record's fields.
-- **Link a many-to-many from both sides.** Each record edits the link in a modal, with the same
-  wording on both sides ("Link a person" on a company, "Link a company" on a person).
+- **A many-to-many is a `multiple` relation** (`RelationType({ multiple: true })`) on the side
+  people edit it from. Showing it from the other side is a related list on a details page,
+  proposed as _A custom details page is the user's call_ says.
 - **Turn on only the actions the reader takes.** A connected database's table writes only on a
   `read-write` connection, as **dms-external-database** _Connection access_ says. On one,
   propose each table's write actions from its `writes` and its shape, and the integrator
@@ -315,8 +318,8 @@ An app clicks through: from a figure to its rows, from a row to its record, and 
   table it counts, a dashboard tile to its page, a detail page back to its list, a toolbar
   button to the page it opens. `KpiCard` takes no link: a figure that links is a `StatGroup`
   cell (`to`), or sits in a `Card` whose head action (`actions: [{ label, to }]`) opens the
-  table. The figure counts with the filter the list opens with (the view or tab it links to),
-  so it equals the list's row count.
+  table. A figure with no period links to the view or tab it counts (`?<tableId>.view=<id>`,
+  `?<tableId>.tab=<id>`) and counts with that filter, so it equals the list's row count.
 
 A mockup writes these as [SPEC.md](../dms-mockup/SPEC.md) _Links and sub-pages_, _Table
 forms_ and _Archive mode_ say.
@@ -331,8 +334,8 @@ Use the single-block tools only for a small fix afterwards.
 1. Call it first with `"preview": true` and the default period's `from` and `to` as `args`.
    It writes nothing and answers each block's status: decide from that status, never from the
    figures a preview holds. Change or drop every block marked
-   `empty`, `zero` or `error` (another measure, the whole history for a card that should not
-   follow the period), then preview again. Never write a block over an empty answer.
+   `empty`, `zero` or `error` (another measure; a block that should not
+   follow the period moves to its list page, as _Lay out an analytics page_ says), then preview again. Never write a block over an empty answer.
 2. Call it again without `preview` to write. A refusal lists every refused block by pointer:
    fix those and call again; nothing was written.
 3. KPI cards above a table: `pageRef` of the table page, `placement: { "before": "table" }`,
