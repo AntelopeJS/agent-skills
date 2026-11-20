@@ -2,6 +2,10 @@
 
 Releases of the `antelopejs` plugin for Claude Code and OpenAI Codex. The `@antelopejs/agent-skills` npm package has its own releases, tagged `agent-skills-v<version>`.
 
+## 0.8.3
+
+- The mockup and page-design skills tell the assistant to give a chart grouped by week or date a datetime category axis with a date format, and the currency format to the values only, so week labels no longer show as amounts. The `ChartBar` example in the mockup spec shows it.
+
 ## 0.8.2
 
 - The DMS skills guide mockups and builds over read-write data: they propose edits, deletes and archives only where the data allows it, never erase transactions, and delete only tables nothing references.
