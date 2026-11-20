@@ -90,6 +90,7 @@ Fallback with no running DMS: `@antelopejs/dms` ships the same files at `node_mo
               "id": "chart",
               "type": "ChartBar",
               "options": {
+                "orientation": "vertical",
                 "xaxisType": "datetime",
                 "xAxis": { "datetimeFormat": "dd MMM" }
               }
@@ -162,7 +163,7 @@ A node is `{ type, options?, children? }`; a child also takes `id`, `slot` (a `T
 - An option that holds a block, such as a `ChartCard`'s `chart`, is a child whose `id` is the option's name.
 - A `Form` with `sections` keeps every field in `fields`, and each section lists its fields by id in `fieldIds`.
 
-Name every child with an `id`: the builder and the roles editor key blocks by name. A vertical bar chart whose categories are dates or weeks (a `ChartBar` of revenue per week) takes `xaxisType: "datetime"` with `xAxis.datetimeFormat` (`dd MMM`) and its `x` values ISO timestamps: without the datetime axis the week labels read as amounts. `valueFormat` and `currencyCode` go on the wrapping `ChartCard`, never on the chart, which ignores them. A horizontal `ChartBar` forces a category axis and stays bare: no datetime option, and inside a card its labels read `NaN`. A block that only shows a figure can take its `static*` options (`staticValue`, `staticDelta`) in place of a fixture.
+Name every child with an `id`: the builder and the roles editor key blocks by name. A vertical bar chart whose categories are dates or weeks (a `ChartBar` of revenue per week) takes `orientation: "vertical"` (an unset orientation is horizontal), `xaxisType: "datetime"` with `xAxis.datetimeFormat` (`dd MMM`) and its `x` values ISO timestamps: without both, the week labels read as amounts. `valueFormat` and `currencyCode` go on the wrapping `ChartCard`, never on the chart, which ignores them. A horizontal `ChartBar` forces a category axis and stays bare: no datetime option, and inside a card its labels read `NaN`. A block that only shows a figure can take its `static*` options (`staticValue`, `staticDelta`) in place of a fixture.
 
 - **Fixture reference.** Any string option of the form `fixture:<key>`, at any depth, reads that key of the page's `fixtures`. Use it for every `fetchUrl`, so the block draws data with no route.
 - **Page link.** Any string option of the form `page:<id>`, at any depth, links to that spec page, as _Links and sub-pages_ says.
@@ -462,7 +463,7 @@ A column's `group` and the table's `columnGroups` group the generated forms' fie
 }
 ```
 
-A `ResourceForm` or a `Form` takes `sections`, each `{ id, label, description?, icon?, fields }`, with `sectionNav` `side`, `jump` or `none`, and field groups `{ id, label?, fields }` among a section's `fields`:
+A `ResourceForm` or a `Form` lists its `fields` once, with field groups `{ id, label?, fields }` among them, and splits them into `sections`, each `{ id, label, description?, icon?, fieldIds }` naming the ids of the fields it holds, with `sectionNav` `side`, `jump` or `none`:
 
 ```json
 {
@@ -472,22 +473,23 @@ A `ResourceForm` or a `Form` takes `sections`, each `{ id, label, description?, 
     "mode": "view",
     "fetchUrl": "fixture:customers",
     "sectionNav": "jump",
+    "fields": [
+      { "id": "name", "label": "Name", "type": "string" },
+      {
+        "id": "contact",
+        "label": "Contact",
+        "fields": [
+          { "id": "email", "label": "Email", "type": "string" },
+          { "id": "phone", "label": "Phone", "type": "string" }
+        ]
+      }
+    ],
     "sections": [
       {
         "id": "general",
         "label": "General",
         "icon": "i-ph-identification-card",
-        "fields": [
-          { "id": "name", "label": "Name", "type": "string" },
-          {
-            "id": "contact",
-            "label": "Contact",
-            "fields": [
-              { "id": "email", "label": "Email", "type": "string" },
-              { "id": "phone", "label": "Phone", "type": "string" }
-            ]
-          }
-        ]
+        "fieldIds": ["name", "contact"]
       }
     ]
   }
