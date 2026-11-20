@@ -2,6 +2,10 @@
 
 Releases of the `antelopejs` plugin for Claude Code and OpenAI Codex. The `@antelopejs/agent-skills` npm package has its own releases, tagged `agent-skills-v<version>`.
 
+## 0.9.2
+
+- A KPI that is a share or a rate is built on the builder's `ratio` query template with `valueFormat: "percent"` (dms-builder-mcp, dms-page-design), and the mockup build never swaps a block no builder tool can build for another figure: it leaves it unbuilt, reports it under what remains and offers Code mode.
+
 ## 0.9.1
 
 - The DMS skills no longer call the preview tool, which the DMS dev MCP and assistant drop: the design-fidelity protocol builds or updates a mockup through `dms-mockup` for the user to annotate, with the text table as the fallback when there is no mockup tooling, and the mockup build compares pages through `page_verify` and the user's confirmation only.
