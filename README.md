@@ -153,7 +153,7 @@ Codex (refreshes the marketplace snapshot and the installed copy):
 codex plugin marketplace upgrade antelopejs
 ```
 
-Installed copies update when `version` changes in `plugin/.claude-plugin/plugin.json` and `plugin/.codex-plugin/plugin.json`, so bump both on every release. After a Codex update, trust the hooks again in `/hooks`. `npx -y github:AntelopeJS/agent-skills` always runs the latest commit of the default branch.
+Installed copies update when `version` changes in `plugin/.claude-plugin/plugin.json` and `plugin/.codex-plugin/plugin.json`. Every pull request that changes the plugin bumps it. After a Codex update, trust the hooks again in `/hooks`. `npx -y github:AntelopeJS/agent-skills` always runs the latest commit of the default branch.
 
 The synced skills follow your packages, not the plugin: upgrade `@antelopejs/dms` or a module and the next sync points at the new version.
 
@@ -399,13 +399,14 @@ pnpm test                         # node:test suites (no install needed)
 pnpm evals:baseline               # trigger eval against the plugin's and the published skills, as CI runs it
 pnpm evals:check                  # case files valid, rubric suites well formed
 pnpm check:plugin                 # the plugin loads in both tools and passes the directory review rules
+pnpm check:plugin-version         # a plugin change since origin/main comes with a version bump
 claude plugin validate --profile directory --strict ./plugin  # what the Claude plugin directory checks
 claude plugin validate .          # the Claude Code marketplace
 claude --plugin-dir ./plugin      # load this checkout in a Claude Code session
 codex plugin marketplace add .    # register this checkout as a Codex marketplace
 ```
 
-Bump `version` in `plugin/.claude-plugin/plugin.json`, `plugin/.codex-plugin/plugin.json` and `package.json` together on every release: installed copies only update when it changes. Add the release's user-facing changes to [`CHANGELOG.md`](./CHANGELOG.md).
+Each merge to `main` releases the plugin. A pull request that changes the plugin bumps `version` in `plugin/.claude-plugin/plugin.json`, `plugin/.codex-plugin/plugin.json` and `package.json` together, since installed copies only update when it changes, and adds its user-facing changes to [`CHANGELOG.md`](./CHANGELOG.md). `pnpm check:plugin-version` fails in CI when it does not.
 
 ## License
 

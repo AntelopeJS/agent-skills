@@ -19,6 +19,7 @@ jobs:
     with:
       extra-commands: |
         pnpm check:plugin
+        pnpm check:plugin-version
         pnpm evals:check
         pnpm evals:baseline
       docs-files: |

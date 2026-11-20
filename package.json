@@ -27,6 +27,7 @@
     "format:check": "oxfmt --check .",
     "knip": "knip",
     "check:plugin": "node scripts/check-plugin.mjs",
+    "check:plugin-version": "node scripts/check-plugin-version.mjs",
     "suppressions": "antelopejs-suppressions",
     "suppressions:update": "antelopejs-suppressions --update"
   },
