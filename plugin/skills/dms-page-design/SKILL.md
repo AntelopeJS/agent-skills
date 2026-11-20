@@ -287,7 +287,7 @@ An app clicks through: from a figure to its rows, from a row to its record, and 
   sub-page of the list, left out of the menu, that opens on a click on its row, built as
   **dms-best-practices** _Custom pages are blocks_ says. Its head shows what the blocks below do
   not: no banner repeats the record's fields.
-- **A many-to-many is a `multiple` relation** (`RelationType({ multiple: true })`) on the side
+- **A many-to-many is a `multiple` relation** (`RelationType({ multiple: true, dataApiController: <Controller> })`) on the side
   people edit it from. Showing it from the other side is a related list on a details page,
   proposed as _A custom details page is the user's call_ says.
 - **Turn on only the actions the reader takes.** A connected database's table writes only on a
