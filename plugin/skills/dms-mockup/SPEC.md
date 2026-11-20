@@ -78,15 +78,23 @@ Fallback with no running DMS: `@antelopejs/dms` ships the same files at `node_mo
           ]
         },
         {
-          "id": "weekly-revenue",
-          "type": "ChartBar",
+          "type": "ChartCard",
           "options": {
+            "title": "Revenue per week",
             "fetchUrl": "fixture:weekly",
-            "xaxisType": "datetime",
-            "datetimeFormat": "dd MMM",
             "valueFormat": "currency",
             "currencyCode": "EUR"
-          }
+          },
+          "children": [
+            {
+              "id": "chart",
+              "type": "ChartBar",
+              "options": {
+                "xaxisType": "datetime",
+                "xAxis": { "datetimeFormat": "dd MMM" }
+              }
+            }
+          ]
         },
         {
           "type": "TableView",
@@ -142,6 +150,7 @@ The envelope is strict: a key this page does not list is an issue.
 { "version": 1, "modules": ["mailing", "media"], "pages": [] }
 ```
 
+- A module id listed twice is an issue (the `modules` array requires unique items).
 - An id the catalog does not list is an issue at `/modules/<index>`, which names the id and lists the known ones.
 - The viewer shows the modules in a strip under its top bar, each with its icon and name.
 - `mockup_read_spec` and `GET /api/mockup/<name>` give each as `{ id, package, icon }`; **dms-mockup-build** installs each `package`.
@@ -153,7 +162,7 @@ A node is `{ type, options?, children? }`; a child also takes `id`, `slot` (a `T
 - An option that holds a block, such as a `ChartCard`'s `chart`, is a child whose `id` is the option's name.
 - A `Form` with `sections` keeps every field in `fields`, and each section lists its fields by id in `fieldIds`.
 
-Name every child with an `id`: the builder and the roles editor key blocks by name. A chart whose categories are dates or weeks (a `ChartBar` of revenue per week) takes `xaxisType: "datetime"` with a `datetimeFormat` (`dd MMM`), its `x` values ISO timestamps, and `valueFormat: "currency"` with `currencyCode: "EUR"` for the values only: without the datetime axis the week labels read as amounts. A block that only shows a figure can take its `static*` options (`staticValue`, `staticDelta`) in place of a fixture.
+Name every child with an `id`: the builder and the roles editor key blocks by name. A vertical bar chart whose categories are dates or weeks (a `ChartBar` of revenue per week) takes `xaxisType: "datetime"` with `xAxis.datetimeFormat` (`dd MMM`) and its `x` values ISO timestamps: without the datetime axis the week labels read as amounts. `valueFormat` and `currencyCode` go on the wrapping `ChartCard`, never on the chart, which ignores them. A horizontal `ChartBar` forces a category axis and stays bare: no datetime option, and inside a card its labels read `NaN`. A block that only shows a figure can take its `static*` options (`staticValue`, `staticDelta`) in place of a fixture.
 
 - **Fixture reference.** Any string option of the form `fixture:<key>`, at any depth, reads that key of the page's `fixtures`. Use it for every `fetchUrl`, so the block draws data with no route.
 - **Page link.** Any string option of the form `page:<id>`, at any depth, links to that spec page, as _Links and sub-pages_ says.
