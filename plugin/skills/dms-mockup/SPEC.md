@@ -15,6 +15,7 @@ Fallback with no running DMS: `@antelopejs/dms` ships the same files at `node_mo
   "$schema": "../../node_modules/@antelopejs/dms/data/mockup-spec.schema.json",
   "version": 1,
   "title": "Order desk",
+  "modules": ["mailing", "media"],
   "categories": [
     { "id": "sales", "title": "Sales", "icon": "i-ph-storefront" }
   ],
@@ -132,6 +133,18 @@ Fallback with no running DMS: `@antelopejs/dms` ships the same files at `node_mo
 - `built` (optional): written by **dms-mockup-build** after a build, `{ at, pages }`: `at` an ISO date, `pages` one `{ path, title? }` per page built, `path` its dashboard path.
 
 The envelope is strict: a key this page does not list is an issue.
+
+## Modules
+
+`modules` lists the DMS modules the app needs by their id in the module store catalog: `ai`, `api`, `automation`, `database`, `lang`, `mailing`, `marketing`, `media` and `saas`.
+
+```json
+{ "version": 1, "modules": ["mailing", "media"], "pages": [] }
+```
+
+- An id the catalog does not list is an issue at `/modules/<index>`, which names the id and lists the known ones.
+- The viewer shows the modules in a strip under its top bar, each with its icon and name.
+- `mockup_read_spec` and `GET /api/mockup/<name>` give each as `{ id, package, icon }`; **dms-mockup-build** installs each `package`.
 
 ## Nodes
 
