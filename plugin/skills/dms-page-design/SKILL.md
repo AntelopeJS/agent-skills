@@ -33,6 +33,7 @@ arguments are in `dms-builder-mcp`, the code in `dms-pages`.
 | A column with 2 to 6 values (status, segment, media type) | `ChartCard` around `ChartDonut`, with `showSeriesLegend: true` | `series`, `groupBy` the column, `response: "card"`                                                                                               |
 | A column with 7 or more values, a top N                   | A bare `ChartBar`, or a `TopListCard` with `showBar`           | `series`, `orderBy: "measure"`, `direction: "desc"`, `limit: 10`; `response: "card"` for the chart, `"items"` for the list                       |
 | One figure with its trend (revenue, orders, customers)    | `KpiCard` with `showDelta`, `showSparkline`                    | `series` by the time axis (never `count` or `aggregate`, which answer no previous period and no sparkline), `response: "value"`, `compare: true` |
+| A share or a rate (utilisation rate, conversion rate: one count or sum over another) | `KpiCard` with `valueFormat: "percent"` | `ratio` with `numerator` and `denominator` (each `{ op: "count" \| "sum", field?, where? }`), `response: "value"`, `compare: true` for a delta |
 | Numbers used as categories (a rating 1 to 5, a year)      | `ChartCard` around `ChartColumn` with `xaxisType: "category"`  | `series`, `groupBy` the column                                                                                                                   |
 | A status column on a table                                | Tabs on the `TableView`, plus a donut on the analytics page    | see _Tables_                                                                                                                                     |
 
@@ -41,6 +42,7 @@ arguments are in `dms-builder-mcp`, the code in `dms-pages`.
   `ChartBar` stays bare: inside a card its category labels read `NaN`.
 - The `response` must match the block: `card` for a `ChartCard` or a bare chart, `value` for a
   `KpiCard`, `items` for a `TopListCard`. Any other pairing draws nothing.
+- A share or a rate is never one of its two counts ("Utilisation rate" is not "Bikes rented"): build it on the `ratio` template, for example `numerator: { op: "count", where: [{ field: "status", op: "eq", value: "rented" }] }`, `denominator: { op: "count" }`, with `valueFormat: "percent"` on the card. `ratio` answers in percent (25 for a quarter), and a zero denominator shows the card's empty state.
 - Compare periods on KPI cards and top lists (`compare: true`), never on a chart over time:
   the previous period's buckets are other categories, so they draw beside the period instead
   of under it.
