@@ -12,6 +12,7 @@
   },
   "include": [
     "agent-skills-pack.test.mjs",
+    "check-plugin-version.test.mjs",
     "packages.test.mjs",
     "skill-discovery.test.mjs",
     "sync-skills-packages.test.mjs"
