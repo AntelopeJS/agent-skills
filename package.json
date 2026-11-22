@@ -35,7 +35,7 @@
     "@anthropic-ai/sdk": "^0.135.0"
   },
   "devDependencies": {
-    "@antelopejs/tooling-configs": "^0.8.9",
+    "@antelopejs/tooling-configs": ">=0.9.3 <0.10.0",
     "@types/node": "^24",
     "knip": "^6.43.0",
     "lefthook": "^2.2.2",
