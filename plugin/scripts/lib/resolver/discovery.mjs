@@ -1,5 +1,6 @@
 import { readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { cachedModuleDirs, cachedModules } from "../module-cache.mjs";
 import { readJsonSafe } from "../safe-read.mjs";
 import { isRecord, isText } from "../values.mjs";
 import {
@@ -67,22 +68,6 @@ export function candidateScopes() {
 }
 
 /**
- * Scope directories under the CLI's module cache (`.antelope/cache/@scope/pkg`),
- * plus the cache root itself for non-scoped entries (`.antelope/cache/pkg`).
- * @returns {string[]}
- */
-function cacheScopeRoots() {
-  const cache = join(process.cwd(), ".antelope", "cache");
-  if (!isDirectorySafe(cache)) return [];
-  const roots = [cache];
-  for (const entry of readdirSync(cache)) {
-    if (entry.startsWith("@") && isDirectorySafe(join(cache, entry)))
-      roots.push(join(cache, entry));
-  }
-  return roots;
-}
-
-/**
  * @returns {string[]}
  */
 function discoveryRoots() {
@@ -93,7 +78,6 @@ function discoveryRoots() {
   for (const scope of candidateScopes()) {
     roots.push(join(process.cwd(), "node_modules", scope));
   }
-  roots.push(...cacheScopeRoots());
   return roots.filter(isDirectorySafe);
 }
 
@@ -115,14 +99,17 @@ export function discoverInterfaces() {
   if (interfaceCache) return interfaceCache;
   /** @type {Map<string, PackageEntry>} */
   const found = new Map();
-  for (const root of discoveryRoots()) {
-    for (const entry of readdirSync(root)) {
-      const dir = join(root, entry);
-      if (!isDirectorySafe(dir) || !isInterfacePackage(dir)) continue;
-      const pkg = readManifest(join(dir, "package.json"));
-      const name = nameOf(pkg);
-      if (!found.has(name)) found.set(name, { dir, pkg });
-    }
+  const dirs = [
+    ...discoveryRoots().flatMap((root) =>
+      readdirSync(root).map((entry) => join(root, entry)),
+    ),
+    ...cachedModules(process.cwd()).map((m) => m.dir),
+  ];
+  for (const dir of dirs) {
+    if (!isDirectorySafe(dir) || !isInterfacePackage(dir)) continue;
+    const pkg = readManifest(join(dir, "package.json"));
+    const name = nameOf(pkg);
+    if (!found.has(name)) found.set(name, { dir, pkg });
   }
   interfaceCache = found;
   return found;
@@ -180,31 +167,18 @@ function packageEntryAt(dir) {
 }
 
 /**
- * A package the CLI cached for antelope.config, one directory per version
- * (`.antelope/cache/<pkg>@<version>`): the wanted version, else the highest.
+ * A package the CLI cached for antelope.config: the wanted version, else the
+ * highest.
  * @param {string} pkgName
  * @param {string | undefined} wanted
  * @returns {PackageEntry | null}
  */
 function cachedPackageEntry(pkgName, wanted) {
-  const slash = pkgName.lastIndexOf("/");
-  const parent = join(
-    process.cwd(),
-    ".antelope",
-    "cache",
-    pkgName.slice(0, slash + 1),
-  );
-  if (!isDirectorySafe(parent)) return null;
-  const prefix = `${pkgName.slice(slash + 1)}@`;
-  const versions = readdirSync(parent)
-    .filter((entry) => entry.startsWith(prefix))
-    .map((entry) => entry.slice(prefix.length))
-    .sort((a, b) => b.localeCompare(a, "en", { numeric: true }));
-  const pinned = wanted?.replace(/^v/, "");
-  const version = versions.find((v) => v === pinned) ?? versions[0];
-  return version === undefined
-    ? null
-    : packageEntryAt(join(parent, `${prefix}${version}`));
+  for (const dir of cachedModuleDirs(process.cwd(), pkgName, wanted)) {
+    const entry = packageEntryAt(dir);
+    if (entry) return entry;
+  }
+  return null;
 }
 
 /**
@@ -245,13 +219,9 @@ export function discoverDmsHosts() {
   for (const dep of projectDependencyNames())
     consider(installedPackageEntry(dep));
 
-  for (const root of cacheScopeRoots()) {
-    for (const entry of readdirSync(root)) {
-      const dir = join(root, entry);
-      if (!isDirectorySafe(dir)) continue;
-      const pkg = readJsonSafe(join(dir, "package.json"));
-      if (isRecord(pkg)) consider({ dir, pkg });
-    }
+  for (const { dir } of cachedModules(process.cwd())) {
+    const pkg = readJsonSafe(join(dir, "package.json"));
+    if (isRecord(pkg)) consider({ dir, pkg });
   }
 
   const skip = new Set(["node_modules", "dist", ".git"]);

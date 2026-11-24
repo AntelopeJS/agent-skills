@@ -283,3 +283,39 @@ void test("reads a package whose exports is null from its types field", async ()
   assert.deepEqual(unknownNames(imported), ["Missing"]);
   assert.deepEqual(referenced.findings, []);
 });
+
+void test("reads a package ajs cached in a name@version folder", async () => {
+  const cached = makeTempDir();
+  try {
+    writeJson(join(cached, "package.json"), { name: "app" });
+    const dir = join(
+      cached,
+      ".antelope",
+      "cache",
+      "@antelopejs",
+      "dms-cached@1.0.0",
+    );
+    writeJson(join(dir, "package.json"), {
+      name: "@antelopejs/dms-cached",
+      version: "1.0.0",
+      exports: { ".": { types: "./index.d.ts" } },
+    });
+    writeFile(
+      join(dir, "index.d.ts"),
+      "export declare function RegisterPage(): void;\n",
+    );
+
+    const report = await verifyText(
+      `${fence}ts\nimport { RegisterPage, Invented } from "@antelopejs/dms-cached";\n${fence}`,
+      {
+        project: cached,
+        offline: true,
+        env: { ...process.env, AJS_INTERFACES_DIR: interfacesDir },
+      },
+    );
+
+    assert.deepEqual(unknownNames(report), ["Invented"]);
+  } finally {
+    removeDir(cached);
+  }
+});

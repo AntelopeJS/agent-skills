@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 
 import { extractApiReferences } from "./identifiers.mjs";
 import { ModuleResolver, splitSpecifier, STATUS } from "./exports.mjs";
+import { cachedModules } from "../../plugin/scripts/lib/module-cache.mjs";
 import { isText } from "../../plugin/scripts/lib/values.mjs";
 
 /**
@@ -80,16 +81,21 @@ function scopeOf(specifier) {
  * @returns {string[]}
  */
 function installedInScope(project, scope) {
-  const roots = ancestors(project).flatMap((dir) => [
-    join(dir, "node_modules", scope),
-    join(dir, ".antelope", "cache", scope),
-  ]);
-  const names = roots
+  const dirs = ancestors(project);
+  const installed = dirs
+    .map((dir) => join(dir, "node_modules", scope))
     .filter(existsSync)
     .flatMap((root) =>
-      readdirSync(root).filter((entry) => !entry.startsWith(".")),
+      readdirSync(root)
+        .filter((entry) => !entry.startsWith("."))
+        .map((entry) => `${scope}/${entry}`),
     );
-  return [...new Set(names)].map((entry) => `${scope}/${entry}`);
+  const cached = dirs.flatMap((dir) =>
+    cachedModules(dir)
+      .filter((m) => m.name.startsWith(`${scope}/`))
+      .map((m) => m.name),
+  );
+  return [...new Set([...installed, ...cached])];
 }
 
 /**
