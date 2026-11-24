@@ -129,6 +129,25 @@ void test("links skills of modules installed by ajs in .antelope/cache", () => {
   assert.equal(skills["local-mod--local-mod"].package, "local-mod");
 });
 
+void test("links skills of modules ajs installed in name@version cache folders", () => {
+  writeAntelopeConfig(root);
+  writeSkillPackage(
+    join(root, ".antelope", "cache", "@antelopejs", "dms-saas@1.2.0"),
+    "@antelopejs/dms-saas",
+    ["dms-saas"],
+  );
+  writeSkillPackage(
+    join(root, ".antelope", "cache", "local-mod@0.3.0"),
+    "local-mod",
+    ["local-mod"],
+  );
+
+  const skills = byName(sync(root));
+
+  assert.equal(skills["dms-saas--dms-saas"].origin, "antelope-cache");
+  assert.equal(skills["local-mod--local-mod"].package, "local-mod");
+});
+
 void test("links the skills of a cached module's own dependencies", () => {
   writeAntelopeConfig(root);
   writeJson(join(root, ".antelope/cache/@antelopejs/mongodb/package.json"), {

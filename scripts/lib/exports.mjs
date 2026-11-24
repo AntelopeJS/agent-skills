@@ -17,6 +17,7 @@ import {
   readManifest,
   typesTarget,
 } from "../../plugin/scripts/lib/resolver/support.mjs";
+import { cachedModuleDirs } from "../../plugin/scripts/lib/module-cache.mjs";
 import { isRecord, isText } from "../../plugin/scripts/lib/values.mjs";
 
 /**
@@ -110,7 +111,7 @@ function ancestors(dir) {
 function localPackageDir(project, name) {
   const candidates = ancestors(resolve(project)).flatMap((dir) => [
     join(dir, "node_modules", name),
-    join(dir, ".antelope", "cache", name),
+    ...cachedModuleDirs(dir, name),
   ]);
   return (
     candidates.find((dir) => existsSync(join(dir, "package.json"))) ?? null

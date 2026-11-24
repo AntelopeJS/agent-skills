@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { collectSkillPackages } from "../../packages/agent-skills/index.mjs";
+import { cachedModules } from "./module-cache.mjs";
 import { readdirSafe } from "./safe-read.mjs";
 import { declaresWorkspaces, workspacePackageDirs } from "./workspaces.mjs";
 
@@ -92,7 +93,7 @@ export function candidatePackages(cwd, onWarning) {
   const ancestors = ancestorDirs(cwd);
   const root = ancestors[ancestors.length - 1];
   const workspace = [...ancestors, ...workspacePackageDirs(root)];
-  const cache = packagesIn(join(cwd, ".antelope", "cache"));
+  const cache = cachedModules(cwd).map((m) => m.dir);
   const installed = [...new Set([cwd, root])].flatMap((dir) =>
     packagesIn(join(dir, "node_modules")),
   );

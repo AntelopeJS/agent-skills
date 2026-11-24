@@ -2,6 +2,10 @@
 
 Releases of the `antelopejs` plugin for Claude Code and OpenAI Codex. The `@antelopejs/agent-skills` npm package has its own releases, tagged `agent-skills-v<version>`.
 
+## 0.9.7
+
+- The sync, the interface resolver and `verify` find modules `ajs` caches as `.antelope/cache/<name>@<version>`, scoped ones included, through one helper that holds the layout.
+
 ## 0.9.6
 
 - dms-best-practices says a model with no tenant reads the default instance, not the request's workspace, and lists the owner-level grants as the Roles editor does. dms-builder-mcp says a role no member holds alone stays unchecked. The dms-page-design `multiple` relation snippet names `dataApiController`.
