@@ -5,7 +5,7 @@ export default {
       source: {
         type: "package",
         package: "@antelopejs/dms",
-        version: "^0.19.0",
+        version: "^0.24.0",
       },
     },
   },
