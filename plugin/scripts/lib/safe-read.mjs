@@ -1,13 +1,11 @@
-/**
- * Reads that fall back to an empty value instead of throwing, and the typed
- * property read for the `unknown` that a JSON read returns.
- */
-
 import { lstatSync, readFileSync, readdirSync, statSync } from "node:fs";
 
 import { isRecord } from "./values.mjs";
 
 /**
+ * Reads that fall back to an empty value instead of throwing, and the typed
+ * property read for the `unknown` that a JSON read returns.
+ *
  * @param {string} path
  * @returns {unknown}
  */

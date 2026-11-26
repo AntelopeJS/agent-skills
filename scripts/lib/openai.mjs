@@ -121,8 +121,7 @@ function incompleteReason(body) {
 /**
  * A backend over the OpenAI Responses API, called with `fetch` so the plugin
  * adds no dependency. It reads `OPENAI_API_KEY` unless `apiKey` is given.
- */
-/**
+ *
  * @param {{ model?: string, apiKey?: string, baseUrl?: string, fetchImpl?: OpenAIFetch }} [options]
  * @returns {ModelBackend}
  */

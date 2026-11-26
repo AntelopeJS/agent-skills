@@ -1,9 +1,3 @@
-/**
- * The eval dataset (`evals/cases.json`) and its schema check. Each case is a
- * user prompt and the skills an agent should load for it; optional fields feed
- * the answer-quality eval (API names to mention or avoid, expected behaviour).
- */
-
 import { fileURLToPath } from "node:url";
 
 import { readJsonFile } from "../../plugin/scripts/lib/json.mjs";
@@ -71,6 +65,10 @@ export const AREAS = [
 export const STYLES = ["clean", "casual"];
 export const ORIGINS = ["docs-assistant"];
 /**
+ * The eval dataset (`evals/cases.json`) and its schema check. Each case is a
+ * user prompt and the skills an agent should load for it; optional fields feed
+ * the answer-quality eval (API names to mention or avoid, expected behaviour).
+ *
  * `asks-first`: the answer asks the user a question before writing any code.
  * @type {EvalBehaviour[]}
  */

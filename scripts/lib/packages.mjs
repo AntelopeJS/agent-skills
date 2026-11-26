@@ -1,9 +1,3 @@
-/**
- * Fetches a published package (tarball only, no dependencies) into a local
- * cache, the way the interface resolver does, so an eval can read the skills
- * it ships without installing it.
- */
-
 import {
   existsSync,
   mkdirSync,
@@ -23,6 +17,10 @@ const MAX_BUFFER_BYTES = 16 * 1024 * 1024;
 const execFileAsync = promisify(execFile);
 
 /**
+ * Fetches a published package (tarball only, no dependencies) into a local
+ * cache, the way the interface resolver does, so an eval can read the skills
+ * it ships without installing it.
+ *
  * @returns {string}
  */
 export function packageCacheRoot() {

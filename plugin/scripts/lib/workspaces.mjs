@@ -1,8 +1,3 @@
-/**
- * The directories a repository root declares as workspace packages, through
- * its pnpm-workspace.yaml or the `workspaces` of its package.json.
- */
-
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
@@ -19,6 +14,9 @@ const WORKSPACE_FILE = "pnpm-workspace.yaml";
 const RECURSIVE_GLOB_DEPTH = 3;
 
 /**
+ * The directories a repository root declares as workspace packages, through
+ * its pnpm-workspace.yaml or the `workspaces` of its package.json.
+ *
  * @param {string} dir
  * @returns {boolean}
  */

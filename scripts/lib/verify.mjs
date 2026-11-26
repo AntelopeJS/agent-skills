@@ -1,8 +1,3 @@
-/**
- * Checks the API names an answer or a diff relies on against what the
- * installed packages really export, and reports the unknown ones.
- */
-
 import { existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 
@@ -59,6 +54,9 @@ const FRAMEWORK_SCOPE = "@antelopejs";
 const PERCENT = 100;
 
 /**
+ * Checks the API names an answer or a diff relies on against what the
+ * installed packages really export, and reports the unknown ones.
+ *
  * @param {string} dir
  * @returns {string[]}
  */

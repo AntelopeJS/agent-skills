@@ -1,8 +1,3 @@
-/**
- * Answer-quality eval: the model answers each case with the case's expected
- * skills loaded, and `verify` counts the API names it invented.
- */
-
 import { answerRequest } from "./model.mjs";
 
 /** @typedef {import("./dataset.mjs").EvalCase} EvalCase */
@@ -75,6 +70,9 @@ const CHOICE_CUE_RE =
 const MIN_OPTIONS = 2;
 
 /**
+ * Answer-quality eval: the model answers each case with the case's expected
+ * skills loaded, and `verify` counts the API names it invented.
+ *
  * @param {string} answer
  * @param {string} name
  * @returns {boolean}
