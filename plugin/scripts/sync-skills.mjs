@@ -1,33 +1,4 @@
 #!/usr/bin/env node
-/**
- * Sync package-shipped agent skills into the current project.
- *
- * A package ships skills by declaring `antelopeJs.skills` in its package.json:
- * an array of directories (relative to the package root) whose subdirectories
- * each contain a SKILL.md. Every declared skill is linked, as a RELATIVE
- * symlink named `<module-short-name>--<skill-dir-name>`, into each target:
- *   claude — `.claude/skills/` (Claude Code)
- *   codex  — `.agents/skills/` (OpenAI Codex)
- *
- * A directory is an AntelopeJS project when it holds `antelope.config.*`, or
- * when its package.json depends on `@antelopejs/core` (embedded runtime, e.g.
- * the AdonisJS template). Anywhere else the script exits 0 and does nothing.
- *
- * Only entries the script created are ever touched: each target directory
- * tracks them in its own `.ajs-managed.json`, and a generated `.gitignore` there
- * keeps them out of git. Managed entries whose package or skill disappeared are
- * pruned.
- *
- * Flags:
- *   --target claude|codex|all
- *              Which skills directories to sync (default: all).
- *   --quiet    No output, warnings included (hook mode).
- *   --json     Machine-readable summary on stdout.
- *   --dry-run  Report what would change without touching the filesystem.
- *   --list     Show every package-shipped skill, its source and its status;
- *              changes nothing.
- */
-
 import {
   existsSync,
   mkdirSync,
@@ -137,6 +108,33 @@ const DEPENDENCY_FIELDS = [
 const STATUS = { linked: "linked", added: "added", skipped: "skipped" };
 
 /**
+ * Sync package-shipped agent skills into the current project.
+ *
+ * A package ships skills by declaring `antelopeJs.skills` in its package.json:
+ * an array of directories (relative to the package root) whose subdirectories
+ * each contain a SKILL.md. Every declared skill is linked, as a RELATIVE
+ * symlink named `<module-short-name>--<skill-dir-name>`, into each target:
+ *   claude — `.claude/skills/` (Claude Code)
+ *   codex  — `.agents/skills/` (OpenAI Codex)
+ *
+ * A directory is an AntelopeJS project when it holds `antelope.config.*`, or
+ * when its package.json depends on `@antelopejs/core` (embedded runtime, e.g.
+ * the AdonisJS template). Anywhere else the script exits 0 and does nothing.
+ *
+ * Only entries the script created are ever touched: each target directory
+ * tracks them in its own `.ajs-managed.json`, and a generated `.gitignore` there
+ * keeps them out of git. Managed entries whose package or skill disappeared are
+ * pruned.
+ *
+ * Flags:
+ *   --target claude|codex|all
+ *              Which skills directories to sync (default: all).
+ *   --quiet    No output, warnings included (hook mode).
+ *   --json     Machine-readable summary on stdout.
+ *   --dry-run  Report what would change without touching the filesystem.
+ *   --list     Show every package-shipped skill, its source and its status;
+ *              changes nothing.
+ *
  * @param {string} msg
  */
 function log(msg) {

@@ -1,10 +1,3 @@
-/**
- * Model-backed side of the evals. A backend is any object with
- * `complete({ system, user, schema?, effort?, maxTokens? }) => Promise<string>`;
- * the built-in one calls the Anthropic Messages API through the official SDK,
- * loaded only when a model-backed eval actually runs.
- */
-
 import { parseJson } from "../../plugin/scripts/lib/json.mjs";
 import { fieldOf } from "../../plugin/scripts/lib/safe-read.mjs";
 import { isText } from "../../plugin/scripts/lib/values.mjs";
@@ -122,6 +115,11 @@ explain briefly and write the code it needs, with its imports.
 `;
 
 /**
+ * Model-backed side of the evals. A backend is any object with
+ * `complete({ system, user, schema?, effort?, maxTokens? }) => Promise<string>`;
+ * the built-in one calls the Anthropic Messages API through the official SDK,
+ * loaded only when a model-backed eval actually runs.
+ *
  * @param {Record<string, string | undefined>} [env]
  * @returns {string}
  */
