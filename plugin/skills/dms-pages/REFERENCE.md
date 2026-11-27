@@ -134,13 +134,13 @@ A monitoring page, `pageToolbar()`, `LiveToggle`, `liveHold` and pause: see [LIV
 ### Texts
 
 - A text naming values is a `ComposedText` — `{ key, params: { amount: { type: "money", value: 92200,
-currency: "EUR" } } }` — written by the browser in the reader's language. StatGroup /
+  currency: "EUR" } } }` — written by the browser in the reader's language. StatGroup /
   KeyValueList / Banner / NavCardGrid / ActivityFeed / Meter / TopListCard item texts, ActivityFeed
   `params` (typed `count` for plurals), tab badges and layout banners (`RegisterLayoutBanner({ resolve })`
   → `{ text, actions }`) take it. Never format text server-side.
 - A layout banner (`RegisterLayoutBanner`) shows on the application's pages only by default, never
   inside `/modules` (modules page, module store, module pages). Give `scope:
-LayoutBannerScope.EVERYWHERE` to a workspace-wide state (billing past due, suspended workspace,
+  LayoutBannerScope.EVERYWHERE` to a workspace-wide state (billing past due, suspended workspace,
   maintenance) that must follow the user into modules; leave the default for anything about the
   application's own data.
 - A route that must word a text reads the request's `x-content-language` header (the language on
