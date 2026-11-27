@@ -32,7 +32,7 @@
     "suppressions:update": "antelopejs-suppressions --update"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.135.0"
+    "@anthropic-ai/sdk": "^0.137.0"
   },
   "devDependencies": {
     "@antelopejs/tooling-configs": "^0.10.7",
