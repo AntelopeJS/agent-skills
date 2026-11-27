@@ -2,6 +2,10 @@
 
 Releases of the `antelopejs` plugin for Claude Code and OpenAI Codex. The `@antelopejs/agent-skills` npm package has its own releases, tagged `agent-skills-v<version>`.
 
+## 0.9.9
+
+- Devtools only: oxfmt 0.80 and oxlint 1.95. Two DMS skill reference files reformatted.
+
 ## 0.9.8
 
 - Devtools only: tooling-configs 0.10.7, pnpm 10.34.9 and a 24-hour minimum release age for installs. Script header comments moved onto their declarations.
